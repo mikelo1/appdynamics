@@ -130,11 +130,8 @@ for healthrule in root.findall('health-rule'):
             if amc.find('inverse').text == "true":
                 EntityName = EntityName + "NOT "
             EntityName = EntityName + "matching: " + amc.find('match-type').text + " " + amc.find('match-pattern').text
-        elif matchType.text == "ALL":
-            BTname = matchType.text
-        else:
-            print "Unknown business transaction criteria type: " + matchType.text
-            continue
+        else: # matchType.text == "ALL":
+            EntityName = matchType.text
     elif Type == "MOBILE_APPLICATION":
         aEntitymc = healthrule.find('affected-entities-match-criteria')
         amc = aEntitymc.find('affected-mobile-application-match-criteria')
