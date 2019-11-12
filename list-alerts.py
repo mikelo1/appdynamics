@@ -112,8 +112,8 @@ def fetch_healthrule_violations(time_range_type,range_param1,range_param2):
         root = ET.fromstring(response.content)
     except:
         print ("Could not process authentication token for user " + userName + ".  Did you mess up your username/password?")
-        print "status:", response.status_code
-        print "header:", response.headers
+        print "   status:", response.status_code
+        print "   header:", response.headers
         print "Writing content to file: response.txt"
         file1 = open("response.txt","w") 
         file1.write(response.content)

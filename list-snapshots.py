@@ -122,8 +122,8 @@ def fetch_snapshots(time_range_type,range_param1,range_param2):
         snapshots = json.loads(response.content)
     except:
         print ("Could not process authentication token for user " + userName + ".  Did you mess up your username/password?")
-        print "status:", response.status_code
-        print "header:", response.headers
+        print "   status:", response.status_code
+        print "   header:", response.headers
         print "Writing content to file: response.txt"
         file1 = open("response.txt","w") 
         file1.write(response.content)
@@ -215,6 +215,6 @@ if 'baseUrl' in locals():
                 exit (1)
         write_element_snapshot(data_chunck,filewriter)
 elif 'root' in locals():
-    write_element_policyviolation(root,filewriter)
+    write_element_snapshot(root,filewriter)
 else:
     print ("Nothing to do.")
