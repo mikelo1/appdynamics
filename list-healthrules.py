@@ -92,7 +92,7 @@ except:
     exit(1)
 
 # create the csv writer object
-fieldnames = ['EntityName', 'HealthRule', 'Duration', 'Schedule', 'Critical_Count', 'Critical_Condition']
+fieldnames = ['HealthRule', 'Duration', 'Schedule', 'Enabled', 'EntityName', 'Critical_Condition']
 filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
 filewriter.writeheader()
 
@@ -234,27 +234,43 @@ for healthrule in root.findall('health-rule'):
         CritCondition = "NULL"
     else:
         policyCondition = cec.find('policy-condition')
-        for num in range(1,9):
-            condition = policyCondition.find('condition'+str(num))
-            if condition is not None and condition.find('type').text == 'leaf':
-                CECcount = CECcount + 1
-                if CECcount > 1: CritCondition = CritCondition + "\n"
-                ConditionExp = condition.find('condition-expression')
-                if ConditionExp is not None and ConditionExp.text is not None:
-                    CritCondition = CritCondition + ConditionExp.text
+        num = 1
+        condition = policyCondition.find('condition'+str(num))
+        if condition is not None:
+            while condition is not None:
+                if condition.find('type').text == 'leaf':
+                    CECcount = CECcount + 1
+                    if CECcount > 1: CritCondition = CritCondition + "\n"
+                    ConditionExp = condition.find('condition-expression')
+                    if ConditionExp is not None and ConditionExp.text is not None:
+                        CritCondition = CritCondition + ConditionExp.text
+                    else:
+                        MetricDef = condition.find('metric-expression').find('metric-definition')
+                        MetricName = MetricDef.find('logical-metric-name')
+                        CritCondition = CritCondition + MetricName.text
+                    ConditionOpe = condition.find('operator')
+                    ConditionVal = condition.find('condition-value')
+                    CritCondition = CritCondition + " " + ConditionOpe.text + " " + ConditionVal.text
+                    if condition.find('condition-value-type').text == "BASELINE_STANDARD_DEVIATION":
+                        CritCondition = CritCondition + " Baseline Standard Deviations"
                 else:
-                    MetricDef = condition.find('metric-expression').find('metric-definition')
-                    MetricName = MetricDef.find('logical-metric-name')
-                    CritCondition = CritCondition + MetricName.text
-                ConditionOpe = condition.find('operator')
-                ConditionVal = condition.find('condition-value')
-                CritCondition = CritCondition + " " + ConditionOpe.text + " " + ConditionVal.text
-                if condition.find('condition-value-type').text == "BASELINE_STANDARD_DEVIATION":
-                    CritCondition = CritCondition + " Baseline Standard Deviations"
-            elif condition is not None:
-                CritCondition = condition.find('type').text
+                    CritCondition = condition.find('type').text
+                num += 1
+                condition = policyCondition.find('condition'+str(num))
+        else:
+            ConditionExp = policyCondition.find('condition-expression')
+            if ConditionExp is not None and ConditionExp.text is not None:
+                CritCondition = CritCondition + ConditionExp.text
             else:
-                continue
+                MetricDef = policyCondition.find('metric-expression').find('metric-definition')
+                MetricName = MetricDef.find('logical-metric-name')
+                CritCondition = CritCondition + MetricName.text
+            ConditionOpe = policyCondition.find('operator')
+            ConditionVal = policyCondition.find('condition-value')
+            CritCondition = CritCondition + " " + ConditionOpe.text + " " + ConditionVal.text
+            if policyCondition.find('condition-value-type').text == "BASELINE_STANDARD_DEVIATION":
+                CritCondition = CritCondition + " Baseline Standard Deviations"
+
                
 #    wec = healthrule.find('warning-execution-criteria')
 #    if wec is None:
@@ -263,11 +279,11 @@ for healthrule in root.findall('health-rule'):
 #        print ("No warning-execution-criteria for health-rule: "+healthrule.find('name').text)
 
     try:
-        filewriter.writerow({'EntityName': EntityName,
-                            'HealthRule': HRname,
+        filewriter.writerow({'HealthRule': HRname,
                             'Duration': Duration,
                             'Schedule': Schedule,
-                            'Critical_Count': CECcount,
+                            'Enabled': Enabled,
+                            'EntityName': EntityName,
                             'Critical_Condition':CritCondition})
     except:
         print ("Could not write to the output file " + fileName + ".")
