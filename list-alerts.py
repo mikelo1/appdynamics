@@ -146,7 +146,11 @@ def write_element_policyviolation(root,filewriter):
         Definition = policyviolation.find('triggeredEntityDefinition')
         Type = Definition.find('entityType')
         if Type.text == "POLICY":
-            PolicyName = Definition.find('name').text
+            entity = Definition.find('name')
+            if entity is not None:
+                PolicyName = entity.text
+            else:
+                PolicyName = Definition.find('entityId').text
         else:
             continue
 
