@@ -107,6 +107,9 @@ def fetch_healthrule_violations(time_range_type,range_param1,range_param2):
         file1.write(response.content)
         file1.close() 
         return None
+    elif 'DEBUG' in locals():
+        file1 = open("response.txt","w") 
+        file1.write(response.content)
 
     try:
         root = ET.fromstring(response.content)
@@ -150,7 +153,11 @@ def write_element_policyviolation(root,filewriter):
         Definition = policyviolation.find('affectedEntityDefinition')
         Type = Definition.find('entityType')
         if Type.text == "BUSINESS_TRANSACTION" or Type.text == "APPLICATION_DIAGNOSTIC_DATA" or Type.text == "MOBILE_APPLICATION":
-            EntityName = Definition.find('name').text
+            entity = Definition.find('name')
+            if entity is not None:
+                EntityName = entity.text
+            else:
+                EntityName = Definition.find('entityId').text
         else:
             continue
 
@@ -213,7 +220,7 @@ filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quote
 filewriter.writeheader()
 
 if 'baseUrl' in locals():
-    for i in range(30,0,-1):
+    for i in range(15,0,-1):
         for retry in range(1,4):
             root = fetch_healthrule_violations("AFTER_TIME","1440",datetime.today()-timedelta(days=i))
             if root is not None:
