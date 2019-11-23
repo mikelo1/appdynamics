@@ -2,6 +2,7 @@
 import requests
 import xml.etree.ElementTree as ET
 import libxml2
+import json
 import csv
 import sys
 from optparse import OptionParser
@@ -121,126 +122,69 @@ except:
     print ("Could not open output file " + options.outFileName + ".")
     exit(1)
 
+#mydata = ET.tostring(root)
+#myfile = open("items.xml", "w")
+#myfile.write(mydata)
+#exit
+
 # create the csv writer object
-fieldnames = ['EntityName', 'HealthRule', 'Duration', 'Schedule', 'Critical_Count', 'Critical_Condition']
+fieldnames = ['Name', 'Type', 'MatchRule']
 filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
 filewriter.writeheader()
 
-#for health_rule in ctxt.xpathEval("/health-rules/health-rule[type[text()="BUSINESS_TRANSACTION"] and enabled[text()="true"] and is-default[text()="false"]]"):
-#	BT = health_rule.xpathEval("/affected-entities-match-criteria/affected-bt-match-criteria")
+ruleList = root.find('rule-list')
+for detectrule in ruleList.findall('rule'):
 
-count = 0
-for healthrule in root.findall('health-rule'):
+#    for child in detectrule:
+#       print(child.tag, child.attrib, child.text)
+#    print ("\n")
 
-    Enabled = healthrule.find('enabled').text
-#    if Enabled == "false":
-#        continue
+    ruleName = detectrule.attrib['rule-name'].encode('ASCII', 'ignore')
+    ruleType = detectrule.attrib['rule-type']
 
-    IsDefault = healthrule.find('is-default').text
-#    if IsDefault == "true":
-#        continue
+    if ruleType == "TX_MATCH_RULE":
+        txMatchRule = detectrule.find('tx-match-rule')
 
-    Type = healthrule.find('type').text
-    if Type == "BUSINESS_TRANSACTION":
-        aEntitymc = healthrule.find('affected-entities-match-criteria')
-        amc = aEntitymc.find('affected-bt-match-criteria')
-        matchType = amc.find('type')
-        if matchType.text == "ALL":
-            BTname = matchType.text
+        try:
+            matchRuleData = json.loads(txMatchRule.text)
+        except:
+            print ("Could not process JSON content:\n"+txMatchRule.text)
+
+        matchRuleType = matchRuleData['type']
+        ruleType = matchRuleType
+        if matchRuleType == "AUTOMATIC_DISCOVERY":
+            matchRule = ''
+            autoDiscoveryConfigs = matchRuleData['txautodiscoveryrule']['autodiscoveryconfigs']
+            for discoveryconfig in autoDiscoveryConfigs:
+                if matchRule is not "":
+                    matchRule = matchRule + "\n" 
+                matchRule = matchRule + discoveryconfig['txentrypointtype']
+        elif matchRuleType == "CUSTOM":
+            matchRule = ''
+            matchconditions = matchRuleData['txcustomrule']['matchconditions']
+            for mCondition in matchconditions:
+                if mCondition['type'] == "HTTP":
+                    httpmatch = mCondition['httpmatch']
+                    if 'uri' in httpmatch:
+                        mConditionHTTP = httpmatch['uri']
+                    elif 'classmatch' in httpmatch:
+                        mConditionHTTP = httpmatch['classmatch']['classnamecondition']
+                    matchRule = matchRule + mConditionHTTP['type'] + ":"
+                    for matchstring in mConditionHTTP['matchstrings']:
+                        if matchRule is not "":
+                            matchRule = matchRule + "\n" 
+                        matchRule = matchRule + matchstring
         else:
-            BTS = amc.find('business-transactions')
-            EntityName = BTS.find('business-transaction').text
-    elif Type == "MOBILE_APPLICATION":
-        aEntitymc = healthrule.find('affected-entities-match-criteria')
-        amc = aEntitymc.find('affected-mobile-application-match-criteria')
-        matchType = amc.find('type')
-        if matchType.text == "ALL_MOBILE_APPLICATIONS":
-            EntityName = matchType.text
-        else:
-            EntityName = matchType.text
-    elif Type == "APPLICATION_DIAGNOSTIC_DATA" or Type == "MOBILE_NETWORK_REQUESTS":
-        aEntitymc = healthrule.find('affected-entities-match-criteria')
-        amc = aEntitymc.find('affected-add-match-criteria')
-        matchType = amc.find('type')
-        if matchType.text == "ALL_ADDS":
-            EntityName = "ALL " + Type
-        else:
-            EntityName = matchType.text
-    elif Type == "INFRASTRUCTURE" or Type == "NETVIZ":
-        aEntitymc = healthrule.find('affected-entities-match-criteria')
-        amc = aEntitymc.find('affected-infra-match-criteria')
-        matchType = amc.find('type')
-        if matchType.text == "NODES":
-            nodeMatchCrit = amc.find('node-match-criteria')
-            nodeMatchType = nodeMatchCrit.find('type')
-            EntityName = matchType.text + " " + nodeMatchType.text
-        elif matchType.text == "TIERS":
-            tierMatchCrit = amc.find('tier-match-criteria')
-            tierMatchType = tierMatchCrit.find('type')
-            EntityName = matchType.text + " " + tierMatchType.text
-        else:
-            EntityName = matchType.text
+            print ("Uknown rule type: "+matchRuleType)
+            matchRule = txMatchRule.text
     else:
-        print "Unknown type: " + Type
-        continue
-
-    HRname = healthrule.find('name').text
-    Duration = healthrule.find('duration-min').text
-
-    AlwaysEnabled = healthrule.find('always-enabled').text
-    if AlwaysEnabled == "false":
-        Schedule = healthrule.find('schedule').text
-    else:
-        Schedule = "24x7"
-
-#   print healthrule.find('name').text
-#   for child in healthrule:
-#      print(child.tag, child.attrib, child.text)
-#   print ("\n")
-
-    CECcount = 0
-    CritCondition = ""
-    cec = healthrule.find('critical-execution-criteria')
-    if cec is None:
-        print ("No critical-execution-criteria for health-rule: "+healthrule.find('name').text)
-        CritCondition = "NULL"
-    else:
-        policyCondition = cec.find('policy-condition')
-        for num in range(1,9):
-            condition = policyCondition.find('condition'+str(num))
-            if condition is not None and condition.find('type').text == 'leaf':
-                CECcount = CECcount + 1
-                if CECcount > 1: CritCondition = CritCondition + "\n"
-                ConditionExp = condition.find('condition-expression')
-                if ConditionExp is not None and ConditionExp.text is not None:
-                    CritCondition = CritCondition + ConditionExp.text
-                else:
-                    MetricDef = condition.find('metric-expression').find('metric-definition')
-                    MetricName = MetricDef.find('logical-metric-name')
-                    CritCondition = CritCondition + MetricName.text
-                ConditionOpe = condition.find('operator')
-                ConditionVal = condition.find('condition-value')
-                CritCondition = CritCondition + " " + ConditionOpe.text + " " + ConditionVal.text
-                if condition.find('condition-value-type').text == "BASELINE_STANDARD_DEVIATION":
-                    CritCondition = CritCondition + " Baseline Standard Deviations"
-            elif condition is not None:
-                CritCondition = condition.find('type').text
-            else:
-                continue
-               
-#    wec = healthrule.find('warning-execution-criteria')
-#    if wec is None:
-#        WarnCondition = "NULL"
-#    else:
-#        print ("No warning-execution-criteria for health-rule: "+healthrule.find('name').text)
+        print ("Uknown rule type: "+ruleType)
+        matchRule = txMatchRule.text
 
     try:
-        filewriter.writerow({'EntityName': EntityName,
-                            'HealthRule': HRname,
-                            'Duration': Duration,
-                            'Schedule': Schedule,
-                            'Critical_Count': CECcount,
-                            'Critical_Condition':CritCondition})
+        filewriter.writerow({'Name': ruleName,
+                            'Type': ruleType,
+                            'MatchRule': matchRule})
     except:
         print ("Could not write to the output file " + fileName + ".")
         csvfile.close()
