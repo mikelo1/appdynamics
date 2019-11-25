@@ -157,7 +157,7 @@ for detectrule in ruleList.findall('rule'):
             autoDiscoveryConfigs = matchRuleData['txautodiscoveryrule']['autodiscoveryconfigs']
             for discoveryconfig in autoDiscoveryConfigs:
                 if matchRule is not "":
-                    matchRule = matchRule + ", " 
+                    matchRule = matchRule + "\n" 
                 matchRule = matchRule + discoveryconfig['txentrypointtype']
         elif matchRuleType == "CUSTOM":
             matchRule = ''
@@ -171,16 +171,40 @@ for detectrule in ruleList.findall('rule'):
                             if matchRule is not "":
                                 matchRule = matchRule + "\n"
                             matchRule = matchRule + "URI " + mConditionHTTP['type'] + ": "
+                            for matchstring in mConditionHTTP['matchstrings']: 
+                                matchRule = matchRule + matchstring
                         elif HTTPRequestCriteria == 'classmatch':
                             mConditionHTTP = httpmatch['classmatch']['classnamecondition']
                             classMatchType = httpmatch['classmatch']['type']
                             if matchRule is not "":
                                 matchRule = matchRule + "\n"
                             matchRule = matchRule + classMatchType + " " + mConditionHTTP['type'] + ": "
+                            for matchstring in mConditionHTTP['matchstrings']: 
+                                matchRule = matchRule + matchstring
+                        elif HTTPRequestCriteria == 'httpmethod':
+                            if matchRule is not "":
+                                matchRule = matchRule + "\n"
+                            matchRule = matchRule + "HTTP_Method: " + httpmatch['httpmethod']
+                        elif (HTTPRequestCriteria == 'parameters' and httpmatch['parameters']) or (HTTPRequestCriteria == 'headers' and httpmatch['headers']) or (HTTPRequestCriteria == 'cookies' and httpmatch['cookies']):
+                            if matchRule is not "":
+                                matchRule = matchRule + "\n"
+                            matchRule = matchRule + "HTTP_" + HTTPRequestCriteria + ": "
+                            for parameter in httpmatch[HTTPRequestCriteria]:
+                                paramName = parameter['name']
+                                for matchstring in paramName['matchstrings']: 
+                                    matchRule = matchRule + "Name " + paramName['type'] + ": " + matchstring + ", "
+                                paramValue = parameter['value']
+                                for matchstring in paramValue['matchstrings']: 
+                                    matchRule = matchRule + "Value " + paramValue['type'] + ": " + matchstring
+                        elif HTTPRequestCriteria == 'hostname' or HTTPRequestCriteria == 'port' or HTTPRequestCriteria == 'servlet':
+                            if matchRule is not "":
+                                matchRule = matchRule + "\n"
+                            matchRule = matchRule + HTTPRequestCriteria + " "
+                            paramName = httpmatch[HTTPRequestCriteria]
+                            for matchstring in paramName['matchstrings']: 
+                                matchRule = matchRule + paramName['type'] + ": " + matchstring
                         else:
                             continue
-                        for matchstring in mConditionHTTP['matchstrings']: 
-                            matchRule = matchRule + matchstring
         else:
             print ("Uknown rule type: "+matchRuleType)
             matchRule = txMatchRule.text
