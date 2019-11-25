@@ -157,7 +157,7 @@ for detectrule in ruleList.findall('rule'):
             autoDiscoveryConfigs = matchRuleData['txautodiscoveryrule']['autodiscoveryconfigs']
             for discoveryconfig in autoDiscoveryConfigs:
                 if matchRule is not "":
-                    matchRule = matchRule + "\n" 
+                    matchRule = matchRule + ", " 
                 matchRule = matchRule + discoveryconfig['txentrypointtype']
         elif matchRuleType == "CUSTOM":
             matchRule = ''
@@ -165,15 +165,22 @@ for detectrule in ruleList.findall('rule'):
             for mCondition in matchconditions:
                 if mCondition['type'] == "HTTP":
                     httpmatch = mCondition['httpmatch']
-                    if 'uri' in httpmatch:
-                        mConditionHTTP = httpmatch['uri']
-                    elif 'classmatch' in httpmatch:
-                        mConditionHTTP = httpmatch['classmatch']['classnamecondition']
-                    matchRule = matchRule + mConditionHTTP['type'] + ":"
-                    for matchstring in mConditionHTTP['matchstrings']:
-                        if matchRule is not "":
-                            matchRule = matchRule + "\n" 
-                        matchRule = matchRule + matchstring
+                    for HTTPRequestCriteria in httpmatch:
+                        if HTTPRequestCriteria == 'uri':
+                            mConditionHTTP = httpmatch['uri']
+                            if matchRule is not "":
+                                matchRule = matchRule + "\n"
+                            matchRule = matchRule + "URI " + mConditionHTTP['type'] + ": "
+                        elif HTTPRequestCriteria == 'classmatch':
+                            mConditionHTTP = httpmatch['classmatch']['classnamecondition']
+                            classMatchType = httpmatch['classmatch']['type']
+                            if matchRule is not "":
+                                matchRule = matchRule + "\n"
+                            matchRule = matchRule + classMatchType + " " + mConditionHTTP['type'] + ": "
+                        else:
+                            continue
+                        for matchstring in mConditionHTTP['matchstrings']: 
+                            matchRule = matchRule + matchstring
         else:
             print ("Uknown rule type: "+matchRuleType)
             matchRule = txMatchRule.text
