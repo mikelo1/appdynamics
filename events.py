@@ -3,27 +3,13 @@ import requests
 import xml.etree.ElementTree as ET
 import libxml2
 import csv
-import sys
-from optparse import OptionParser
 from datetime import datetime, timedelta
 import time
 
+eventList = []
 tierList = []
 
-def buildBaseURL(controller,port):
-    url = "http"
-
-    if options.ssl:
-        url = url + "s"
-        if (port == "") :
-            port = "443"
-    else:
-        if (port == "") :
-            port = "80"
-
-    return url + "://" + controller + ":" + port + "/controller/"
-
-def fetch_tiers_and_nodes():
+def fetch_tiers_and_nodes(baseUrl,userName,password,app_ID):
     try:
         print ("Fetching tiers for application " + app_ID + "...")
         response = requests.get(baseUrl + "rest/applications/" + app_ID + "/tiers", auth=(userName, password), params={"output": "JSON"})
@@ -51,7 +37,7 @@ def fetch_tiers_and_nodes():
             nodeList.append((node['id'],node['name']))
         tierList.append((tier['id'],tier['name'],nodeList))
 
-def fetch_healthrule_violations(time_range_type,range_param1,range_param2):
+def fetch_healthrule_violations(baseUrl,userName,password,app_ID,time_range_type,range_param1,range_param2):
    # time_range_type="AFTER_TIME" # {"BEFORE_NOW","BEFORE_TIME","AFTER_TIME","BETWEEN_TIMES"
    # duration_in_mins: {1day:"1440" 1week:"10080" 1month:"43200"}
    # range_param1=datetime.today()-timedelta(days=1)
@@ -62,7 +48,7 @@ def fetch_healthrule_violations(time_range_type,range_param1,range_param2):
             response = requests.get(baseUrl + "rest/applications/" + app_ID + "/problems/healthrule-violations", auth=(userName, password),\
                                     params={"time-range-type": time_range_type,"duration-in-mins": duration_in_mins})
         except:
-            #print ("Could not get authentication token from " + baseUrl + ".  Do you have the right controller hostname?")
+            print ("Could not get authentication token from " + baseUrl + ".  Do you have the right controller hostname?")
             return None
     elif time_range_type == "BEFORE_TIME" and range_param1 > 0 and range_param2 is not None:
         duration_in_mins = range_param1
@@ -72,7 +58,7 @@ def fetch_healthrule_violations(time_range_type,range_param1,range_param2):
             response = requests.get(baseUrl + "rest/applications/" + app_ID + "/problems/healthrule-violations", auth=(userName, password),\
                                 params={"time-range-type": time_range_type,"duration-in-mins": duration_in_mins,"end-time": end_time})
         except:
-            #print ("Could not get authentication token from " + baseUrl + ".  Do you have the right controller hostname?")
+            print ("Could not get authentication token from " + baseUrl + ".  Do you have the right controller hostname?")
             return None
     elif time_range_type == "AFTER_TIME" and range_param1 > 0 and range_param2 is not None:
         duration_in_mins = range_param1
@@ -82,7 +68,7 @@ def fetch_healthrule_violations(time_range_type,range_param1,range_param2):
             response = requests.get(baseUrl + "rest/applications/" + app_ID + "/problems/healthrule-violations", auth=(userName, password),\
                                 params={"time-range-type": time_range_type,"duration-in-mins": duration_in_mins,"start-time": start_time})
         except:
-            #print ("Could not get authentication token from " + baseUrl + ".  Do you have the right controller hostname?")
+            print ("Could not get authentication token from " + baseUrl + ".  Do you have the right controller hostname?")
             return None
     elif time_range_type == "BETWEEN_TIMES" and range_param1 is not None and range_param2 is not None:
         start_time = long(time.mktime(range_param1.timetuple())*1000)
@@ -92,7 +78,7 @@ def fetch_healthrule_violations(time_range_type,range_param1,range_param2):
             response = requests.get(baseUrl + "rest/applications/" + app_ID + "/problems/healthrule-violations", auth=(userName, password),\
                                 params={"time-range-type": time_range_type,"start-time": start_time,"end-time": end_time})
         except:
-            #print ("Could not get authentication token from " + baseUrl + ".  Do you have the right controller hostname?")
+            print ("Could not get authentication token from " + baseUrl + ".  Do you have the right controller hostname?")
             return None
     else:
         print ("Unknown time range or missing arguments. Exiting...")
@@ -122,9 +108,16 @@ def fetch_healthrule_violations(time_range_type,range_param1,range_param2):
         file1.write(response.content)
         file1.close() 
         return None
+    parse_events_XML(root)
     return root
 
-def write_element_policyviolation(root,filewriter):
+def load_events_XML(fileName):
+    print "Parsing file " + fileName + "..."
+    tree = ET.parse(fileName)
+    root = tree.getroot()
+    parse_events_XML(root)
+
+def parse_events_XML(root):
     for policyviolation in root.findall('policy-violation'):
 
         Start_Time_Epoch = policyviolation.find('startTimeInMillis').text
@@ -165,77 +158,34 @@ def write_element_policyviolation(root,filewriter):
         else:
             continue
 
+        eventList.append([PolicyName,EntityName,Severity,Status,Start_Time,End_Time])
+
+def write_events_CSV(fileName=None):
+    if fileName is not None:
         try:
-            filewriter.writerow({'PolicyName': PolicyName,
-                                'EntityName': EntityName,
-                                'Severity': Severity,
-                                'Status': Status,
-                                'Start_Time': Start_Time,
-                                'End_Time': End_Time})
+            csvfile = open(fileName, 'w')
         except:
-            print ("Could not write to the output file " + options.outFileName + ".")
-            csvfile.close()
-            exit(1)
-
-usage = "usage: %prog [options] controller username@account password Application_ID"
-epilog= "example: %prog -s -p 443 ad-financial.saas.appdynamics.com johndoe@ad-financial s3cr3tp4ss 1001"
-
-parser = OptionParser(usage=usage, version="%prog 0.1", epilog=epilog)
-parser.add_option("-i", "--inputfile", action="store", dest="inFileName",
-                  help="read source data from FILE.  If not provided, read from URL", metavar="FILE")
-parser.add_option("-o", "--outfile", action="store", dest="outFileName",
-                  help="write report to FILE.  If not provided, output to STDOUT", metavar="FILE")
-parser.add_option("-p", "--port",
-                  action="store", dest="port",
-                  help="Controller port")
-parser.add_option("-s", "--ssl",
-                  action="store_true", dest="ssl",
-                  help="Use SSL")
-
-(options, args) = parser.parse_args()
-
-if options.inFileName:
-    print "Parsing file " + options.inFileName + "..."
-    tree = ET.parse(options.inFileName)
-    root = tree.getroot()
-else:
-    if len(args) != 4:
-        parser.error("incorrect number of arguments")
-    if options.port:
-        baseUrl = buildBaseURL(args[0],options.port)
-    else:
-        baseUrl = buildBaseURL(args[0],"")
-    userName = args[1]
-    password = args[2]
-    app_ID   = args[3]
-
-try:
-    if options.outFileName:
-        csvfile = open(options.outFileName, 'w')
+            print ("Could not open output file " + fileName + ".")
+            return (-1)
     else:
         csvfile = sys.stdout
-except:
-    print ("Could not open output file " + options.outFileName + ".")
-    exit(1)
 
-# create the csv writer object
-fieldnames = ['PolicyName', 'EntityName', 'Severity', 'Status', 'Start_Time', 'End_Time']
-filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
-filewriter.writeheader()
+    # create the csv writer object
+    fieldnames = ['PolicyName', 'EntityName', 'Severity', 'Status', 'Start_Time', 'End_Time']
+    filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
+    filewriter.writeheader()
 
-if 'baseUrl' in locals():
-    for i in range(15,0,-1):
-        for retry in range(1,4):
-            root = fetch_healthrule_violations("AFTER_TIME","1440",datetime.today()-timedelta(days=i))
-            if root is not None:
-                break
-            elif retry < 3:
-                print "Failed to fetch healthrule violations. Retrying (",retry," of 3)..."
-            else:
-                print "Giving up."
-                exit (1)
-        write_element_policyviolation(root,filewriter)
-elif 'root' in locals():
-    write_element_policyviolation(root,filewriter)
-else:
-    print ("Nothing to do.")
+    if len(eventList) > 0:
+        for event in eventList:
+            try:
+                filewriter.writerow({'PolicyName': event[0],
+                                    'EntityName': event[1],
+                                    'Severity': event[2],
+                                    'Status': event[3],
+                                    'Start_Time': event[4],
+                                    'End_Time': event[5]})
+            except:
+                print ("Could not write to the output.")
+                csvfile.close()
+                return (-1)
+        csvfile.close()
