@@ -8,6 +8,23 @@ import time
 
 eventList = []
 tierList = []
+class Event:
+    name      = ""
+    entityName= ""
+    severity  = ""
+    status    = ""
+    startTime = 0
+    endTime   = 0
+    def __init__(self,name,entityName,severity,status,startTime,endTime):
+        self.name      = name
+        self.entityName= entityName
+        self.severity  = severity
+        self.status    = status
+        self.startTime = startTime
+        self.endTime   = endTime
+    def __str__(self):
+        return "({0},{1},{2},{3},{4},{5}".format(self.name,self.entityName,self.severity,self.status,self.startTime,self.endTime)
+
 
 def fetch_tiers_and_nodes(baseUrl,userName,password,app_ID):
     try:
@@ -158,7 +175,10 @@ def parse_events_XML(root):
         else:
             continue
 
-        eventList.append([PolicyName,EntityName,Severity,Status,Start_Time,End_Time])
+        eventList.append(Event(PolicyName,EntityName,Severity,Status,Start_Time,End_Time))
+#    print "Number of events:" + str(len(eventList))
+#    for event in eventList:
+#        print str(event)
 
 def write_events_CSV(fileName=None):
     if fileName is not None:
@@ -178,12 +198,12 @@ def write_events_CSV(fileName=None):
     if len(eventList) > 0:
         for event in eventList:
             try:
-                filewriter.writerow({'PolicyName': event[0],
-                                    'EntityName': event[1],
-                                    'Severity': event[2],
-                                    'Status': event[3],
-                                    'Start_Time': event[4],
-                                    'End_Time': event[5]})
+                filewriter.writerow({'PolicyName': event.name,
+                                    'EntityName': event.entityName,
+                                    'Severity': event.severity,
+                                    'Status': event.status,
+                                    'Start_Time': event.startTime,
+                                    'End_Time': event.endTime})
             except:
                 print ("Could not write to the output.")
                 csvfile.close()

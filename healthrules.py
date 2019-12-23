@@ -23,7 +23,8 @@ class HealthRule:
         self.entityCriteria= entityCriteria
         self.critCondition = critCondition
         self.warnCondition = warnCondition
-
+    def __str__(self):
+        return "({0},{1},{2},{3},{4},{5},{6},{7})".format(self.name,self.duration,self.schedule,self.enabled,self.entityType,self.entityCriteria,self.critCondition,self.warnCondition)
 
 def fetch_health_rules(baseUrl,userName,password,app_ID):
     print ("Fetching Health Rules for application " + app_ID + "...")
@@ -256,6 +257,9 @@ def parse_health_rules_XML(root):
     #        print ("No warning-execution-criteria for health-rule: "+healthrule.find('name').text)
 
         healthruleList.append(HealthRule(HRname,Duration,Schedule,Enabled,EntityType,EntityCriteria,CritCondition))
+#    print "Number of health rules:" + str(len(healthruleList))
+#    for healthrule in healthruleList:
+#        print str(healthrule) 
 
 def parse_health_rules_XML2(xml2Doc):
     ctxt = xml2Doc.xpathNewContext()

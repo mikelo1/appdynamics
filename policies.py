@@ -4,6 +4,18 @@ import json
 import csv
 
 policyList = []
+class Policy:
+    name       = ""
+    appName    = ""
+    healthRules= []
+    actions    = []
+    def __init__(self,name,appName,healthRules,actions):
+        self.name       = name
+        self.appName    = appName
+        self.healthRules= healthRules
+        self.actions    = actions
+    def __str__(self):
+        return "({0},{1},{2},{3})".format(self.name,self.appName,self.healthRules,self.actions)
 
 def fetch_policies(baseUrl,userName,password,app_ID):
     print ("Fetching policies for App " + app_ID + "...")
@@ -44,26 +56,28 @@ def load_policies_JSON(fileName):
 
 def parse_policies(policies):
     for policy in policies:
-        HealthRules = ""
+        Name = policy['name']
+        AppName = policy['applicationName']
+        HealthRules = []
         evTemplate = policy['eventFilterTemplate']
         if evTemplate['healthRuleNames'] is not None:
             for healthRule in evTemplate['healthRuleNames']:
-                if HealthRules is not "":
-                    HealthRules = HealthRules + "\n"
-                HealthRules = HealthRules + healthRule['entityName']
+                HealthRules.append(healthRule['entityName'])
         else:
             HealthRules = "ANY"
 
-        Actions = ""
+        Actions = []
         actTemplate = policy['actionWrapperTemplates']
         if actTemplate is not None:
             for action in actTemplate:
-                if Actions is not "":
-                    Actions = Actions + "\n"
-                Actions = Actions + action['actionTag']
+                Actions.append(action['actionTag'])
         else:
             Actions = "ANY"
-        policyList.append([policy['name'],policy['applicationName'],HealthRules,Actions])
+
+        policyList.append(Policy(Name,AppName,HealthRules,Actions))
+#    print "Number of policies:" + str(len(policyList))
+#    for policy in policyList:
+#        print str(policy)    
 
 def write_policies_CSV(fileName=None):
     if fileName is not None:
@@ -80,13 +94,24 @@ def write_policies_CSV(fileName=None):
     filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
     filewriter.writeheader()
 
-    if len(policyList) > 0:
+    if len(policyList) > 0:           
         for policy in policyList:
+            HR_String = ""
+            for healthrule in policy.healthRules:
+                if HR_String is not "":
+                    HR_String = HR_String + "\n"
+                HR_String = HR_String + healthrule
+            Action_String = ""
+            for action in policy.actions:
+                if Action_String is not "":
+                    Action_String = Action_String + "\n"
+                Action_String = Action_String + action
+
             try:
-                filewriter.writerow({'Policy': policy[0],
-                                    'Application': policy[1],
-                                    'HealthRules': policy[2],
-                                    'Actions': policy[3]})
+                filewriter.writerow({'Policy': policy.name,
+                                     'Application': policy.appName,
+                                     'HealthRules': HR_String,
+                                     'Actions': Action_String})
             except:
                 print ("Could not write to the output.")
                 csvfile.close()
