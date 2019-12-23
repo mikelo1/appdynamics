@@ -8,19 +8,24 @@ from datetime import datetime, timedelta
 import time
 
 tierList = []
+snapshotList = []
+class Snapshot:
+    time     = 0
+    URL      = ""
+    BT_ID    = 0
+    tier     = ""
+    node     = ""
+    timeTaken= 0
+    def __init__(self,time,URL,BT_ID,tier,node,timeTaken):
+        self.time     = time
+        self.URL      = URL
+        self.BT_ID    = BT_ID
+        self.tier     = tier
+        self.node     = node
+        self.timeTaken= timeTaken
+    def __str__(self):
+        return "({0},{1},{2},{3},{4},{5})".format(self.time,self.URL,self.BT_ID,self.tier,self.node,self.timeTaken)
 
-def buildBaseURL(controller,port):
-    url = "http"
-
-    if options.ssl:
-        url = url + "s"
-        if (port == "") :
-            port = "443"
-    else:
-        if (port == "") :
-            port = "80"
-
-    return url + "://" + controller + ":" + port + "/controller/"
 
 def fetch_tiers_and_nodes():
     try:
@@ -59,7 +64,7 @@ def print_tiers_and_nodes():
     else:
         print("Tier list is empty.")
 
-def fetch_snapshots(time_range_type,range_param1,range_param2):
+def fetch_snapshots(baseUrl,userName,password,app_ID,time_range_type,range_param1,range_param2):
    # time_range_type="AFTER_TIME" # {"BEFORE_NOW","BEFORE_TIME","AFTER_TIME","BETWEEN_TIMES"
    # duration_in_mins: {1day:"1440" 1week:"10080" 1month:"43200"}
    # range_param1=datetime.today()-timedelta(days=1)
@@ -129,10 +134,17 @@ def fetch_snapshots(time_range_type,range_param1,range_param2):
         file1.write(response.content)
         file1.close() 
         return None
+    parse_snapshots(snapshots)
     return snapshots
 
-def write_element_snapshot(root,filewriter):
-    for snapshot in root:
+def load_snapshots_JSON(fileName):
+    print "Parsing file " + fileName + "..."
+    json_file = open(fileName)
+    snapshots = json.load(json_file)
+    parse_snapshots(snapshots)
+
+def parse_snapshots(snapshots):
+    for snapshot in snapshots:
         Time = datetime.fromtimestamp(float(snapshot['localStartTime'])/1000).strftime('%Y-%m-%d %H:%M:%S')
         Tier = snapshot['applicationComponentId']
         Node = snapshot['applicationComponentNodeId']
@@ -143,78 +155,34 @@ def write_element_snapshot(root,filewriter):
                     for node in tier[2]:
                         if node[0] == snapshot['applicationComponentNodeId']:
                             Node = node[1]
+        snapshotList.append(Snapshot(Time,snapshot['URL'],snapshot['businessTransactionId'],Tier,Node,snapshot['timeTakenInMilliSecs']))
+#    print "Number of snapshots:" + str(len(snapshotList))
+#    for snapshot in snapshotList:
+#        print str(snapshot) 
 
+def write_snapshots_CSV(fileName=None):
+    if fileName is not None:
         try:
-            filewriter.writerow({'Time': Time,
-                                'URL': snapshot['URL'],
-                                'BussinessTransaction': snapshot['businessTransactionId'],
-                                'Tier': Tier,
-                                'Node': Node,
-                                'ExeTime': snapshot['timeTakenInMilliSecs']})
+            csvfile = open(fileName, 'w')
+        except:
+            print ("Could not open output file " + fileName + ".")
+            return (-1)
+    else:
+        csvfile = sys.stdout
+
+    fieldnames = ['Time', 'URL', 'BussinessTransaction', 'Tier', 'Node', 'ExeTime']
+    filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
+    filewriter.writeheader()
+
+    for snapshot in snapshotList:
+        try:
+            filewriter.writerow({'Time': snapshot.time,
+                                'URL': snapshot.URL,
+                                'BussinessTransaction': snapshot.BT_ID,
+                                'Tier': snapshot.tier,
+                                'Node': snapshot.node,
+                                'ExeTime': snapshot.timeTaken})
         except:
             print ("Could not write to the output file " + fileName + ".")
             csvfile.close()
             exit(1)
-
-usage = "usage: %prog [options] controller username@account password Application_ID"
-epilog= "example: %prog -s -p 443 ad-financial.saas.appdynamics.com johndoe@ad-financial s3cr3tp4ss 1001"
-
-parser = OptionParser(usage=usage, version="%prog 0.1", epilog=epilog)
-parser.add_option("-i", "--inputfile", action="store", dest="inFileName",
-                  help="read source data from FILE.  If not provided, read from URL", metavar="FILE")
-parser.add_option("-o", "--outfile", action="store", dest="outFileName",
-                  help="write report to FILE.  If not provided, output to STDOUT", metavar="FILE")
-parser.add_option("-p", "--port",
-                  action="store", dest="port",
-                  help="Controller port")
-parser.add_option("-s", "--ssl",
-                  action="store_true", dest="ssl",
-                  help="Use SSL")
-
-(options, args) = parser.parse_args()
-
-if options.inFileName:
-    print "Parsing file " + options.inFileName + "..."
-    json_file = open(options.inFileName)
-    snapshots = json.load(json_file)
-else:
-    if len(args) != 4:
-        parser.error("incorrect number of arguments")
-    if options.port:
-        baseUrl = buildBaseURL(args[0],options.port)
-    else:
-        baseUrl = buildBaseURL(args[0],"")
-    userName = args[1]
-    password = args[2]
-    app_ID   = args[3]
-    fetch_tiers_and_nodes()
-
-try:
-    if options.outFileName:
-        csvfile = open(options.outFileName, 'w')
-    else:
-        csvfile = sys.stdout
-except:
-    print ("Could not open output file " + options.outFileName + ".")
-    exit(1)
-
-fieldnames = ['Time', 'URL', 'BussinessTransaction', 'Tier', 'Node', 'ExeTime']
-filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
-filewriter.writeheader()
-
-if 'baseUrl' in locals():
-    for i in range(3,48,3): # loop latest 48 hours in chunks of 3 hours
-        for retry in range(1,4):
-            data_chunck = fetch_snapshots("AFTER_TIME","180",datetime.today()-timedelta(hours=i)) # fetch 3 hours of data
-            if data_chunck is not None:
-                break
-            elif retry < 3:
-                print "Failed to fetch snapshots. Retrying (",retry," of 3)..."
-            else:
-                print "Giving up."
-                exit (1)
-        write_element_snapshot(data_chunck,filewriter)
-elif 'root' in locals():
-    write_element_snapshot(root,filewriter)
-else:
-    print ("Nothing to do.")
