@@ -1,6 +1,7 @@
 #!/usr/bin/python
 import requests
 import sys
+import os.path
 from datetime import datetime, timedelta
 from detectrules import load_detect_rules_XML, fetch_detect_rules, write_detect_rules_CSV
 from businesstransactions import load_business_transactions_JSON, fetch_business_transactions, write_business_transactions_CSV
@@ -120,6 +121,12 @@ elif ENTITY.lower() == "policies":
     write_policies_CSV(options.outFileName)
 elif ENTITY.lower() == "actions":
     if options.inFileName:
+        head_tail = os.path.split(options.inFileName)
+        policiesXMLFile=head_tail[0] + "/policies.json"
+        if os.path.exists(policiesXMLFile):
+            load_policies_JSON(policiesXMLFile)
+        else:
+            print ("File "+policiesXMLFile+" not found.")
         load_actions_JSON(options.inFileName)
     elif options.user and options.password and options.hostname and options.application:
         baseUrl = buildBaseURL(options.hostname,options.port,options.SSLEnabled)
