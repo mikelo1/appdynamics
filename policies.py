@@ -117,3 +117,14 @@ def write_policies_CSV(fileName=None):
                 csvfile.close()
                 return (-1)
         csvfile.close()
+
+def get_policies_matching_action(name):
+    MatchList = []
+    if len(policyList) > 0:
+        for policy in policyList:
+            for policy_action in policy.actions:
+                if policy_action == name:
+                    MatchList.append(policy.name)
+    else:
+        pass # Policy list is empty
+    return MatchList

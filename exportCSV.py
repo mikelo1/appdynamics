@@ -7,6 +7,7 @@ from businesstransactions import load_business_transactions_JSON, fetch_business
 from healthrules import load_health_rules_XML, load_health_rules_XML2, fetch_health_rules, write_health_rules_CSV
 from events import load_events_XML, fetch_healthrule_violations, write_events_CSV
 from policies import load_policies_JSON, fetch_policies, write_policies_CSV
+from actions import load_actions_JSON, fetch_actions, write_actions_CSV
 from snapshots import load_snapshots_JSON, fetch_snapshots, write_snapshots_CSV
 from optparse import OptionParser, OptionGroup
 
@@ -117,7 +118,15 @@ elif ENTITY.lower() == "policies":
     else:
         optParser.error("Missing arguments")
     write_policies_CSV(options.outFileName)
-
+elif ENTITY.lower() == "actions":
+    if options.inFileName:
+        load_actions_JSON(options.inFileName)
+    elif options.user and options.password and options.hostname and options.application:
+        baseUrl = buildBaseURL(options.hostname,options.port,options.SSLEnabled)
+        fetch_actions(baseUrl,options.user,options.password,options.application)
+    else:
+        optParser.error("Missing arguments")
+    write_actions_CSV(options.outFileName)
 elif ENTITY.lower() == "snapshots":
     if options.inFileName:
         load_snapshots_JSON(options.inFileName)
