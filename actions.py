@@ -97,12 +97,24 @@ def write_actions_CSV(fileName=None):
     filewriter.writeheader()
 
     for action in actionsList:
+        emails_str    = ""
+        for email in action.emails:
+            if emails_str != "": emails_str = emails_str + "\n"
+            emails_str = emails_str + email
+        policies_str  = ""
+        for policy in action.policies:
+            if policies_str != "": policies_str = policies_str + "\n"
+            policies_str = policies_str + policy
+        properties_str= ""
+        for property in action.properties:
+            if properties_str != "": properties_str = properties_str + "\n"
+            properties_str = properties_str + property
         try:
             filewriter.writerow({'ActionName': action.name,
-                                'Emails': action.emails,
-                                'Policies': action.policies,
+                                'Emails': emails_str,
+                                'Policies': policies_str,
                                 'ActionPlan': action.actionPlan,
-                                'CustomProperties': action.properties})
+                                'CustomProperties': properties_str})
         except:
             print ("Could not write action "+action.name+" to the output.")
             csvfile.close()
