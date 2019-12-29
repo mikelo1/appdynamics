@@ -128,3 +128,24 @@ def get_policies_matching_action(name):
     else:
         pass # Policy list is empty
     return MatchList
+
+def get_policies_matching_health_rule(name):
+    MatchList = []
+    if len(policyList) > 0:
+        for policy in policyList:
+            for policy_healthrule in policy.healthRules:
+                if policy_healthrule == name:
+                    MatchList.append(policy.name)
+    else:
+        pass # Policy list is empty
+    return MatchList
+	
+#### TO DO:
+####        get_policies_matching_business_transaction
+####        get_policies_matching_tiers_and_nodes
+####        get_policies_matching_JMX
+####        get_policies_matching_Information_Point
+####        get_policies_matching_Server
+####        get_policies_matching_Database
+####        get_policies_matching_Service_Endpoint
+####        get_policies_matching_Error
