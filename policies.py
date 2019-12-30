@@ -8,14 +8,19 @@ class Policy:
     name       = ""
     appName    = ""
     healthRules= []
+    entities   = []
     actions    = []
-    def __init__(self,name,appName,healthRules,actions):
+    def __init__(self,name,appName,healthRules,entities,actions):
         self.name       = name
         self.appName    = appName
         self.healthRules= healthRules
+        self.entities   = entities
         self.actions    = actions
     def __str__(self):
-        return "({0},{1},{2},{3})".format(self.name,self.appName,self.healthRules,self.actions)
+        return "({0},{1},{2},{3},{4})".format(self.name,self.appName,self.healthRules,self.entities,self.actions)
+
+class Entity:
+    
 
 def fetch_policies(baseUrl,userName,password,app_ID):
     print ("Fetching policies for App " + app_ID + "...")
@@ -66,15 +71,30 @@ def parse_policies(policies):
         else:
             HealthRules = "ANY"
 
+        Entities = []
+        entTemplate = policy['entityFilterTemplates']
+        if entTemplate is not None:
+            pass
+            for entity in entTemplate:
+                pass
+                # All <entities> in the Application
+                # <entities> within the specified Tiers
+                # These specified <entities>
+                # <entities> matching the following criteria
+
+                #Entities.append(entity['stringMatchExpression'])
+        else:
+            Entities = ["ANY"]
+
         Actions = []
         actTemplate = policy['actionWrapperTemplates']
         if actTemplate is not None:
             for action in actTemplate:
                 Actions.append(action['actionTag'])
         else:
-            Actions = "ANY"
+            Actions = ["ANY"]
 
-        policyList.append(Policy(Name,AppName,HealthRules,Actions))
+        policyList.append(Policy(Name,AppName,HealthRules,Entities,Actions))
 #    print "Number of policies:" + str(len(policyList))
 #    for policy in policyList:
 #        print str(policy)    
