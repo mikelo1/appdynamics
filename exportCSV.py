@@ -5,6 +5,7 @@ import os.path
 from datetime import datetime, timedelta
 from detectrules import load_detect_rules_XML, fetch_detect_rules, write_detect_rules_CSV
 from businesstransactions import load_business_transactions_JSON, fetch_business_transactions, write_business_transactions_CSV
+from backends import load_backends_JSON, fetch_backends, write_backends_CSV
 from healthrules import load_health_rules_XML, load_health_rules_XML2, fetch_health_rules, write_health_rules_CSV
 from events import load_events_XML, fetch_healthrule_violations, write_events_CSV
 from policies import load_policies_JSON, fetch_policies, write_policies_CSV
@@ -24,7 +25,7 @@ def buildBaseURL(controller,port=None,SSLenabled=None):
     return url + "://" + controller + ":" + port + "/controller/"
 
 
-usage = "usage: %prog [actions|backends|BTs|events|healthrules|policies|detectrules|snapshots] [options]"
+usage = "usage: %prog [actions|backends|business-transactions|events|healthrules|policies|detectrules|snapshots] [options]"
 epilog= "examples: %prog healthrules -s -p 443 -H ad-financial.saas.appdynamics.com -u johndoe@ad-financial -p s3cr3tp4ss -a 1001"
 
 optParser = OptionParser(usage=usage, version="%prog 0.1", epilog=epilog)
@@ -73,7 +74,7 @@ if ENTITY.lower() == "detectrules":
     else:
         optParser.error("Missing arguments")
     write_detect_rules_CSV(options.outFileName)
-elif ENTITY.lower() == "bts":
+elif ENTITY.lower() == "business-transactions":
     if options.inFileName:
         load_business_transactions_JSON(options.inFileName)
     elif options.user and options.password and options.hostname and options.application:
@@ -82,6 +83,15 @@ elif ENTITY.lower() == "bts":
     else:
         optParser.error("Missing arguments")
     write_business_transactions_CSV(options.outFileName)
+elif ENTITY.lower() == "backends":
+    if options.inFileName:
+        load_backends_JSON(options.inFileName)
+    elif options.user and options.password and options.hostname and options.application:
+        baseUrl = buildBaseURL(options.hostname,options.port,options.SSLEnabled)
+        fetch_backends(baseUrl,options.user,options.password,options.application)
+    else:
+        optParser.error("Missing arguments")
+    write_backends_CSV(options.outFileName)
 elif ENTITY.lower() == "healthrules":
     if options.inFileName:
         load_health_rules_XML(options.inFileName)
