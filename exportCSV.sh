@@ -60,5 +60,5 @@ for FILE in transactiondetection-auto.xml transactiondetection-custom.xml; do
 		curl -s --user $USER:$PASS https://$HOST/controller/$ENTITY/$APP_ID/$TYPE -o $APP_NAME/$FILE -k
 	fi
 	echo "Converting file $FILE to CSV..."
-	SCRIPTPATH/exportCSV.py $ENTITY -i $APP_NAME/$FILE -o $APP_NAME/$ENTITY.csv
+	$SCRIPTPATH/exportCSV.py $ENTITY -i $APP_NAME/$FILE -o $APP_NAME/$ENTITY.csv
 done
