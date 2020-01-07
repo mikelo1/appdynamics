@@ -39,7 +39,7 @@ SCRIPTPATH=$(dirname "$SCRIPT")
 if [ ! -d $APP_NAME ]; then mkdir $APP_NAME; fi
 
 
-for FILE in healthrules.xml actions.json policies.json analyticsdynamicservice.json; do
+for FILE in healthrules.xml actions.json policies.json; do
 	ENTITY=`echo $FILE | awk -F. '{print $1}'`
 	EXT=`echo $FILE | awk -F. '{print $2}'`
 	if [ ! -f $APP_NAME/$FILE ]; then
@@ -75,7 +75,7 @@ for FILE in transactiondetection-auto.xml transactiondetection-custom.xml; do
 		curl -s --user $USER:$PASS https://$HOST/controller/$ENTITY/$APP_ID/$TYPE -o $APP_NAME/$FILE -k
 	fi
 	echo "Converting file $FILE to CSV..."
-	$SCRIPTPATH/exportCSV.py $ENTITY -i $APP_NAME/$FILE -o $APP_NAME/$ENTITY.csv
+	$SCRIPTPATH/exportCSV.py $ENTITY -i $APP_NAME/$FILE -o $APP_NAME/$ENTITY-$TYPE.csv
 	#echo "Fetch data and translating to CSV..."
 	#$SCRIPTPATH/exportCSV.py $ENTITY -s -p 443 -o $APP_NAME/$ENTITY.csv -H ${HOST}.saas.appdynamics.com -u ${USER} -p ${PASS} -a ${APP_ID} 
 done

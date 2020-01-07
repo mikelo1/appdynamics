@@ -19,7 +19,7 @@ class DetectionRule:
         return "({0},{1},{2})".format(self.name,self.ruleType,self.matchRule)
 
 
-def fetch_detect_rules(baseUrl,userName,password,app_ID):
+def fetch_transactiondetection(baseUrl,userName,password,app_ID):
     print ("Fetching Auto Detection Rules for App " + app_ID + "...")
     try: ## //${App_ID}/auto -o autodetection-${App_Name}.xml
         response = requests.get(baseUrl + "transactiondetection/" + app_ID + "/auto", auth=(userName, password))
@@ -74,15 +74,15 @@ def fetch_detect_rules(baseUrl,userName,password,app_ID):
     custom_data_rule_list = rootCustom.find("rule-list")
     for custom_data_rule in custom_data_rule_list:
         auto_data_rule_list.append(custom_data_rule)
-    parse_detection_rules_XML(root)
+    parse_transactiondetection_XML(root)
 
-def load_detect_rules_XML(fileName):
+def load_transactiondetection_XML(fileName):
     print "Parsing file " + fileName + "..."
     tree = ET.parse(fileName)
     root = tree.getroot()
-    parse_detection_rules_XML(root)
+    parse_transactiondetection_XML(root)
 
-def parse_detection_rules_XML(root):
+def parse_transactiondetection_XML(root):
     ruleList = root.find('rule-list')
     for detectrule in ruleList.findall('rule'):
 
@@ -167,7 +167,7 @@ def parse_detection_rules_XML(root):
 #    for detectionrule in detectionruleList:
 #        print str(detectionrule) 
 
-def write_detect_rules_CSV(fileName=None):
+def write_transactiondetection_CSV(fileName=None):
     if fileName is not None:
         try:
             csvfile = open(fileName, 'w')

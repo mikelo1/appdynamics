@@ -3,7 +3,7 @@ import requests
 import sys
 import os.path
 from datetime import datetime, timedelta
-from detectrules import load_detect_rules_XML, fetch_detect_rules, write_detect_rules_CSV
+from transactiondetection import load_transactiondetection_XML, fetch_transactiondetection, write_transactiondetection_CSV
 from businesstransactions import load_business_transactions_JSON, fetch_business_transactions, write_business_transactions_CSV
 from backends import load_backends_JSON, fetch_backends, write_backends_CSV
 from healthrules import load_health_rules_XML, load_health_rules_XML2, fetch_health_rules, write_health_rules_CSV
@@ -25,7 +25,7 @@ def buildBaseURL(controller,port=None,SSLenabled=None):
     return url + "://" + controller + ":" + port + "/controller/"
 
 
-usage = "usage: %prog [actions|backends|business-transactions|events|healthrules|policies|detectrules|snapshots] [options]"
+usage = "usage: %prog [actions|backends|business-transactions|events|healthrules|policies|transactiondetection|snapshots] [options]"
 epilog= "examples: %prog healthrules -s -p 443 -H ad-financial.saas.appdynamics.com -u johndoe@ad-financial -p s3cr3tp4ss -a 1001"
 
 optParser = OptionParser(usage=usage, version="%prog 0.1", epilog=epilog)
@@ -65,15 +65,15 @@ if len(args) != 1:
     optParser.error("incorrect number of arguments")
 
 ENTITY = args[0]
-if ENTITY.lower() == "detectrules":
+if ENTITY.lower() == "transactiondetection":
     if options.inFileName:
-        load_detect_rules_XML(options.inFileName)
+        load_transactiondetection_XML(options.inFileName)
     elif options.user and options.password and options.hostname and options.application:
         baseUrl = buildBaseURL(options.hostname,options.port,options.SSLEnabled)
-        fetch_detect_rules(baseUrl,options.user,options.password,options.application)
+        fetch_transactiondetection(baseUrl,options.user,options.password,options.application)
     else:
         optParser.error("Missing arguments")
-    write_detect_rules_CSV(options.outFileName)
+    write_transactiondetection_CSV(options.outFileName)
 elif ENTITY.lower() == "business-transactions":
     if options.inFileName:
         load_business_transactions_JSON(options.inFileName)
