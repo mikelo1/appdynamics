@@ -19,8 +19,6 @@ class Policy:
     def __str__(self):
         return "({0},{1},{2},{3},{4})".format(self.name,self.appName,self.healthRules,self.entities,self.actions)
 
-class Entity:
-    
 
 def fetch_policies(baseUrl,userName,password,app_ID):
     print ("Fetching policies for App " + app_ID + "...")

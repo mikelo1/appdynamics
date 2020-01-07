@@ -29,6 +29,11 @@ HOST=`grep $ENVIRONMENT -A6 $CRED_FILE | grep url | awk -F: '{print $3}' | sed '
 APP_ID=`grep $ENVIRONMENT -A6 $CRED_FILE | grep appID | awk -F: '{print $2}' | sed 's/\s//g'`
 APP_NAME=`grep $ENVIRONMENT -A6 $CRED_FILE | grep appName | awk -F: '{print $2}' | sed 's/\s//g'`
 
+# Absolute path to this script, e.g. /home/user/bin/foo.sh
+SCRIPT=$(readlink -f "$0")
+# Absolute path this script is in, thus /home/user/bin
+SCRIPTPATH=$(dirname "$SCRIPT")
+
 ### Required packages: python python-requests python-libxml2
 
 # FullOnline
@@ -42,7 +47,7 @@ for FILE in healthrules.xml actions.json policies.json analyticsdynamicservice.j
 		curl -s --user $USER:$PASS https://$HOST/controller/$ENTITY/$APP_ID -o $APP_NAME/$FILE -k
 	fi
 	echo "Converting file $FILE to CSV..."
-	./appdynamics/exportCSV.py $ENTITY -i $APP_NAME/$FILE -o $APP_NAME/$ENTITY.csv
+	$SCRIPTPATH/exportCSV.py $ENTITY -i $APP_NAME/$FILE -o $APP_NAME/$ENTITY.csv
 done
 
 for FILE in transactiondetection-auto.xml transactiondetection-custom.xml; do
@@ -55,5 +60,5 @@ for FILE in transactiondetection-auto.xml transactiondetection-custom.xml; do
 		curl -s --user $USER:$PASS https://$HOST/controller/$ENTITY/$APP_ID/$TYPE -o $APP_NAME/$FILE -k
 	fi
 	echo "Converting file $FILE to CSV..."
-	./appdynamics/exportCSV.py $ENTITY -i $APP_NAME/$FILE -o $APP_NAME/$ENTITY.csv
+	SCRIPTPATH/exportCSV.py $ENTITY -i $APP_NAME/$FILE -o $APP_NAME/$ENTITY.csv
 done
