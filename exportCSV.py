@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from transactiondetection import load_transactiondetection_XML, fetch_transactiondetection, write_transactiondetection_CSV
 from businesstransactions import load_business_transactions_JSON, fetch_business_transactions, write_business_transactions_CSV
 from backends import load_backends_JSON, fetch_backends, write_backends_CSV
-from healthrules import load_health_rules_XML, load_health_rules_XML2, fetch_health_rules, write_health_rules_CSV
+from healthrules import load_health_rules_XML, fetch_health_rules, write_health_rules_CSV
 from events import load_events_XML, fetch_healthrule_violations, write_events_CSV
 from policies import load_policies_JSON, fetch_policies, write_policies_CSV
 from actions import load_actions_JSON, fetch_actions, write_actions_CSV
