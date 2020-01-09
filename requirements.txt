@@ -1,2 +1,0 @@
-requests
-libxml2-python
