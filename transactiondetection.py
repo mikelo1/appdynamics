@@ -84,6 +84,13 @@ def load_transactiondetection_XML(fileName):
 
 def parse_transactiondetection_XML(root):
     ruleList = root.find('rule-list')
+    if ruleList is None:
+        print "No Detection Rules defined"
+        for child in root:
+            print(child.tag, child.attrib, child.text)
+            print ("\n")
+        return None
+    
     for detectrule in ruleList.findall('rule'):
 
     #    for child in detectrule:

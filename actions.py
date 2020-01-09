@@ -60,6 +60,8 @@ def load_actions_JSON(fileName):
 
 def parse_actions(actions):
     for action in actions:
+        if 'actionType' not in action:
+            continue
         if action['actionType'] == "EmailAction":
             CustomProperties = []
             Emails = [action['toAddress']]

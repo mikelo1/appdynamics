@@ -49,6 +49,8 @@ def load_backends_JSON(fileName):
 
 def parse_backends(BEs):
     for BE in BEs:
+        if 'exitPointType' not in BE:
+            continue
         BE_name = BE['name'].encode('ASCII', 'ignore')
         BE_type = BE['exitPointType']
         BackendList.append(Backend(BE_name,BE_type))

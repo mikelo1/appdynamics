@@ -3,6 +3,7 @@ import requests
 import xml.etree.ElementTree as ET
 import libxml2
 import csv
+import sys
 
 healthruleList = []
 class HealthRule:
@@ -73,6 +74,14 @@ def load_health_rules_XML2(fileName):
     xml2Doc.freeDoc()
 
 def parse_health_rules_XML(root):
+
+    if root.find('health-rule') is None:
+        print "No Health rules defined"
+        for child in root:
+            print(child.tag, child.attrib, child.text)
+            print ("\n")
+        return None
+
     for healthrule in root.findall('health-rule'):
 
         Enabled = ( healthrule.find('enabled').text == "true" )

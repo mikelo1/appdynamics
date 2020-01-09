@@ -2,6 +2,7 @@
 import requests
 import json
 import csv
+import sys
 
 policyList = []
 class Policy:
@@ -59,6 +60,8 @@ def load_policies_JSON(fileName):
 
 def parse_policies(policies):
     for policy in policies:
+        if 'reactorType' not in policy:
+            continue        
         Name = policy['name']
         AppName = policy['applicationName']
         HealthRules = []

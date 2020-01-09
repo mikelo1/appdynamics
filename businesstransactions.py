@@ -51,6 +51,8 @@ def load_business_transactions_JSON(fileName):
 
 def parse_business_transactions(BTs):
     for BT in BTs:
+        if 'entryPointType' not in BT:
+            continue
         name = BT['name'].encode('ASCII', 'ignore')
         BTList.append(BusinessTransaction(name,BT['entryPointType'],BT['tierName']))
 #    print "Number of business transactions:" + str(len(BTList))
