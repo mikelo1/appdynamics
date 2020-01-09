@@ -1,3 +1,13 @@
 language: python
+
+# virtualenv with the --system-site-packages option
+# allows to import packages from the global site packages directory.
+virtualenv:
+  system_site_packages: true
+
+# install Python packages via apt-get in the before_install section
+before_install:
+ - sudo apt-get install -qq python-numpy python-scipy
+
 # command to run tests
 script: ./test.sh
