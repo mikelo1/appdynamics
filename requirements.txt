@@ -1,2 +1,2 @@
-python-requests
-python-libxml2
+requests
+libxml2-python
