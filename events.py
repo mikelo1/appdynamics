@@ -1,7 +1,6 @@
 #!/usr/bin/python
 import requests
 import xml.etree.ElementTree as ET
-import libxml2
 import csv
 from datetime import datetime, timedelta
 import time

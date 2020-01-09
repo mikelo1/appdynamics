@@ -48,7 +48,6 @@ def fetch_health_rules(baseUrl,userName,password,app_ID):
         file1.write(response.content)
     try:
         root = ET.fromstring(response.content)
-        #xml2Doc = libxml2.parseDoc(response.content)
     except:
         print ("Could not process authentication token for user " + userName + ".  Did you mess up your username/password?")
         print "status:", response.status_code
@@ -59,7 +58,6 @@ def fetch_health_rules(baseUrl,userName,password,app_ID):
         file1.close() 
         return None
     parse_health_rules_XML(root)
-    #xml2Doc.freeDoc()
 
 def load_health_rules_XML(fileName):
     print "Parsing file " + fileName + "..."
