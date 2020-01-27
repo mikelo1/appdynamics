@@ -78,6 +78,7 @@ def parse_policies(policies):
             pass
             for entity in entTemplate:
                 pass
+                #### TO DO: Policy entityFilterTemplates
                 # All <entities> in the Application
                 # <entities> within the specified Tiers
                 # These specified <entities>

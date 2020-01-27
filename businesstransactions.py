@@ -7,14 +7,16 @@ import sys
 BTList = []
 class BusinessTransaction:
     name          = ""
+    BT_id         = 0
     entryPointType= ""
     tierName      = ""
-    def __init__(self,name,entryPointType,tierName):
+    def __init__(self,name,BT_id,entryPointType,tierName):
         self.name          = name
+        self.BT_id         = BT_id
         self.entryPointType= entryPointType
         self.tierName      = tierName
     def __str__(self):
-        return "({0},{1},{2})".format(self.name,self.entryPointType,self.tierName)
+        return "({0},{1},{2})".format(self.name,self.BT_id,self.entryPointType,self.tierName)
 
 def fetch_business_transactions(baseUrl,userName,password,app_ID):
     print ("Fetching business transactions for App " + app_ID + "...")
@@ -54,10 +56,16 @@ def parse_business_transactions(BTs):
         if 'entryPointType' not in BT:
             continue
         name = BT['name'].encode('ASCII', 'ignore')
-        BTList.append(BusinessTransaction(name,BT['entryPointType'],BT['tierName']))
+        BTList.append(BusinessTransaction(name,BT['id'],BT['entryPointType'],BT['tierName']))
 #    print "Number of business transactions:" + str(len(BTList))
 #    for BT in BTList:
 #        print str(BT)
+
+def get_business_transaction_ID(name):
+    for BT in BTList:
+        if BT.name == name:
+            return BT.id
+    return None
 
 def write_business_transactions_CSV(fileName=None):
     if fileName is not None:

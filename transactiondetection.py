@@ -7,15 +7,31 @@ import sys
 
 detectionruleList = []
 class DetectionRule:
-    name     = ""
-    ruleType = ""
-    matchRule= ""
-    def __init__(self,name,ruleType,matchRule):
-        self.name     = name
-        self.ruleType = ruleType
-        self.matchRule= matchRule
+    name         = ""
+    matchRuleList= []
+    httpSplitList= []
+    def __init__(self,name,matchRuleList,httpSplitList):
+        self.name         = name
+        self.matchRuleList= matchRuleList
+        self.httpSplitList= httpSplitList
     def __str__(self):
-        return "({0},{1},{2})".format(self.name,self.ruleType,self.matchRule)
+        return "({0},{1},{2},{3})".format(self.name,self.matchRuleList,self.httpSplitList)
+
+class MatchCriteria:
+    dataType= ""   # Method|URI|HTTP_Parameter|Header|Hostname|Port|Class_Name|Servlet_Name|Cookie
+    criteria= ""   # Equals|Starts_With|Ends_With|Contains|Matches_Regex|Is_In_List|Is_Not_Empty
+    strings = []   # Match criteria strings
+    field   = None # data field (only for HTTP_Parameter|Header|Cookie)
+    def __init__(self,dataType,criteria,strings,field=None):
+        self.dataType = dataType
+        self.criteria = criteria
+        self.strings  = strings
+        self.field    = field
+    def __str__(self):
+        if self.field is None:
+            return "({0},{1},{2})".format(self.dataType,self.criteria,self.strings)
+        else:
+            return "({0},{1},{2},{3})".format(self.dataType,self.field,self.criteria,self.strings)
 
 
 def fetch_transactiondetection(baseUrl,userName,password,app_ID):
@@ -101,77 +117,131 @@ def parse_transactiondetection_XML(root):
 
         if ruleType == "TX_MATCH_RULE":
             txMatchRule = detectrule.find('tx-match-rule')
-
             try:
-                matchRuleData = json.loads(txMatchRule.text)
+                txMatchRuleData = json.loads(txMatchRule.text)
             except:
                 print ("Could not process JSON content:\n"+txMatchRule.text)
-
-            matchRuleType = matchRuleData['type']
-            ruleType = matchRuleType
-            if matchRuleType == "AUTOMATIC_DISCOVERY":
-                matchRule = ''
-                autoDiscoveryConfigs = matchRuleData['txautodiscoveryrule']['autodiscoveryconfigs']
-                for discoveryconfig in autoDiscoveryConfigs:
-                    if matchRule is not "":
-                        matchRule = matchRule + "\n" 
-                    matchRule = matchRule + discoveryconfig['txentrypointtype']
-            elif matchRuleType == "CUSTOM":
-                matchRule = ''
-                matchconditions = matchRuleData['txcustomrule']['matchconditions']
-                for mCondition in matchconditions:
-                    if mCondition['type'] == "HTTP":
-                        httpmatch = mCondition['httpmatch']
-                        for HTTPRequestCriteria in httpmatch:
-                            if HTTPRequestCriteria == 'uri':
-                                mConditionHTTP = httpmatch['uri']
-                                if matchRule is not "":
-                                    matchRule = matchRule + "\n"
-                                matchRule = matchRule + "URI " + mConditionHTTP['type'] + ": "
-                                for matchstring in mConditionHTTP['matchstrings']: 
-                                    matchRule = matchRule + matchstring
-                            elif HTTPRequestCriteria == 'classmatch':
-                                mConditionHTTP = httpmatch['classmatch']['classnamecondition']
-                                classMatchType = httpmatch['classmatch']['type']
-                                if matchRule is not "":
-                                    matchRule = matchRule + "\n"
-                                matchRule = matchRule + classMatchType + " " + mConditionHTTP['type'] + ": "
-                                for matchstring in mConditionHTTP['matchstrings']: 
-                                    matchRule = matchRule + matchstring
-                            elif HTTPRequestCriteria == 'httpmethod':
-                                if matchRule is not "":
-                                    matchRule = matchRule + "\n"
-                                matchRule = matchRule + "HTTP_Method: " + httpmatch['httpmethod']
-                            elif (HTTPRequestCriteria == 'parameters' and httpmatch['parameters']) or (HTTPRequestCriteria == 'headers' and httpmatch['headers']) or (HTTPRequestCriteria == 'cookies' and httpmatch['cookies']):
-                                if matchRule is not "":
-                                    matchRule = matchRule + "\n"
-                                matchRule = matchRule + "HTTP_" + HTTPRequestCriteria + ": "
-                                for parameter in httpmatch[HTTPRequestCriteria]:
-                                    paramName = parameter['name']
-                                    for matchstring in paramName['matchstrings']: 
-                                        matchRule = matchRule + "Name " + paramName['type'] + ": " + matchstring + ", "
-                                    paramValue = parameter['value']
-                                    for matchstring in paramValue['matchstrings']: 
-                                        matchRule = matchRule + "Value " + paramValue['type'] + ": " + matchstring
-                            elif HTTPRequestCriteria == 'hostname' or HTTPRequestCriteria == 'port' or HTTPRequestCriteria == 'servlet':
-                                if matchRule is not "":
-                                    matchRule = matchRule + "\n"
-                                matchRule = matchRule + HTTPRequestCriteria + " "
-                                paramName = httpmatch[HTTPRequestCriteria]
-                                for matchstring in paramName['matchstrings']: 
-                                    matchRule = matchRule + paramName['type'] + ": " + matchstring
-                            else:
-                                continue
-            else:
-                print ("Uknown rule type: "+matchRuleType)
-                matchRule = txMatchRule.text
+                return None
+            parse_tx_match_rule(ruleName,txMatchRuleData)
+            
         else:
             print ("Uknown rule type: "+ruleType)
             matchRule = txMatchRule.text
-        detectionruleList.append(DetectionRule(ruleName,ruleType,matchRule))
+            return None
 #    print "Number of detection rules:" + str(len(detectionruleList))
 #    for detectionrule in detectionruleList:
 #        print str(detectionrule) 
+
+def parse_tx_match_rule(ruleName,txMatchRuleData):
+    mRuleList = []
+    httpSplit = []
+
+    matchRuleType = txMatchRuleData['type']
+
+    if matchRuleType == "CUSTOM":
+        matchconditions = txMatchRuleData['txcustomrule']['matchconditions']
+        for mCondition in matchconditions:
+            if mCondition['type'] == "HTTP":
+                httpmatch = mCondition['httpmatch']
+                for HTTPRequestCriteria in httpmatch:
+
+                    if HTTPRequestCriteria == 'httpmethod':
+                        matchCriteria = MatchCriteria(HTTPRequestCriteria,httpmatch['httpmethod'],[])
+
+                    elif HTTPRequestCriteria == 'uri' or HTTPRequestCriteria == 'hostname' or HTTPRequestCriteria == 'port' or HTTPRequestCriteria == 'servlet':
+                        criteria = httpmatch[HTTPRequestCriteria]['type']
+                        if 'isnot' in httpmatch[HTTPRequestCriteria] and httpmatch[HTTPRequestCriteria]['isnot'] == True:
+                            criteria = "NOT_"+criteria
+                        strings = []
+                        for matchstring in httpmatch['uri']['matchstrings']: 
+                            strings.append(matchstring)
+                        matchCriteria = MatchCriteria(HTTPRequestCriteria,criteria,strings)
+
+                    elif HTTPRequestCriteria == 'classmatch':
+                        criteria = httpmatch['classmatch']['type']
+                        if 'isnot' in httpmatch['classmatch']['classnamecondition'] and httpmatch['classmatch']['classnamecondition']['isnot'] == True:
+                            criteria = criteria +"_NOT_"+httpmatch['classmatch']['classnamecondition']['type']
+                        else:
+                            criteria = criteria +"_"+httpmatch['classmatch']['classnamecondition']['type']
+                        strings = []
+                        for matchstring in httpmatch['classmatch']['classnamecondition']['matchstrings']: 
+                            strings.append(matchstring)
+                        matchCriteria = MatchCriteria(HTTPRequestCriteria,criteria,strings)
+
+                    #### TO DO: Parameters | Headers | Cookies
+#                    elif (HTTPRequestCriteria == 'parameters' and httpmatch['parameters']) or (HTTPRequestCriteria == 'headers' and httpmatch['headers']) or (HTTPRequestCriteria == 'cookies' and httpmatch['cookies']):
+#                        if matchRule is not "":
+#                            matchRule = matchRule + "\n"
+#                        matchRule = matchRule + "HTTP_" + HTTPRequestCriteria + ": "
+#                        for parameter in httpmatch[HTTPRequestCriteria]:
+#                            for matchstring in parameter['name']['matchstrings']: 
+#                                matchRule = matchRule + "Name " + parameter['name']['type'] + ": " + matchstring + ", "
+#                            for matchstring in parameter['value']['matchstrings']: 
+#                                matchRule = matchRule + "Value " + parameter['value']['type'] + ": " + matchstring
+#                        matchCriteria = MatchCriteria(HTTPRequestCriteria,criteria,strings,field)
+
+                    else:
+                        continue
+                mRuleList.append(matchCriteria)
+            elif mCondition['type'] == "INSTRUMENTATION_PROBE":
+                #### TO DO: POJO instrumentation parsing
+                print "INSTRUMENTATION_PROBE not supported yet"
+            else:
+                print "Match condition "+mCondition['type']+" not implemented yet."
+        
+        actions = txMatchRuleData['txcustomrule']['actions']
+        for action in actions:
+            if action['type'] == "HTTP_SPLIT":
+                if not action['httpsplit']: # HTTPSplit definition is empty
+                    continue
+                elif 'httpsplitonreqdata' in action['httpsplit']:
+                    httpsplitonreqdata = action['httpsplit']['httpsplitonreqdata']
+                    if 'customexpression' in httpsplitonreqdata:
+                        httpSplit.append("Split Transactions using custom expression: "+httpsplitonreqdata['customexpression']['stringvalue'])
+                    elif 'segments' in httpsplitonreqdata:
+                        segments = str(httpsplitonreqdata['segments']['selectedsegments'])
+                        httpSplit.append("Split Transactions using URI segment "+segments)
+                    elif 'usehttpmethod' in httpsplitonreqdata:
+                        if httpsplitonreqdata['usehttpmethod'] == True:
+                            httpSplit.append("Split Transactions using the request method (GET/POST/PUT)")
+                        else: # Split Transactions using request method is disabled
+                            pass
+                    else: #### TO DO: Implement rest of actions (Split Transactions Using Request Data)
+                        print action['httpsplit']['httpsplitonreqdata']
+                        pass
+                elif 'httpsplitonpayload' in action['httpsplit']:
+                    #### TO DO: Actions (Split Using Payload)
+                    print "httpsplitonpayload not supported yet"
+                else: 
+                    print action['httpsplit']
+            elif action['type'] == "POJO_SPLIT":
+                #### TO DO: POJO split
+                print "POJO split not supported yet"
+                pass
+            else: 
+                print action['type']
+                print action['httpsplit']
+
+    elif matchRuleType == "AUTOMATIC_DISCOVERY":
+        #### TO DO: Automatic discovery rules
+        print "Automatic discovery rules not supported yet"
+    else:
+        print ("Uknown rule type: "+matchRuleType)
+
+#    print "Number of detection rules:" + str(len(mRuleList))
+#    for mRule in mRuleList:
+#        print str(mRule)
+    detectionruleList.append(DetectionRule(ruleName,mRuleList,httpSplit))
+
+def get_transactiondetections_matching_URL(URL):
+    pass 
+    TD_List = []
+    if len(detectionruleList) > 0:
+        for detectionrule in detectionruleList:
+            #### TO DO: Automatic discovery rules
+            pass
+    else:
+        return None
 
 def write_transactiondetection_CSV(fileName=None):
     if fileName is not None:
@@ -184,16 +254,29 @@ def write_transactiondetection_CSV(fileName=None):
         csvfile = sys.stdout
 
     # create the csv writer object
-    fieldnames = ['Name', 'Type', 'MatchRule']
+    fieldnames = ['Name', 'MatchRuleList', 'HttpSplit']
     filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
     filewriter.writeheader()
 
     if len(detectionruleList) > 0:
         for detectionrule in detectionruleList:
+            ruleList_str = ""
+            for matchrule in detectionrule.matchRuleList:
+                if ruleList_str != "":
+                    ruleList_str = ruleList_str + "\n" + str(matchrule)
+                else:
+                    ruleList_str = str(matchrule)
+            splitList_str = ""
+            for httpSplit in detectionrule.httpSplitList:
+                if splitList_str != "":
+                    splitList_str = splitList_str + "\n" + str(httpSplit)
+                else:
+                    splitList_str = str(httpSplit)
+
             try:
                 filewriter.writerow({'Name': detectionrule.name,
-                                    'Type': detectionrule.ruleType,
-                                    'MatchRule': detectionrule.matchRule})
+                                 'MatchRuleList': ruleList_str,
+                                 'HttpSplit': splitList_str})
             except:
                 print ("Could not write to the output.")
                 csvfile.close()
