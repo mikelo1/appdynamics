@@ -11,6 +11,7 @@ from events import load_events_XML, fetch_healthrule_violations, write_events_CS
 from policies import load_policies_JSON, fetch_policies, write_policies_CSV
 from actions import load_actions_JSON, fetch_actions, write_actions_CSV
 from snapshots import load_snapshots_JSON, fetch_snapshots, write_snapshots_CSV
+from allothertraffic import load_allothertraffic_JSON, fetch_allothertraffic, write_allothertraffic_CSV
 from optparse import OptionParser, OptionGroup
 
 def buildBaseURL(controller,port=None,SSLenabled=None):
@@ -163,6 +164,26 @@ elif ENTITY.lower() == "snapshots":
     else:
         optParser.error("Missing arguments")
     write_snapshots_CSV(options.outFileName)
+elif ENTITY.lower() == "allothertraffic":
+    if options.inFileName:
+        load_allothertraffic_JSON(options.inFileName)
+    elif options.user and options.password and options.hostname and options.application:
+        baseUrl = buildBaseURL(options.hostname,options.port,options.SSLEnabled)
+        fetch_business_transactions(baseUrl,options.user,options.password,options.application)
+        for i in range(3,48,3): # loop latest 48 hours in chunks of 3 hours
+            for retry in range(1,4):
+                data_chunck = fetch_allothertraffic(baseUrl,options.user,options.password,options.application, \
+                                                "AFTER_TIME","180",datetime.today()-timedelta(hours=i)) # fetch 3 hours of data
+                if data_chunck is not None:
+                    break
+                elif retry < 3:
+                    print "Failed to fetch healthrule violations. Retrying (",retry," of 3)..."
+                else:
+                    print "Giving up."
+                    exit (1)
+    else:
+        optParser.error("Missing arguments")
+    write_allothertraffic_CSV(options.outFileName)
 
 else:
     optParser.error("Incorrect operand ["+ENTITY+"]")

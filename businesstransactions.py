@@ -67,6 +67,12 @@ def get_business_transaction_ID(name):
             return BT.id
     return None
 
+def get_business_transaction_name(ID):
+    for BT in BTList:
+        if BT.BT_id == ID:
+            return BT.name
+    return None
+
 def write_business_transactions_CSV(fileName=None):
     if fileName is not None:
         try:

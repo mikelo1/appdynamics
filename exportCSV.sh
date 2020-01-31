@@ -79,3 +79,14 @@ for FILE in transactiondetection-auto.xml transactiondetection-custom.xml; do
 	#echo "Fetch data and translating to CSV..."
 	#$SCRIPTPATH/exportCSV.py $ENTITY -s -p 443 -o $APP_NAME/$ENTITY.csv -H ${HOST}.saas.appdynamics.com -u ${USER} -p ${PASS} -a ${APP_ID} 
 done
+
+ALLOTHERTRAFFIC_LIST=$(curl -s --user $USER:$PASS "https://$HOST/controller/rest/applications/$APP_ID/business-transactions?output=JSON" | grep "_APPDYNAMICS_DEFAULT_TX_" -A2 | grep "id" | awk -F[:,] '{print $2}')
+for BT_ID in ${ALLOTHERTRAFFIC_LIST}; do
+	FILE=allothertraffic-${BT_ID}.json
+	if [ ! -f $APP_NAME/$FILE ]; then
+		echo "Fetching $FILE..."
+		curl -s --user $USER:$PASS "https://$HOST/controller/rest/applications/$APP_ID/request-snapshots/?business-transaction-ids=$BT_ID&time-range-type=BEFORE_NOW&duration-in-mins=1440&output=JSON" -o $APP_NAME/$FILE -k
+	fi
+	echo "Converting file $FILE to CSV..."
+	$SCRIPTPATH/exportCSV.py allothertraffic -i $APP_NAME/$FILE -o $APP_NAME/allothertraffic-${BT_ID}.csv
+done
