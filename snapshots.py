@@ -3,7 +3,6 @@ import requests
 import json
 import csv
 import sys
-from optparse import OptionParser
 from datetime import datetime, timedelta
 import time
 

@@ -12,6 +12,7 @@ from policies import load_policies_JSON, fetch_policies, write_policies_CSV
 from actions import load_actions_JSON, fetch_actions, write_actions_CSV
 from snapshots import load_snapshots_JSON, fetch_snapshots, write_snapshots_CSV
 from allothertraffic import load_allothertraffic_JSON, fetch_allothertraffic, write_allothertraffic_CSV
+from accesstoken import fetch_access_token
 from optparse import OptionParser, OptionGroup
 
 def buildBaseURL(controller,port=None,SSLenabled=None):
@@ -34,13 +35,7 @@ optParser.add_option("-i", "--inputfile", action="store", dest="inFileName",
                   help="read source data from FILE.  If not provided, read from URL", metavar="FILE")
 optParser.add_option("-o", "--outfile", action="store", dest="outFileName",
                   help="write report to FILE.  If not provided, output to STDOUT", metavar="FILE")
-groupConn = OptionGroup(optParser, "Connection Options")
-groupConn.add_option("-u", "--user",
-                  action="store", dest="user",
-                  help="username@account")
-groupConn.add_option("-p", "--password",
-                  action="store", dest="password",
-                  help="User password")
+groupConn = OptionGroup(optParser, "Connection options")
 groupConn.add_option("-H", "--hostname",
                   action="store", dest="hostname",
                   help="Controller hostname")
@@ -51,7 +46,21 @@ groupConn.add_option("-s", "--ssl",
                   action="store_true", dest="SSLEnabled",
                   help="Use SSL")
 optParser.add_option_group(groupConn)
-groupQuery = OptionGroup(optParser, "Query range Options")
+groupAuth = OptionGroup(optParser, "Authentication options")
+groupAuth.add_option("-u", "--user",
+                  action="store", dest="user",
+                  help="username@account")
+groupAuth.add_option("-p", "--password",
+                  action="store", dest="password",
+                  help="User password")
+groupAuth.add_option("--api-client-name",
+                  action="store", dest="apiClientName",
+                  help="API Client name")
+groupAuth.add_option("--api-client-secret",
+                  action="store", dest="apiClientSecret",
+                  help="API Client secret")
+optParser.add_option_group(groupAuth)
+groupQuery = OptionGroup(optParser, "Query range options")
 groupQuery.add_option("-a", "--application",
                   action="store", dest="application",
                   help="Application ID")
@@ -184,6 +193,9 @@ elif ENTITY.lower() == "allothertraffic":
     else:
         optParser.error("Missing arguments")
     write_allothertraffic_CSV(options.outFileName)
-
+elif ENTITY.lower() == "accesstoken":
+    if options.user and options.password and options.hostname and options.apiClientName and options.apiClientSecret :
+        baseUrl = buildBaseURL(options.hostname,options.port,options.SSLEnabled)
+        fetch_access_token(baseUrl,options.user,options.password,options.apiClientName,options.apiClientSecret)
 else:
     optParser.error("Incorrect operand ["+ENTITY+"]")

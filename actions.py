@@ -21,7 +21,7 @@ class Action:
     def __str__(self):
         return "({0},{1},{2},{3},{4})".format(self.name,self.emails,self.policies,self.actionPlan,self.properties)
 
-def fetch_actions():
+def fetch_actions(baseUrl,userName,password,app_ID):
     print ("Fetching actions for App " + app_ID + "...")
     try:
         response = requests.get(baseUrl + "actions/" + app_ID, auth=(userName, password), params={"output": "JSON"})
