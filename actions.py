@@ -61,6 +61,7 @@ def load_actions_JSON(fileName):
 def parse_actions(actions):
     for action in actions:
         if 'actionType' not in action:
+            print action
             continue
         if action['actionType'] == "EmailAction":
             CustomProperties = []
@@ -76,6 +77,30 @@ def parse_actions(actions):
             for email in emailList:
                  Emails.append(email['emailAddress'])
             ActionPlan = action['customEmailActionPlanName'].encode('ASCII', 'ignore')
+        elif action['actionType'] == "SMSAction":
+            ActionPlan=action['actionType']
+            CustomProperties = []
+            Emails = [action['toNumber']]
+        elif action['actionType'] == "DiagnosticSessionAction":
+            ActionPlan=action['actionType']+": "+str(action['businessTransactionTemplates'])
+            CustomProperties = [ 'Number of snapshots per minute: '+str(action['numberOfSnapshotsPerMinute']), 'Duration in minutes: '+str(action['durationInMinutes'])  ]
+            Emails = []
+        elif action['actionType'] == "ThreadDumpAction":
+            ActionPlan=action['actionType']
+            CustomProperties = [ 'Number of thread dumps: '+str(action['numberOfSamples']), 'Interval: '+str(action['samplingIntervalMills']) ]
+            Emails = []
+        elif action['actionType'] == "RunLocalScriptAction":
+            ActionPlan=action['actionType']
+            CustomProperties = [ 'Script path: '+str(action['scriptPath']), 'timeout(minutes): '+str(action['timeoutMinutes']) ]
+            Emails = []
+        elif action['actionType'] == "HttpRequestAction":
+            ActionPlan=action['httpRequestActionPlanName']
+            CustomProperties = action['customProperties']
+            Emails = []
+        elif action['actionType'] == "CustomAction":
+            ActionPlan=action['actionType']
+            CustomProperties = [ 'Custom action: '+str(['customType'])]
+            Emails = []
         else:
             print("Warning: Unknown action type ",action['actionType'])
             return

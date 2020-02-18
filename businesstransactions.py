@@ -64,7 +64,7 @@ def parse_business_transactions(BTs):
 def get_business_transaction_ID(name):
     for BT in BTList:
         if BT.name == name:
-            return BT.id
+            return BT.BT_id
     return None
 
 def get_business_transaction_name(ID):

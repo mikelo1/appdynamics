@@ -42,7 +42,7 @@ def fetch_allothertraffic(baseUrl,userName,password,app_ID,time_range_type,range
     elif time_range_type == "BEFORE_TIME" and range_param1 > 0 and range_param2 is not None:
         duration_in_mins = range_param1
         end_time = long(time.mktime(range_param2.timetuple())*1000)
-        print ("Fetching snapshots for App "+app_ID+", "+time_range_type+", "+range_param1+", "+str(range_param2)+"...")
+        print ("Fetching all other traffic for App "+app_ID+", "+time_range_type+", "+range_param1+", "+str(range_param2)+"...")
         try:
             response = requests.get(baseUrl + "rest/applications/" + app_ID + "/request-snapshots", auth=(userName, password),\
                                 params={"business-transaction-ids": AllOtherTraffic_ID,"time-range-type": time_range_type,"duration-in-mins": duration_in_mins,"end-time": end_time, "output": "JSON", "maximum-results": MAX_RESULTS})
@@ -52,7 +52,7 @@ def fetch_allothertraffic(baseUrl,userName,password,app_ID,time_range_type,range
     elif time_range_type == "AFTER_TIME" and range_param1 > 0 and range_param2 is not None:
         duration_in_mins = range_param1
         start_time = long(time.mktime(range_param2.timetuple())*1000)
-        print ("Fetching snapshots for App "+app_ID+", "+time_range_type+", "+range_param1+", "+str(range_param2)+"...")
+        print ("Fetching all other traffic for App "+app_ID+", "+time_range_type+", "+range_param1+", "+str(range_param2)+"...")
         try:
             response = requests.get(baseUrl + "rest/applications/" + app_ID + "/request-snapshots", auth=(userName, password),\
                                 params={"business-transaction-ids": AllOtherTraffic_ID,"time-range-type": time_range_type,"duration-in-mins": duration_in_mins,"start-time": start_time, "output": "JSON", "maximum-results": MAX_RESULTS})
@@ -62,7 +62,7 @@ def fetch_allothertraffic(baseUrl,userName,password,app_ID,time_range_type,range
     elif time_range_type == "BETWEEN_TIMES" and range_param1 is not None and range_param2 is not None:
         start_time = long(time.mktime(range_param1.timetuple())*1000)
         end_time = long(time.mktime(range_param2.timetuple())*1000)
-        print ("Fetching snapshots for App "+app_ID+", "+time_range_type+", "+range_param1+", "+range_param2+"...")
+        print ("Fetching all other traffic for App "+app_ID+", "+time_range_type+", "+range_param1+", "+range_param2+"...")
         try:
             response = requests.get(baseUrl + "rest/applications/" + app_ID + "/request-snapshots", auth=(userName, password),\
                                 params={"business-transaction-ids": AllOtherTraffic_ID,"time-range-type": time_range_type,"start-time": start_time,"end-time": end_time, "output": "JSON", "maximum-results": MAX_RESULTS})

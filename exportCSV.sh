@@ -53,7 +53,7 @@ for FILE in healthrules.xml actions.json policies.json; do
 #	echo "Converting file $FILE to CSV..."
 #	$SCRIPTPATH/exportCSV.py $ENTITY -i $APP_NAME/$FILE -o $APP_NAME/$ENTITY.csv
 	echo "Fetch data and translating to CSV..."
-	$SCRIPTPATH/exportCSV.py $ENTITY -s -p 443 -o $APP_NAME/$ENTITY.csv -H ${HOST} -u ${USER} -p ${PASS} -a ${APP_ID} 
+	$SCRIPTPATH/exportCSV.py $ENTITY -s -P 443 -o $APP_NAME/$ENTITY.csv -H ${HOST} -u ${USER} -p ${PASS} -a ${APP_ID} 
 done
 
 for FILE in business-transactions.json backends.json; do
@@ -66,7 +66,7 @@ for FILE in business-transactions.json backends.json; do
 #	echo "Converting file $FILE to CSV..."
 #	$SCRIPTPATH/exportCSV.py $ENTITY -i $APP_NAME/$FILE -o $APP_NAME/$ENTITY.csv
 	echo "Fetch data and translating to CSV..."
-	$SCRIPTPATH/exportCSV.py $ENTITY -s -p 443 -o $APP_NAME/$ENTITY.csv -H ${HOST} -u ${USER} -p ${PASS} -a ${APP_ID} 
+	$SCRIPTPATH/exportCSV.py $ENTITY -s -P 443 -o $APP_NAME/$ENTITY.csv -H ${HOST} -u ${USER} -p ${PASS} -a ${APP_ID} 
 done
 
 for FILE in transactiondetection-auto.xml transactiondetection-custom.xml; do
@@ -80,7 +80,7 @@ for FILE in transactiondetection-auto.xml transactiondetection-custom.xml; do
 #	echo "Converting file $FILE to CSV..."
 #	$SCRIPTPATH/exportCSV.py $ENTITY -i $APP_NAME/$FILE -o $APP_NAME/$ENTITY-$TYPE.csv
 	echo "Fetch data and translating to CSV..."
-	$SCRIPTPATH/exportCSV.py $ENTITY -s -p 443 -o $APP_NAME/$ENTITY.csv -H ${HOST} -u ${USER} -p ${PASS} -a ${APP_ID} 
+	$SCRIPTPATH/exportCSV.py $ENTITY -s -P 443 -o $APP_NAME/$ENTITY.csv -H ${HOST} -u ${USER} -p ${PASS} -a ${APP_ID} 
 done
 
 ALLOTHERTRAFFIC_LIST=$(curl -s --user $USER:$PASS "https://$HOST/controller/rest/applications/$APP_ID/business-transactions?output=JSON" | grep "_APPDYNAMICS_DEFAULT_TX_" -A2 | grep "id" | awk -F[:,] '{print $2}')
@@ -93,7 +93,7 @@ for BT_ID in ${ALLOTHERTRAFFIC_LIST}; do
 #	echo "Converting file $FILE to CSV..."
 #	$SCRIPTPATH/exportCSV.py allothertraffic -i $APP_NAME/$FILE -o $APP_NAME/allothertraffic-${BT_ID}.csv
 	echo "Fetch data and translating to CSV..."
-	$SCRIPTPATH/exportCSV.py allothertraffic -s -p 443 -o $APP_NAME/$ENTITY.csv -H ${HOST} -u ${USER} -p ${PASS} -a ${APP_ID} 	
+	$SCRIPTPATH/exportCSV.py allothertraffic -s -P 443 -o $APP_NAME/$FILE.csv -H ${HOST} -u ${USER} -p ${PASS} -a ${APP_ID} 	
 done
 
-$SCRIPTPATH/exportCSV.py dashboards -s -p 443 -o $APP_NAME/dashboards.csv -H ${HOST} -u ${USER} -p ${PASS} --api-client-name ${APICLIENT} --api-client-secret ${APISECRET}
+$SCRIPTPATH/exportCSV.py dashboards -s -P 443 -o $APP_NAME/dashboards.csv -H ${HOST} -u ${USER} -p ${PASS} --api-client-name ${APICLIENT} --api-client-secret ${APISECRET}
