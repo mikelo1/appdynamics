@@ -12,7 +12,7 @@ from policies import load_policies_JSON, fetch_policies, write_policies_CSV
 from actions import load_actions_JSON, fetch_actions, write_actions_CSV
 from snapshots import load_snapshots_JSON, fetch_snapshots, write_snapshots_CSV
 from allothertraffic import load_allothertraffic_JSON, fetch_allothertraffic, write_allothertraffic_CSV
-from accesstoken import fetch_access_token
+from dashboards import load_dashboards_JSON, fetch_dashboards, write_dashboards_CSV
 from optparse import OptionParser, OptionGroup
 
 def buildBaseURL(controller,port=None,SSLenabled=None):
@@ -193,9 +193,14 @@ elif ENTITY.lower() == "allothertraffic":
     else:
         optParser.error("Missing arguments")
     write_allothertraffic_CSV(options.outFileName)
-elif ENTITY.lower() == "accesstoken":
-    if options.user and options.password and options.hostname and options.apiClientName and options.apiClientSecret :
+elif ENTITY.lower() == "dashboards":
+    if options.inFileName:
+        load_dashboards_JSON(options.inFileName)
+    elif options.user and options.password and options.hostname and options.apiClientName and options.apiClientSecret :
         baseUrl = buildBaseURL(options.hostname,options.port,options.SSLEnabled)
-        fetch_access_token(baseUrl,options.user,options.password,options.apiClientName,options.apiClientSecret)
+        fetch_dashboards(baseUrl,options.user,options.password,options.apiClientName,options.apiClientSecret)
+    else:
+        optParser.error("Missing arguments")
+    write_dashboards_CSV(options.outFileName)
 else:
     optParser.error("Incorrect operand ["+ENTITY+"]")

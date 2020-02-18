@@ -29,7 +29,9 @@ USER=`grep $ENVIRONMENT -A8 $CRED_FILE | grep username | awk -F: '{print $2}' | 
 PASS=`grep $ENVIRONMENT -A8 $CRED_FILE | grep password | awk -F: '{print $2}' | sed 's/\s//g'`
 APICLIENT=`grep $ENVIRONMENT -A8 $CRED_FILE | grep apiclient | awk -F: '{print $2}' | sed 's/\s//g'`
 APISECRET=`grep $ENVIRONMENT -A8 $CRED_FILE | grep apisecret | awk -F: '{print $2}' | sed 's/\s//g'`
-HOST=`grep $ENVIRONMENT -A8 $CRED_FILE | grep url | awk -F: '{print $3}' | sed 's/\///g'
+HOST=`grep $ENVIRONMENT -A8 $CRED_FILE | grep url | awk -F: '{print $3}' | sed 's/\///g'`
+APP_ID=`grep $ENVIRONMENT -A8 $CRED_FILE | grep appID | awk -F: '{print $2}' | sed 's/\s//g'`
+APP_NAME=`grep $ENVIRONMENT -A8 $CRED_FILE | grep appName | awk -F: '{print $2}' | sed 's/\s//g'`
 
 # Absolute path to this script, e.g. /home/user/bin/foo.sh
 SCRIPT=$(readlink -f "$0")
@@ -93,3 +95,5 @@ for BT_ID in ${ALLOTHERTRAFFIC_LIST}; do
 	echo "Fetch data and translating to CSV..."
 	$SCRIPTPATH/exportCSV.py allothertraffic -s -p 443 -o $APP_NAME/$ENTITY.csv -H ${HOST} -u ${USER} -p ${PASS} -a ${APP_ID} 	
 done
+
+$SCRIPTPATH/exportCSV.py dashboards -s -p 443 -o $APP_NAME/dashboards.csv -H ${HOST} -u ${USER} -p ${PASS} --api-client-name ${APICLIENT} --api-client-secret ${APISECRET}
