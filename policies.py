@@ -74,19 +74,34 @@ def parse_policies(policies):
 
         Entities = []
         entTemplate = policy['entityFilterTemplates']
-        if entTemplate is not None:
-            pass
+        if entTemplate is None:
+            Entities = ["ANY"]
+        else:
+            #### TO DO: Policy entityFilterTemplates
             for entity in entTemplate:
-                pass
-                #### TO DO: Policy entityFilterTemplates
-                # All <entities> in the Application
-                # <entities> within the specified Tiers
-                # These specified <entities>
-                # <entities> matching the following criteria
+                if entity['entityType'] == "BUSINESS_TRANSACTION":
+                    pass #BUSINESS_TRANSACTION
+                elif entity['entityType'] == "APPLICATION_COMPONENT":
+                    pass #TIER
+                elif entity['entityType'] == "APPLICATION_COMPONENT_NODE":
+                    pass #NODE
+                elif entity['entityType'] == "JMX_INSTANCE_NAME":
+                    pass #JMX
+                elif entity['entityType'] == "INFO_POINT":
+                    pass #INFORMATION_POINT
+                elif entity['entityType'] == "MACHINE_INSTANCE":
+                    pass #SERVER
+                elif entity['entityType'] == "BACKEND":
+                    pass #DATABASES
+                elif entity['entityType'] == "SERVICE_END_POINT":
+                    pass #SERVICE_ENDPOINTS
+                elif entity['entityType'] == "ERROR":
+                    pass #ERRORS
+                else:
+                    print "Unknown entity",entity['entityType']
 
                 #Entities.append(entity['stringMatchExpression'])
-        else:
-            Entities = ["ANY"]
+            
 
         Actions = []
         actTemplate = policy['actionWrapperTemplates']
