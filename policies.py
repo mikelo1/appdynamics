@@ -21,6 +21,18 @@ class Policy:
         return "({0},{1},{2},{3},{4})".format(self.name,self.appName,self.healthRules,self.entities,self.actions)
 
 
+def to_entityName(entityType):
+    switcher = {
+        "APPLICATION_COMPONENT": "TIER",
+        "APPLICATION_COMPONENT_NODE": "NODE",
+        "JMX_INSTANCE_NAME": "JMX_OBJECT",
+        "INFO_POINT": "INFORMATION_POINT",
+        "MACHINE_INSTANCE": "SERVER",
+        "BACKEND": "DATABASES",
+        "SERVICE_END_POINT": "SERVICE_ENDPOINTS"
+    }
+    return switcher.get(entityType, entityType)
+
 def fetch_policies(baseUrl,userName,password,app_ID):
     print ("Fetching policies for App " + app_ID + "...")
     try:
@@ -73,35 +85,40 @@ def parse_policies(policies):
             HealthRules = "ANY"
 
         Entities = []
-        entTemplate = policy['entityFilterTemplates']
-        if entTemplate is None:
+        entityTemplates = policy['entityFilterTemplates']
+        if entityTemplates is None:
             Entities = ["ANY"]
         else:
-            #### TO DO: Policy entityFilterTemplates
-            for entity in entTemplate:
-                if entity['entityType'] == "BUSINESS_TRANSACTION":
-                    pass #BUSINESS_TRANSACTION
-                elif entity['entityType'] == "APPLICATION_COMPONENT":
-                    pass #TIER
-                elif entity['entityType'] == "APPLICATION_COMPONENT_NODE":
-                    pass #NODE
-                elif entity['entityType'] == "JMX_INSTANCE_NAME":
-                    pass #JMX
-                elif entity['entityType'] == "INFO_POINT":
-                    pass #INFORMATION_POINT
-                elif entity['entityType'] == "MACHINE_INSTANCE":
-                    pass #SERVER
-                elif entity['entityType'] == "BACKEND":
-                    pass #DATABASES
-                elif entity['entityType'] == "SERVICE_END_POINT":
-                    pass #SERVICE_ENDPOINTS
-                elif entity['entityType'] == "ERROR":
-                    pass #ERRORS
-                else:
-                    print "Unknown entity",entity['entityType']
-
-                #Entities.append(entity['stringMatchExpression'])
-            
+            for entTemplate in entityTemplates:
+                if entTemplate['matchCriteriaType'] == "AllEntities":
+                    EntityDescription = "ALL "+to_entityName(entTemplate['entityType'])
+                elif entTemplate['matchCriteriaType'] == "RelatedEntities":
+                    EntityDescription = to_entityName(entTemplate['entityType'])+" within the Tiers: "
+                    for tier in entTemplate['relatedEntityNames']:
+                        EntityDescription = EntityDescription + tier['entityName'] + ", "
+                elif entTemplate['matchCriteriaType'] == "SpecificEntities":
+                    EntityDescription = "These specific "+ to_entityName(entTemplate['entityType'])+": "
+                    for entityName in entTemplate['entityNames']:
+                        EntityDescription = EntityDescription + entityName['entityName'] + ", "
+                elif entTemplate['matchCriteriaType'] == "CustomEntities":
+                    EntityDescription = to_entityName(entTemplate['entityType'])+" matching the following criteria: "
+                    EntityDescription = EntityDescription + " " + entTemplate['stringMatchType'] + " " + entTemplate['stringMatchExpression']
+                elif entTemplate['entityType'] == "JMX_INSTANCE_NAME":
+                    nodeEntCriteria = entTemplate['nodeEntityMatchCriteria']
+                    if nodeEntCriteria['matchCriteriaType'] == "AllEntities":
+                        EntityDescription = "JMX Objects from ALL"+to_entityName(nodeEntCriteria['entityType'])
+                    elif nodeEntCriteria['matchCriteriaType'] == "RelatedEntities":
+                        EntityDescription = to_entityName(nodeEntCriteria['entityType'])+" within the Tiers: "
+                        for tier in entTemplate['relatedEntityNames']:
+                            EntityDescription = EntityDescription + tier['entityName'] + ", "
+                    elif nodeEntCriteria['matchCriteriaType'] == "SpecificEntities":
+                        EntityDescription = "These specific "+ to_entityName(nodeEntCriteria['entityType'])+": "
+                        for entityName in entTemplate['entityNames']:
+                            EntityDescription = EntityDescription + entityName['entityName'] + ", "
+                    elif nodeEntCriteria['matchCriteriaType'] == "CustomEntities":
+                        EntityDescription = to_entityName(nodeEntCriteria['entityType'])+" matching the following criteria: "
+                        EntityDescription = EntityDescription + " " + nodeEntCriteria['stringMatchType'] + " " + nodeEntCriteria['stringMatchExpression']
+                Entities.append(EntityDescription)
 
         Actions = []
         actTemplate = policy['actionWrapperTemplates']
@@ -127,7 +144,7 @@ def write_policies_CSV(fileName=None):
         csvfile = sys.stdout
 
     # create the csv writer object
-    fieldnames = ['Policy', 'Application', 'HealthRules', 'Actions']
+    fieldnames = ['Policy', 'Application', 'HealthRules', 'Entities', 'Actions']
     filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
     filewriter.writeheader()
 
@@ -143,11 +160,16 @@ def write_policies_CSV(fileName=None):
                 if Action_String is not "":
                     Action_String = Action_String + "\n"
                 Action_String = Action_String + action
-
+            Entity_String = ""
+            for entity in policy.entities:
+                if Entity_String is not "":
+                    Entity_String = Entity_String + "\n"
+                Entity_String = Entity_String + entity
             try:
                 filewriter.writerow({'Policy': policy.name,
                                      'Application': policy.appName,
                                      'HealthRules': HR_String,
+                                     'Entities': Entity_String,
                                      'Actions': Action_String})
             except:
                 print ("Could not write to the output.")
