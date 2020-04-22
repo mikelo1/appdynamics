@@ -30,17 +30,21 @@ PASS=`grep $ENVIRONMENT -A6 $CRED_FILE | grep password | awk -F: '{print $2}' | 
 HOST=`grep $ENVIRONMENT -A6 $CRED_FILE | grep url | awk -F: '{print $3}' | sed 's/\///g'`
 
 
-App_List=$(curl -s --user "${USER}@${ACCOUNT}:${PASS}" https://${HOST}/controller/rest/applications/)
-if [ $? -ne 0 ]; then
-	echo "Something went wrong with the cURL command. Exiting..."
-	exit
-fi
-App_Info=$(echo "${App_List}" | grep "<name>$APPLICATION</name>" -B1 -A1)
-if [ $? -ne 0 ]; then
-	echo "Application $APPLICATION not found for account $ACCOUNT. Exiting..."
-	exit
-fi
-APP_ID=$(echo "${App_Info}" | grep "id" | awk -F"[<>]" '{print $3}')
+get_App_ID() {
+	App_List=$(curl -s --user "${USER}@${ACCOUNT}:${PASS}" https://${HOST}/controller/rest/applications/)
+	if [ $? -ne 0 ]; then
+		echo "Something went wrong with the cURL command. Exiting..."
+		exit
+	fi
+	App_Info=$(echo "${App_List}" | grep "<name>$APPLICATION</name>" -B1 -A1)
+	if [ $? -ne 0 ]; then
+		echo "Application $APPLICATION not found for account $ACCOUNT. Exiting..."
+		exit
+	fi
+	echo "${App_Info}" | grep "id" | awk -F"[<>]" '{print $3}'
+}
+
+#APP_ID=$(get_App_ID)
 
 if [ ! -d $APPLICATION ]; then mkdir $APPLICATION; fi
 
@@ -57,7 +61,7 @@ for FILE in healthrules.xml actions.json policies.json; do
 	ENTITY=`echo $FILE | awk -F. '{print $1}'`
 	EXT=`echo $FILE | awk -F. '{print $2}'`
 #	echo "Fetching $FILE..."
-	curl -s --user "${USER}@${ACCOUNT}:${PASS}" https://$HOST/controller/$ENTITY/$APP_ID -o $APPLICATION/$FILE
+	curl -s --user "${USER}@${ACCOUNT}:${PASS}" https://$HOST/controller/$ENTITY/$APPLICATION -o $APPLICATION/$FILE
 	if [ $? -ne 0 ]; then
 		echo "Something went wrong with the cURL command. Exiting..."
 	else
@@ -70,7 +74,7 @@ for FILE in transactiondetection-auto.xml transactiondetection-custom.xml; do
 	TYPE=`echo $FILE | awk -F[.-] '{print $2}'`
 	EXT=`echo $FILE | awk -F[.-] '{print $3}'`
 #	echo "Fetching $FILE..."
-	curl -s --user "${USER}@${ACCOUNT}:${PASS}" https://$HOST/controller/$ENTITY/$APP_ID/$TYPE -o $APPLICATION/$FILE
+	curl -s --user "${USER}@${ACCOUNT}:${PASS}" https://$HOST/controller/$ENTITY/$APPLICATION/$TYPE -o $APPLICATION/$FILE
 	if [ $? -ne 0 ]; then
 		echo "Something went wrong with the cURL command. Exiting..."
 	else
