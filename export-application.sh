@@ -27,9 +27,8 @@ APPLICATION=$3
 USER=`grep $ENVIRONMENT -A6 $CRED_FILE | grep username | awk -F"[:@]" '{print $2}' | sed 's/\s//g'`
 ACCOUNT=`grep $ENVIRONMENT -A6 $CRED_FILE | grep username | awk -F"[:@]" '{print $3}' | sed 's/\s//g'`
 PASS=`grep $ENVIRONMENT -A6 $CRED_FILE | grep password | awk -F: '{print $2}' | sed 's/\s//g'`
-APICLIENT=`grep $ENVIRONMENT -A6 $CRED_FILE | grep apiclient | awk -F: '{print $2}' | sed 's/\s//g'`
-APISECRET=`grep $ENVIRONMENT -A6 $CRED_FILE | grep apisecret | awk -F: '{print $2}' | sed 's/\s//g'`
 HOST=`grep $ENVIRONMENT -A6 $CRED_FILE | grep url | awk -F: '{print $3}' | sed 's/\///g'`
+
 
 App_List=$(curl -s --user "${USER}@${ACCOUNT}:${PASS}" https://${HOST}/controller/rest/applications/)
 if [ $? -ne 0 ]; then
@@ -44,7 +43,6 @@ fi
 APP_ID=$(echo "${App_Info}" | grep "id" | awk -F"[<>]" '{print $3}')
 
 if [ ! -d $APPLICATION ]; then mkdir $APPLICATION; fi
-
 
 #REQUEST SNAPSHOTS
 #curl -s --user "${USER}@${ACCOUNT}:${PASS}" "https://$HOST/controller/rest/applications/$APP_ID/request-snapshots?time-range-type=BEFORE_NOW&duration-in-mins=160&maximum-results=5000&output=JSON" -o $APPLICATION/request-snapshots.json

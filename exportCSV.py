@@ -28,7 +28,7 @@ def buildBaseURL(controller,port=None,SSLenabled=None):
     return url + "://" + controller + ":" + port + "/controller/"
 
 
-usage = "usage: %prog [actions|backends|business-transactions|events|healthrules|policies|transactiondetection|snapshots] [options]"
+usage = "usage: %prog [actions|allothertraffic|applications|backends|business-transactions|dashboards|events|healthrules|policies|transactiondetection|snapshots] [options]"
 epilog= "examples: %prog healthrules -s -p 443 -H ad-financial.saas.appdynamics.com -u johndoe@ad-financial -p s3cr3tp4ss -a 1001"
 
 optParser = OptionParser(usage=usage, version="%prog 0.1", epilog=epilog)
@@ -79,7 +79,7 @@ ENTITY = args[0]
 ### Application performance related entities
 if ENTITY.lower() == "applications":
     if options.inFileName:
-        load_applications_XML(options.inFileName)
+        load_applications_JSON(options.inFileName)
     elif options.user and options.password and options.hostname:
         baseUrl = buildBaseURL(options.hostname,options.port,options.SSLEnabled)
         fetch_applications(baseUrl,options.user,options.password)
