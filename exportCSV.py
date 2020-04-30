@@ -90,7 +90,6 @@ elif ENTITY.lower() == "transactiondetection":
     if options.inFileName:
         load_transactiondetection_XML(options.inFileName)
     elif options.user and options.password and options.hostname and options.application:
-        options.outFileName = options.application+"/"+options.outFileName
         baseUrl = buildBaseURL(options.hostname,options.port,options.SSLEnabled)
         fetch_applications(baseUrl,options.user,options.password)
         appID=getID(options.application)
@@ -105,7 +104,6 @@ elif ENTITY.lower() == "business-transactions":
     if options.inFileName:
         load_business_transactions_JSON(options.inFileName)
     elif options.user and options.password and options.hostname and options.application:
-        options.outFileName = options.application+"/"+options.outFileName
         baseUrl = buildBaseURL(options.hostname,options.port,options.SSLEnabled)
         fetch_applications(baseUrl,options.user,options.password)
         appID=getID(options.application)
@@ -120,7 +118,6 @@ elif ENTITY.lower() == "backends":
     if options.inFileName:
         load_backends_JSON(options.inFileName)
     elif options.user and options.password and options.hostname and options.application:
-        options.outFileName = options.application+"/"+options.outFileName
         baseUrl = buildBaseURL(options.hostname,options.port,options.SSLEnabled)
         fetch_applications(baseUrl,options.user,options.password)
         appID=getID(options.application)
@@ -135,7 +132,7 @@ elif ENTITY.lower() == "snapshots":
     if options.inFileName:
         load_snapshots_JSON(options.inFileName)
     elif options.user and options.password and options.hostname and options.application:
-        options.outFileName = options.application+"/"+options.outFileName
+        
         baseUrl = buildBaseURL(options.hostname,options.port,options.SSLEnabled)
         fetch_applications(baseUrl,options.user,options.password)
         appID=getID(options.application)
@@ -160,7 +157,6 @@ elif ENTITY.lower() == "allothertraffic":
     if options.inFileName:
         load_allothertraffic_JSON(options.inFileName)
     elif options.user and options.password and options.hostname and options.application:
-        options.outFileName = options.application+"/"+options.outFileName
         baseUrl = buildBaseURL(options.hostname,options.port,options.SSLEnabled)
         fetch_applications(baseUrl,options.user,options.password)
         appID=getID(options.application)
@@ -188,7 +184,6 @@ elif ENTITY.lower() == "healthrules":
     if options.inFileName:
         load_health_rules_XML(options.inFileName)
     elif options.user and options.password and options.hostname and options.application:
-        options.outFileName = options.application+"/"+options.outFileName
         baseUrl = buildBaseURL(options.hostname,options.port,options.SSLEnabled)
         fetch_applications(baseUrl,options.user,options.password)
         appID=getID(options.application)
@@ -202,7 +197,6 @@ elif ENTITY.lower() == "events":
     if options.inFileName:
         load_events_XML(options.inFileName)
     elif options.user and options.password and options.hostname and options.application:
-        options.outFileName = options.application+"/"+options.outFileName
         baseUrl = buildBaseURL(options.hostname,options.port,options.SSLEnabled)
         fetch_applications(baseUrl,options.user,options.password)
         appID=getID(options.application)
@@ -226,7 +220,6 @@ elif ENTITY.lower() == "policies":
     if options.inFileName:
         load_policies_JSON(options.inFileName)
     elif options.user and options.password and options.hostname and options.application:
-        options.outFileName = options.application+"/"+options.outFileName
         baseUrl = buildBaseURL(options.hostname,options.port,options.SSLEnabled)
         fetch_applications(baseUrl,options.user,options.password)
         appID=getID(options.application)
@@ -246,7 +239,7 @@ elif ENTITY.lower() == "actions":
             print ("File "+policiesXMLFile+" not found.")
         load_actions_JSON(options.inFileName)
     elif options.user and options.password and options.hostname and options.application:
-        options.outFileName = options.application+"/"+options.outFileName
+        
         baseUrl = buildBaseURL(options.hostname,options.port,options.SSLEnabled)
         fetch_applications(baseUrl,options.user,options.password)
         appID=getID(options.application)
