@@ -202,7 +202,16 @@ elif ENTITY.lower() == "events":
         appID=getID(options.application)
         if appID > 0:
             options.application=str(appID)
-        for i in range(3,0,-1): # loop latest 2 days in chunks of 1 day
+        if options.timerange and options.timerange.endswith("day"):
+            numberOfDays=int(options.timerange[0:options.timerange.find("day")])
+            if numberOfDays > 14:
+                print "Warning: time range [",numberOfDays,"] cannot be longer than 14 days."
+                numberOfDays=14
+        else:
+            optParser.error("Missing arguments")
+            exit (1)
+
+        for i in range(numberOfDays,0,-1): # loop latest numberOfDays days in chunks of 1 day
             for retry in range(1,4):
                 root = fetch_healthrule_violations(baseUrl,options.user,options.password,options.application, \
                                                     "AFTER_TIME","1440",datetime.today()-timedelta(days=i)) # fetch 1 day of data

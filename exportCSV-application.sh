@@ -39,15 +39,6 @@ SCRIPTPATH=$(dirname "$SCRIPT")
 
 if [ ! -d $APPLICATION ]; then mkdir $APPLICATION; fi
 
-#HEALTH-RULE-VIOLATIONS
-#$SCRIPTPATH/exportCSV.py events -s -P 443 -o $APPLICATION/events.csv -H ${HOST} -u ${USER} -p ${PASS} -a ${APPLICATION}
-
-#DASHBOARDS
-#$SCRIPTPATH/exportCSV.py dashboards -s -P 443 -o $APPLICATION/dashboards.csv -H ${HOST} -u ${USER} -p ${PASS} --api-client-name ${APICLIENT} --api-client-secret ${APISECRET}
-
-#REQUEST SNAPSHOTS
-#$SCRIPTPATH/exportCSV.py snapshots -s -p 443 -o $APPLICATION/request-snapshots.csv -H ${HOST} -u ${USER} -p ${PASS} -a ${APPLICATION}
-
 for FILE in healthrules.xml actions.json policies.json; do
 	ENTITY=`echo $FILE | awk -F. '{print $1}'`
 	EXT=`echo $FILE | awk -F. '{print $2}'`
