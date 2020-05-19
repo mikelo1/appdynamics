@@ -2,10 +2,12 @@
 import requests
 import xml.etree.ElementTree as ET
 import csv
+from applications import getName
 from datetime import datetime, timedelta
 import time
 
 eventList = []
+
 class Event:
     name      = ""
     entityName= ""
@@ -13,15 +15,17 @@ class Event:
     status    = ""
     startTime = 0
     endTime   = 0
-    def __init__(self,name,entityName,severity,status,startTime,endTime):
+    app_ID    = 0
+    def __init__(self,name,entityName,severity,status,startTime,endTime,app_ID=None):
         self.name      = name
         self.entityName= entityName
         self.severity  = severity
         self.status    = status
         self.startTime = startTime
         self.endTime   = endTime
+        self.app_ID    = app_ID
     def __str__(self):
-        return "({0},{1},{2},{3},{4},{5}".format(self.name,self.entityName,self.severity,self.status,self.startTime,self.endTime)
+        return "({0},{1},{2},{3},{4},{5},{6}".format(self.name,self.entityName,self.severity,self.status,self.startTime,self.endTime,self.app_ID)
 
 
 def fetch_healthrule_violations(baseUrl,userName,password,app_ID,time_range_type,range_param1,range_param2):
@@ -95,7 +99,7 @@ def fetch_healthrule_violations(baseUrl,userName,password,app_ID,time_range_type
         file1.write(response.content)
         file1.close() 
         return None
-    parse_events_XML(root)
+    parse_events_XML(root,app_ID)
     return root
 
 def load_events_XML(fileName):
@@ -104,7 +108,7 @@ def load_events_XML(fileName):
     root = tree.getroot()
     parse_events_XML(root)
 
-def parse_events_XML(root):
+def parse_events_XML(root,app_ID=None):
     for policyviolation in root.findall('policy-violation'):
 
         Start_Time_Epoch = policyviolation.find('startTimeInMillis').text
@@ -145,7 +149,7 @@ def parse_events_XML(root):
         else:
             continue
 
-        eventList.append(Event(PolicyName,EntityName,Severity,Status,Start_Time,End_Time))
+        eventList.append(Event(PolicyName,EntityName,Severity,Status,Start_Time,End_Time,app_ID))
 #    print "Number of events:" + str(len(eventList))
 #    for event in eventList:
 #        print str(event)
@@ -161,7 +165,7 @@ def write_events_CSV(fileName=None):
         csvfile = sys.stdout
 
     # create the csv writer object
-    fieldnames = ['PolicyName', 'EntityName', 'Severity', 'Status', 'Start_Time', 'End_Time']
+    fieldnames = ['PolicyName', 'EntityName', 'Severity', 'Status', 'Start_Time', 'End_Time', 'Application']
     filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
     filewriter.writeheader()
 
@@ -173,7 +177,8 @@ def write_events_CSV(fileName=None):
                                     'Severity': event.severity,
                                     'Status': event.status,
                                     'Start_Time': event.startTime,
-                                    'End_Time': event.endTime})
+                                    'End_Time': event.endTime,
+                                    'Application': getName(event.app_ID)})
             except:
                 print ("Could not write to the output.")
                 csvfile.close()

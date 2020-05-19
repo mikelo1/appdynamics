@@ -77,6 +77,9 @@ def fetch_applications(baseUrl,userName,password,includeNodes=False):
             applicationList.append(Application(application['name'],application['description'],application['id'],application['accountGuid'],tierList))
         else:
             applicationList.append(Application(application['name'],application['description'],application['id'],application['accountGuid']))
+#    print "Number of applications:" + str(len(applicationList))
+#    for application in applicationList:
+#        print str(application)
 
 def fetch_tiers(baseUrl,userName,password,appName):
     try:
@@ -158,6 +161,6 @@ def getID(appName):
 
 def getName(appID):
     for application in applicationList:
-        if application.id == appID:
+        if application.id == int(appID):
             return application.name
     return None
