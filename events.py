@@ -184,8 +184,3 @@ def write_events_CSV(fileName=None):
                 csvfile.close()
                 return (-1)
         csvfile.close()
-
-def serialize():
-    for event in eventList:
-        data=data+"\n"+str(event)
-    return data
