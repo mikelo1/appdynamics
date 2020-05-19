@@ -132,14 +132,25 @@ elif ENTITY.lower() == "snapshots":
     if options.inFileName:
         load_snapshots_JSON(options.inFileName)
     elif options.user and options.password and options.hostname and options.application:
-        
         baseUrl = buildBaseURL(options.hostname,options.port,options.SSLEnabled)
         fetch_applications(baseUrl,options.user,options.password)
         appID=getID(options.application)
         if appID < 0:
             print "Application",options.application,"doesn't exist."
             exit(1)
-        for i in range(3,48,3): # loop latest 48 hours in chunks of 3 hours
+        if options.timerange and options.timerange.endswith("day"):
+            numberOfDays=int(options.timerange[0:options.timerange.find("day")])
+            if numberOfDays > 14:
+                print "Warning: time range [",numberOfDays,"] cannot be longer than 14 days."
+                numberOfDays=14
+        elif options.timerange:
+            print "Time range must be given in days."
+            exit (1)
+        else:
+            optParser.error("Missing arguments")
+            exit (1)
+
+        for i in range(3,numberOfDays*24,3): # loop latest numberOfDays days in chunks of 3 hours
             for retry in range(1,4):
                 data_chunck = fetch_snapshots(baseUrl,options.user,options.password,str(appID), \
                                                 "AFTER_TIME","180",datetime.today()-timedelta(hours=i)) # fetch 3 hours of data
@@ -164,7 +175,19 @@ elif ENTITY.lower() == "allothertraffic":
             print "Application",options.application,"doesn't exist."
             exit(1)
         fetch_business_transactions(baseUrl,options.user,options.password,str(appID))
-        for i in range(3,48,3): # loop latest 48 hours in chunks of 3 hours
+        if options.timerange and options.timerange.endswith("day"):
+            numberOfDays=int(options.timerange[0:options.timerange.find("day")])
+            if numberOfDays > 14:
+                print "Warning: time range [",numberOfDays,"] cannot be longer than 14 days."
+                numberOfDays=14
+        elif options.timerange:
+            print "Time range must be given in days."
+            exit (1)
+        else:
+            optParser.error("Missing arguments")
+            exit (1)
+
+        for i in range(3,numberOfDays*24,3): # loop latest numberOfDays days in chunks of 3 hours
             for retry in range(1,4):
                 data_chunck = fetch_allothertraffic(baseUrl,options.user,options.password,options.application, \
                                                 "AFTER_TIME","180",datetime.today()-timedelta(hours=i)) # fetch 3 hours of data
@@ -200,20 +223,24 @@ elif ENTITY.lower() == "events":
         baseUrl = buildBaseURL(options.hostname,options.port,options.SSLEnabled)
         fetch_applications(baseUrl,options.user,options.password)
         appID=getID(options.application)
-        if appID > 0:
-            options.application=str(appID)
+        if appID < 0:
+            print "Application",options.application,"doesn't exist."
+            exit(1)
         if options.timerange and options.timerange.endswith("day"):
             numberOfDays=int(options.timerange[0:options.timerange.find("day")])
             if numberOfDays > 14:
                 print "Warning: time range [",numberOfDays,"] cannot be longer than 14 days."
                 numberOfDays=14
+        elif options.timerange:
+            print "Time range must be given in days."
+            exit (1)
         else:
             optParser.error("Missing arguments")
             exit (1)
 
         for i in range(numberOfDays,0,-1): # loop latest numberOfDays days in chunks of 1 day
             for retry in range(1,4):
-                root = fetch_healthrule_violations(baseUrl,options.user,options.password,options.application, \
+                root = fetch_healthrule_violations(baseUrl,options.user,options.password,str(appID), \
                                                     "AFTER_TIME","1440",datetime.today()-timedelta(days=i)) # fetch 1 day of data
                 if root is not None:
                     break

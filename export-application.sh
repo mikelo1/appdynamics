@@ -47,14 +47,6 @@ get_App_ID() {
 
 if [ ! -d $APPLICATION ]; then mkdir $APPLICATION; fi
 
-#REQUEST SNAPSHOTS
-#curl -s --user "${USER}@${ACCOUNT}:${PASS}" "https://$HOST/controller/rest/applications/$APP_ID/request-snapshots?time-range-type=BEFORE_NOW&duration-in-mins=160&maximum-results=5000&output=JSON" -o $APPLICATION/request-snapshots.json
-#curl -s --user "${USER}@${ACCOUNT}:${PASS}" "https://$HOST/controller/rest/applications/$APP_ID/request-snapshots?time-range-type=BEFORE_NOW&duration-in-mins=1440&maximum-results=5000&application-component-ids=${Tier_ID}&output=JSON" -o $APPLICATION/request-snapshots-${Tier_ID}.json
-
-#HEALTH-RULE-VIOLATIONS
-#curl -s --user "${USER}@${ACCOUNT}:${PASS}" "https://$HOST/controller/rest/applications/$APP_ID/problems/healthrule-violations?time-range-type=AFTER_TIME&duration-in-mins=1440&start-time=1572515956000" -o $APPLICATION/healthrule-violations.xml
-
-#sleep 30s
 echo "Start export application $3 from host $HOST with user $USER@$ACCOUNT"
 
 for FILE in healthrules.xml actions.json policies.json; do

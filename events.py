@@ -6,7 +6,6 @@ from datetime import datetime, timedelta
 import time
 
 eventList = []
-tierList = []
 class Event:
     name      = ""
     entityName= ""
@@ -24,34 +23,6 @@ class Event:
     def __str__(self):
         return "({0},{1},{2},{3},{4},{5}".format(self.name,self.entityName,self.severity,self.status,self.startTime,self.endTime)
 
-
-def fetch_tiers_and_nodes(baseUrl,userName,password,app_ID):
-    try:
-        print ("Fetching tiers for application " + app_ID + "...")
-        response = requests.get(baseUrl + "rest/applications/" + app_ID + "/tiers", auth=(userName, password), params={"output": "JSON"})
-    except:
-       print ("Could not get the tiers of application " + app_ID + ".")
-
-    try:
-        tiers = json.loads(response.content)
-    except:
-        print ("Could not parse the tiers for application " + app_ID + ".")
-    for tier in tiers:
-        try:
-            print ("Fetching nodes for tier " + tier['name'] + "...")
-            response = requests.get(baseUrl + "rest/applications/" + app_ID + "/tiers/" + str(tier['id']) + "/nodes", auth=(userName, password), params={"output": "JSON"})
-        except:
-            print ("Could not get the nodes of tier " + tier['name'] + ".")
-
-        try:
-            nodes = json.loads(response.content)
-        except:
-            print ("Could not parse the nodes for tier " + tier['name'] + " in application " + app_ID + ".")
-
-        nodeList = []
-        for node in nodes:
-            nodeList.append((node['id'],node['name']))
-        tierList.append((tier['id'],tier['name'],nodeList))
 
 def fetch_healthrule_violations(baseUrl,userName,password,app_ID,time_range_type,range_param1,range_param2):
    # time_range_type="AFTER_TIME" # {"BEFORE_NOW","BEFORE_TIME","AFTER_TIME","BETWEEN_TIMES"
@@ -208,3 +179,8 @@ def write_events_CSV(fileName=None):
                 csvfile.close()
                 return (-1)
         csvfile.close()
+
+def serialize():
+    for event in eventList:
+        data=data+"\n"+str(event)
+    return data

@@ -84,6 +84,6 @@ for BT_ID in ${ALLOTHERTRAFFIC_LIST}; do
 #		$SCRIPTPATH/exportCSV.py allothertraffic -i $APPLICATION/$FILE -o $APPLICATION/allothertraffic-${BT_ID}.csv
 #	else
 	echo "Fetch data and translating to CSV..."
-	$SCRIPTPATH/exportCSV.py allothertraffic -s -P 443 -o $APPLICATION/$FILE.csv -H ${HOST} -u ${USER} -p ${PASS} -a ${APPLICATION}
+	$SCRIPTPATH/exportCSV.py allothertraffic -s -P 443 -o $APPLICATION/$FILE.csv -H ${HOST} -u ${USER} -p ${PASS} -a ${APPLICATION} -t 1day
 #	fi
 done
