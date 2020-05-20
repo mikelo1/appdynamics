@@ -8,6 +8,7 @@ from transactiondetection import load_transactiondetection_XML, fetch_transactio
 from businesstransactions import load_business_transactions_JSON, fetch_business_transactions, write_business_transactions_CSV
 from backends import load_backends_JSON, fetch_backends, write_backends_CSV
 from healthrules import load_health_rules_XML, fetch_health_rules, write_health_rules_CSV
+from schedules import export_schedules_CSV
 from events import load_events_XML, fetch_healthrule_violations, write_events_CSV
 from policies import load_policies_JSON, fetch_policies, write_policies_CSV
 from actions import load_actions_JSON, fetch_actions, write_actions_CSV
@@ -28,7 +29,7 @@ def buildBaseURL(controller,port=None,SSLenabled=None):
     return url + "://" + controller + ":" + port + "/controller/"
 
 
-usage = "usage: %prog [actions|allothertraffic|applications|backends|business-transactions|dashboards|events|healthrules|policies|transactiondetection|snapshots] [options]"
+usage = "usage: %prog [actions|allothertraffic|applications|backends|business-transactions|dashboards|events|healthrules|schedules|policies|transactiondetection|snapshots] [options]"
 epilog= "examples: %prog healthrules -s -p 443 -H ad-financial.saas.appdynamics.com -u johndoe@ad-financial -p s3cr3tp4ss -a 1001"
 
 optParser = OptionParser(usage=usage, version="%prog 0.1", epilog=epilog)
@@ -216,6 +217,18 @@ elif ENTITY.lower() == "healthrules":
     else:
         optParser.error("Missing arguments")
     write_health_rules_CSV(options.outFileName)
+elif ENTITY.lower() == "schedules":
+    if options.inFileName:
+        export_schedules_CSV(outFileName=options.outFileName,inFileName=options.inFileName)
+    elif options.user and options.password and options.hostname and options.application:
+        baseUrl = buildBaseURL(options.hostname,options.port,options.SSLEnabled)
+        fetch_applications(baseUrl,options.user,options.password)
+        appID=getID(options.application)
+        if appID > 0:
+            options.application=str(appID)
+        export_schedules_CSV(outFileName=options.outFileName,baseUrl=baseUrl,userName=options.user,password=options.password,app_ID=options.application)
+    else:
+        optParser.error("Missing arguments")
 elif ENTITY.lower() == "events":
     if options.inFileName:
         load_events_XML(options.inFileName)

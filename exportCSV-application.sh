@@ -39,39 +39,34 @@ SCRIPTPATH=$(dirname "$SCRIPT")
 
 if [ ! -d $APPLICATION ]; then mkdir $APPLICATION; fi
 
-for FILE in healthrules.xml actions.json policies.json; do
-	ENTITY=`echo $FILE | awk -F. '{print $1}'`
-	EXT=`echo $FILE | awk -F. '{print $2}'`
+for ENTITY in healthrules schedules actions policies; do
 #	if [ -f $APPLICATION/$FILE ]; then
 #		echo "Converting file $FILE to CSV..."
 #		$SCRIPTPATH/exportCSV.py $ENTITY -i $APPLICATION/$FILE -o $APPLICATION/$ENTITY.csv
 #	else
-	echo "Fetch data and translating to CSV..."
+	echo "Fetch $ENTITY data and translating to CSV..."
 	$SCRIPTPATH/exportCSV.py $ENTITY -s -P 443 -o $APPLICATION/$ENTITY.csv -H ${HOST} -u ${USER} -p ${PASS} -a ${APPLICATION}
 #	fi
 done
-
-for FILE in business-transactions.json backends.json; do
-	ENTITY=`echo $FILE | awk -F. '{print $1}'`
-	EXT=`echo $FILE | awk -F. '{print $2}'`
+exit
+for ENTITY in business-transactions backends; do
 #	if [ -f $APPLICATION/$FILE ]; then
 #		echo "Converting file $FILE to CSV..."
 #		$SCRIPTPATH/exportCSV.py $ENTITY -i $APPLICATION/$FILE -o $APPLICATION/$ENTITY.csv
 #	else
-	echo "Fetch data and translating to CSV..."
+	echo "Fetch $ENTITY data and translating to CSV..."
 	$SCRIPTPATH/exportCSV.py $ENTITY -s -P 443 -o $APPLICATION/$ENTITY.csv -H ${HOST} -u ${USER} -p ${PASS} -a ${APPLICATION}
 #	fi
 done
 
-for FILE in transactiondetection-auto.xml transactiondetection-custom.xml; do
+for FILE in transactiondetection-auto transactiondetection-custom; do
 	ENTITY=`echo $FILE | awk -F[.-] '{print $1}'`
 	TYPE=`echo $FILE | awk -F[.-] '{print $2}'`
-	EXT=`echo $FILE | awk -F[.-] '{print $3}'`
 #	if [ -f $APPLICATION/$FILE ]; then
 #		echo "Converting file $FILE to CSV..."
 #		$SCRIPTPATH/exportCSV.py $ENTITY -i $APPLICATION/$FILE -o $APPLICATION/$ENTITY-$TYPE.csv
 #	else
-	echo "Fetch data and translating to CSV..."
+	echo "Fetch $ENTITY data and translating to CSV..."
 	$SCRIPTPATH/exportCSV.py $ENTITY -s -P 443 -o $APPLICATION/$ENTITY.csv -H ${HOST} -u ${USER} -p ${PASS} -a ${APPLICATION}
 #	fi
 done
@@ -83,7 +78,7 @@ for BT_ID in ${ALLOTHERTRAFFIC_LIST}; do
 #		echo "Converting file $FILE to CSV..."
 #		$SCRIPTPATH/exportCSV.py allothertraffic -i $APPLICATION/$FILE -o $APPLICATION/allothertraffic-${BT_ID}.csv
 #	else
-	echo "Fetch data and translating to CSV..."
+	echo "Fetch ALLOTHERTRAFFIC data and translating to CSV..."
 	$SCRIPTPATH/exportCSV.py allothertraffic -s -P 443 -o $APPLICATION/$FILE.csv -H ${HOST} -u ${USER} -p ${PASS} -a ${APPLICATION} -t 1day
 #	fi
 done
