@@ -43,21 +43,27 @@ get_App_ID() {
 	echo "${App_Info}" | grep "id" | awk -F"[<>]" '{print $3}'
 }
 
-#APP_ID=$(get_App_ID)
 
 if [ ! -d $APPLICATION ]; then mkdir $APPLICATION; fi
 
+
 echo "Start export application $3 from host $HOST with user $USER@$ACCOUNT"
 
-for FILE in healthrules.xml actions.json policies.json; do
-	ENTITY=`echo $FILE | awk -F. '{print $1}'`
-	EXT=`echo $FILE | awk -F. '{print $2}'`
-#	echo "Fetching $FILE..."
-	curl -s --user "${USER}@${ACCOUNT}:${PASS}" https://$HOST/controller/$ENTITY/$APPLICATION -o $APPLICATION/$FILE
+#for FILE in healthrules.xml actions.json policies.json; do
+#	ENTITY=`echo $FILE | awk -F. '{print $1}'`
+#	EXT=`echo $FILE | awk -F. '{print $2}'`
+#	curl -s --user "${USER}@${ACCOUNT}:${PASS}" https://$HOST/controller/$ENTITY/$APPLICATION -o $APPLICATION/$FILE
+#done
+
+APP_ID=$(get_App_ID)
+
+for ENTITY in health-rules actions policies schedules; do
+#	echo "Fetching $ENTITY..."
+	curl -s --user "${USER}@${ACCOUNT}:${PASS}" https://$HOST/controller/alerting/rest/v1/applications/$APP_ID/$ENTITY -o $APPLICATION/$ENTITY.json
 	if [ $? -ne 0 ]; then
 		echo "Something went wrong with the cURL command. Exiting..."
 	else
-		echo -e "$ENTITY from $ACCOUNT downloaded to file ${APPLICATION}/${GREEN}${FILE}${NC}"
+		echo -e "$ENTITY from $ACCOUNT downloaded to file ${APPLICATION}/${GREEN}${ENTITY}.json${NC}"
 	fi
 done
 
@@ -73,3 +79,4 @@ for FILE in transactiondetection-auto.xml transactiondetection-custom.xml; do
 		echo -e "$ENTITY from $ACCOUNT downloaded to file ${APPLICATION}/${GREEN}${FILE}${NC}"
 	fi
 done
+
