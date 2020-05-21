@@ -130,7 +130,7 @@ def parse_schedule_spec(schedule_spec):
         #### TO DO: scheduleconfig['scheduleFrequency'] == "DAILY":
         elif scheduleconfig['scheduleFrequency'] == "WEEKLY":
             dayList = []
-            for day in scheduleconfiguration['scheduleConfiguration']['days']:
+            for day in scheduleconfig['days']:
                 dayList.append(day)
             return ScheduleConfiguration(scheduleconfig['scheduleFrequency'],
                                          scheduleconfig['startTime'],
