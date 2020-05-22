@@ -4,7 +4,6 @@ import json
 import csv
 import sys
 
-scheduleList = []
 class Schedule:
     Id         = 0
     name       = "" # i.e.: "End of Business Hour: 5pm-6pm, Mon-Fri"
@@ -47,9 +46,8 @@ class ScheduleConfiguration:
     def __str__(self):
         return "({0},{1},{2},{3},{4},{5})".format(self.frequency,self.startTime,self.endTime,self.startCron,self.endCron,self.startDate,self.endDate,self.occurrenc,self.day,self.days)
 
-
 def fetch_schedules(baseUrl,userName,password,app_ID):
-    print ("Fetching schedules for App " + app_ID + "...")
+    if 'DEBUG' in locals(): print ("Fetching schedules for App " + app_ID + "...")
     try:
         response = requests.get(baseUrl + "alerting/rest/v1/applications/" + app_ID + "/schedules", auth=(userName, password), params={"output": "JSON"})
     except:
@@ -77,14 +75,10 @@ def fetch_schedules(baseUrl,userName,password,app_ID):
         file1.write(response.content)
         file1.close() 
         return None
-    parse_schedules(schedules,app_ID)
-
-    for schedule in scheduleList:
-        schedule.config=fetch_schedule_spec(baseUrl,userName,password,app_ID,schedule.Id)
-
+    return schedules
 
 def fetch_schedule_spec(baseUrl,userName,password,app_ID,schedule_ID):
-#    print ("Fetching schedule "+str(schedule_ID)+" for App " + app_ID + "...")
+    if 'DEBUG' in locals(): print ("Fetching schedule "+str(schedule_ID)+" for App " + app_ID + "...")
     try:
         response = requests.get(baseUrl + "alerting/rest/v1/applications/" + app_ID + "/schedules/" + str(schedule_ID), auth=(userName, password), params={"output": "JSON"})
     except:
@@ -100,6 +94,9 @@ def fetch_schedule_spec(baseUrl,userName,password,app_ID,schedule_ID):
         file1.write(response.content)
         file1.close() 
         return None
+    elif 'DEBUG' in locals():
+        file1 = open("response.txt","w") 
+        file1.write(response.content)
 
     try:
         schedule_spec = json.loads(response.content)
@@ -112,21 +109,23 @@ def fetch_schedule_spec(baseUrl,userName,password,app_ID,schedule_ID):
         file1.write(response.content)
         file1.close() 
         return None
-    return parse_schedule_spec(schedule_spec)
-
+    return schedule_spec
 
 def load_schedules_JSON(fileName):
     print "Parsing file " + fileName + "..."
     json_file = open(fileName)
     schedules = json.load(json_file)
-    parse_schedules(schedules)
+    return schedules
 
 def parse_schedules(schedules,app_ID=None):
+    scheduleList = []
     for schedule in schedules:
         scheduleList.append(Schedule(schedule['id'],schedule['name'],app_ID,schedule['description'],schedule['timezone']))
-#    print "Number of schedules:" + str(len(scheduleList))
-#    for schedule in scheduleList:
-#        print str(schedule)
+    if 'DEBUG' in locals():
+        print "Number of schedules:" + str(len(scheduleList))
+        for schedule in scheduleList:
+            print str(schedule)
+    return scheduleList
 
 def parse_schedule_spec(schedule_spec):
     scheduleconfig = schedule_spec['scheduleConfiguration']
@@ -162,8 +161,7 @@ def parse_schedule_spec(schedule_spec):
         else:
             print "Unknown schedule frequency:" + scheduleconfig['scheduleFrequency']
 
-
-def write_schedules_CSV(fileName=None):
+def write_schedules_CSV(scheduleList,fileName=None):
     if fileName is not None:
         try:
             csvfile = open(fileName, 'w')
@@ -214,13 +212,20 @@ def write_schedules_CSV(fileName=None):
 
 def export_schedules_CSV(outFileName,inFileName=None,baseUrl=None,userName=None,password=None,app_ID=None):
     if inFileName:
-        load_schedules_JSON(inFileName)
+        schedules = load_schedules_JSON(inFileName)
+        scheduleList = parse_schedules(schedules)
     elif userName and password and baseUrl and app_ID:
-        fetch_schedules(baseUrl,userName,password,app_ID)
+        schedules = fetch_schedules(baseUrl,userName,password,app_ID)
+        scheduleList = parse_schedules(schedules,app_ID)
     else:
         print "Missing arguments"
         return
-    write_schedules_CSV(outFileName)
+    
+    for schedule in scheduleList:
+        schedule_spec=fetch_schedule_spec(baseUrl,userName,password,app_ID,schedule.Id)
+        schedule.config=parse_schedule_spec(schedule_spec)
+
+    write_schedules_CSV(scheduleList,outFileName)
 
 #### TO DO:
 ####        update_schedules_timezone(baseUrl,userName,password,app_ID,timezone)
