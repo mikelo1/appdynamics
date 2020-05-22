@@ -210,22 +210,25 @@ def write_schedules_CSV(scheduleList,fileName=None):
                 return (-1)
         csvfile.close()
 
-def export_schedules_CSV(outFileName,inFileName=None,baseUrl=None,userName=None,password=None,app_ID=None):
-    if inFileName:
-        schedules = load_schedules_JSON(inFileName)
-        scheduleList = parse_schedules(schedules)
-    elif userName and password and baseUrl and app_ID:
-        schedules = fetch_schedules(baseUrl,userName,password,app_ID)
-        scheduleList = parse_schedules(schedules,app_ID)
-    else:
+def export_schedules_CSV(outFileName,inFileName):
+    if not inFileName or not outFileName:
         print "Missing arguments"
         return
-    
+    schedules = load_schedules_JSON(inFileName)
+    scheduleList = parse_schedules(schedules)
+    write_schedules_CSV(scheduleList,outFileName)
+
+def export_schedules_CSV(outFileName,baseUrl,userName,password,app_ID):
+    if not outFileName or not userName or not password or not baseUrl or not app_ID:
+        print "Missing arguments"
+        return        
+    schedules = fetch_schedules(baseUrl,userName,password,app_ID)
+    scheduleList = parse_schedules(schedules,app_ID)
     for schedule in scheduleList:
         schedule_spec=fetch_schedule_spec(baseUrl,userName,password,app_ID,schedule.Id)
         schedule.config=parse_schedule_spec(schedule_spec)
-
     write_schedules_CSV(scheduleList,outFileName)
 
+
 #### TO DO:
-####        update_schedules_timezone(baseUrl,userName,password,app_ID,timezone)
+####        def update_schedules_timezone(baseUrl,userName,password,app_ID,timezone):
