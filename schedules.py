@@ -24,20 +24,28 @@ class Schedule:
 
 class ScheduleConfiguration:
     frequency= "" # i.e.: "WEEKLY", "ONE_TIME" or "CUSTOM"
-    start    = "" # i.e.: "06:00" or "0 0 8 ? * 2-6"
-    end      = "" # i.e.: "18:00" or "0 0 12 ? * 2-6"
+    startTime= "" # i.e.: "06:00"
+    endTime  = "" # i.e.: "18:00"
+    startCron= "" # i.e.: "0 0 8 ? * 2-6"
+    endCron  = "" # i.e.: "0 0 12 ? * 2-6"
     startDate= "" # i.e.: "01/01/2019"
     endDate  = "" # i.e.: "01/01/2019"
+    occurrenc= "" # i.e.: "FIRST"
+    day      = "" # i.e.: "SUNDAY"
     days     = [] # i.e.: ["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY"]
-    def __init__(self,frequency,start,end,startDate=None,endDate=None,days=None):
+    def __init__(self,frequency,startTime=None,endTime=None,startCron=None,endCron=None,startDate=None,endDate=None,occurrenc=None,day=None,days=None):
         self.frequency= frequency
-        self.start    = start
-        self.end      = end
+        self.startTime= startTime
+        self.endTime  = endTime
+        self.startCron= startCron
+        self.endCron  = endCron
         self.startDate= startDate
         self.endDate  = endDate
+        self.occurrenc= occurrenc
+        self.day      = day
         self.days     = days
     def __str__(self):
-        return "({0},{1},{2},{3},{4},{5})".format(self.frequency,self.start,self.end,self.startDate,self.endDate,self.days)
+        return "({0},{1},{2},{3},{4},{5})".format(self.frequency,self.startTime,self.endTime,self.startCron,self.endCron,self.startDate,self.endDate,self.occurrenc,self.day,self.days)
 
 
 def fetch_schedules(baseUrl,userName,password,app_ID):
@@ -124,27 +132,36 @@ def parse_schedule_spec(schedule_spec):
     scheduleconfig = schedule_spec['scheduleConfiguration']
     if 'scheduleFrequency' in scheduleconfig:
         if scheduleconfig['scheduleFrequency'] == "CUSTOM":
-            return ScheduleConfiguration(scheduleconfig['scheduleFrequency'],
-                                         scheduleconfig['startCron'],
-                                         scheduleconfig['endCron'] )
-        #### TO DO: scheduleconfig['scheduleFrequency'] == "DAILY":
+            return ScheduleConfiguration(frequency=scheduleconfig['scheduleFrequency'],
+                                         startCron=scheduleconfig['startCron'],
+                                         endCron  =scheduleconfig['endCron'] )
+        elif scheduleconfig['scheduleFrequency'] == "DAILY":
+            return ScheduleConfiguration(frequency=scheduleconfig['scheduleFrequency'],
+                                         startTime=scheduleconfig['startTime'],
+                                         endTime  =scheduleconfig['endTime'] )
         elif scheduleconfig['scheduleFrequency'] == "WEEKLY":
             dayList = []
             for day in scheduleconfig['days']:
                 dayList.append(day)
-            return ScheduleConfiguration(scheduleconfig['scheduleFrequency'],
-                                         scheduleconfig['startTime'],
-                                         scheduleconfig['endTime'],
-                                         None,
-                                         None,
-                                         dayList )
-        #### TO DO: scheduleconfig['scheduleFrequency'] == "MONTHLY":
-        elif scheduleconfig['scheduleFrequency'] == "ONE_TIME":
-            return ScheduleConfiguration(scheduleconfig['scheduleFrequency'],
-                                         scheduleconfig['startTime'],
-                                         scheduleconfig['endTime'],
-                                         scheduleconfig['startDate'],
-                                         scheduleconfig['endDate'] )
+            return ScheduleConfiguration(frequency=scheduleconfig['scheduleFrequency'],
+                                         startTime=scheduleconfig['startTime'],
+                                         endTime  =scheduleconfig['endTime'],
+                                         days     =dayList )
+        elif scheduleconfig['scheduleFrequency'] == "MONTHLY_SPECIFIC_DAY":
+            return ScheduleConfiguration(frequency=scheduleconfig['scheduleFrequency'],
+                                         startTime=scheduleconfig['startTime'],
+                                         endTime  =scheduleconfig['endTime'],
+                                         occurrenc=scheduleconfig['occurrence'],
+                                         day      =scheduleconfig['day'] )
+        elif scheduleconfig['scheduleFrequency'] == "ONE_TIME" or scheduleconfig['scheduleFrequency'] == "MONTHLY_SPECIFIC_DATE":
+            return ScheduleConfiguration(frequency=scheduleconfig['scheduleFrequency'],
+                                         startTime=scheduleconfig['startTime'],
+                                         endTime  =scheduleconfig['endTime'],
+                                         startDate=scheduleconfig['startDate'],
+                                         endDate  =scheduleconfig['endDate'] )
+        else:
+            print "Unknown schedule frequency:" + scheduleconfig['scheduleFrequency']
+
 
 def write_schedules_CSV(fileName=None):
     if fileName is not None:
@@ -163,20 +180,32 @@ def write_schedules_CSV(fileName=None):
 
     if len(scheduleList) > 0:           
         for schedule in scheduleList:
+            if schedule.config and schedule.config.startCron:
+                start=schedule.config.startCron
+            elif schedule.config and schedule.config.startDate:
+                start=schedule.config.startDate+" "+schedule.config.startTime
+            elif schedule.config and schedule.config.occurrenc:
+                start=schedule.config.occurrenc+" "+schedule.config.day+" "+schedule.config.startTime
+            elif schedule.config and schedule.config.startTime:
+                start=schedule.config.startTime
+
+            if schedule.config and schedule.config.endCron:
+                end=schedule.config.endCron
+            elif schedule.config and schedule.config.endDate:
+                end=schedule.config.endDate+" "+schedule.config.endTime
+            elif schedule.config and schedule.config.occurrenc:
+                end=schedule.config.occurrenc+" "+schedule.config.day+" "+schedule.config.endTime
+            elif schedule.config and schedule.config.endTime:
+                end=schedule.config.endTime
+
             try:
-                if schedule.config:
-                    filewriter.writerow({'Name': schedule.name,
+                filewriter.writerow({'Name': schedule.name,
                                      'Application': schedule.appName,
                                      'Description': schedule.description,
                                      'Timezone': schedule.timezone,
-                                     'Frequency': schedule.config.frequency,
-                                     'Start': schedule.config.start,
-                                     'End': schedule.config.end })
-                else:
-                    filewriter.writerow({'Name': schedule.name,
-                                     'Application': schedule.appName,
-                                     'Description': schedule.description,
-                                     'Timezone': schedule.timezone })                    
+                                     'Frequency': schedule.config.frequency if schedule.config else "",
+                                     'Start': start if schedule.config else "",
+                                     'End':  end if schedule.config else "" })
             except:
                 print ("Could not write to the output.")
                 csvfile.close()
