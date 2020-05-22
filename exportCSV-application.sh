@@ -48,7 +48,7 @@ for ENTITY in healthrules schedules actions policies; do
 	$SCRIPTPATH/exportCSV.py $ENTITY -s -P 443 -o $APPLICATION/$ENTITY.csv -H ${HOST} -u ${USER} -p ${PASS} -a ${APPLICATION}
 #	fi
 done
-exit
+
 for ENTITY in business-transactions backends; do
 #	if [ -f $APPLICATION/$FILE ]; then
 #		echo "Converting file $FILE to CSV..."

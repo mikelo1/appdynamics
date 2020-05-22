@@ -40,12 +40,11 @@ get_App_ID() {
 		echo "Application $APPLICATION not found for account $ACCOUNT. Exiting..."
 		exit
 	fi
-	echo "${App_Info}" | grep "id" | awk -F"[<>]" '{print $3}'
+	echo "${App_Info}" | grep "<id>" | awk -F"[<>]" '{print $3}'
 }
 
 
 if [ ! -d $APPLICATION ]; then mkdir $APPLICATION; fi
-
 
 echo "Start export application $3 from host $HOST with user $USER@$ACCOUNT"
 
@@ -58,7 +57,7 @@ echo "Start export application $3 from host $HOST with user $USER@$ACCOUNT"
 APP_ID=$(get_App_ID)
 
 for ENTITY in health-rules actions policies schedules; do
-#	echo "Fetching $ENTITY..."
+#	echo "Fetching $ENTITY for application $APPLICATION($APP_ID)..."
 	curl -s --user "${USER}@${ACCOUNT}:${PASS}" https://$HOST/controller/alerting/rest/v1/applications/$APP_ID/$ENTITY -o $APPLICATION/$ENTITY.json
 	if [ $? -ne 0 ]; then
 		echo "Something went wrong with the cURL command. Exiting..."
