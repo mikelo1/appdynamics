@@ -41,8 +41,8 @@ class Node:
     def __str__(self):
         return "({0},{1})".format(self.name,self.id)
 
-def fetch_applications(baseUrl,userName,password,includeNodes=False):
-    print ("Fetching applications for controller " + baseUrl + "...")
+def fetch_applications(baseUrl,userName,password):
+    if 'DEBUG' in locals(): print ("Fetching applications for controller " + baseUrl + "...")
     try:
         response = requests.get(baseUrl + "rest/applications/", auth=(userName, password), params={"output": "JSON"})
     except:
@@ -70,16 +70,7 @@ def fetch_applications(baseUrl,userName,password,includeNodes=False):
         file1.write(response.content)
         file1.close() 
         return None
-
-    for application in applications:
-        if includeNodes:
-            tierList = fetch_tiers(baseUrl,userName,password,application['name'])
-            applicationList.append(Application(application['name'],application['description'],application['id'],application['accountGuid'],tierList))
-        else:
-            applicationList.append(Application(application['name'],application['description'],application['id'],application['accountGuid']))
-#    print "Number of applications:" + str(len(applicationList))
-#    for application in applicationList:
-#        print str(application)
+    return applications
 
 def fetch_tiers(baseUrl,userName,password,appName):
     try:
@@ -94,12 +85,7 @@ def fetch_tiers(baseUrl,userName,password,appName):
     except:
         print ("Could not parse the tiers for application " + appName + ".")
         return
-
-    tierList = []
-    for tier in tiers:
-        nodeList = fetch_nodes(baseUrl,userName,password,appName,(tier['name']))
-        tierList.append(Tier(tier['id'],tier['name'],nodeList))
-    return tierList
+    return tiers
 
 def fetch_nodes(baseUrl,userName,password,appName,tierName):
     try:
@@ -114,18 +100,32 @@ def fetch_nodes(baseUrl,userName,password,appName,tierName):
     except:
         print ("Could not parse the nodes for tier " + tierName + " in application " + appName + ".")
         return
-
-    nodeList = []
-    for node in nodes:
-        nodeList.append(Node(node['id'],node['name']))
-    return nodeList
+    return nodes
 
 def load_applications_JSON(fileName):
     print "Parsing file " + fileName + "..."
     json_file = open(fileName)
     applications = json.load(json_file)
+    parse_applications(applications)
+
+def parse_applications(applications,includeNodes=False):
     for application in applications:
-        applicationList.append(Application(application['name'],application['description'],application['id'],application['accountGuid']))
+        if includeNodes:
+            tiers = fetch_tiers(baseUrl,userName,password,application['name'])
+            tierList = []
+            for tier in tiers:
+                nodes = fetch_nodes(baseUrl,userName,password,appName,tier['name'])
+                nodeList = []
+                for node in nodes:
+                    nodeList.append(Node(node['id'],node['name']))
+                tierList.append(Tier(tier['id'],tier['name'],nodeList))
+            applicationList.append(Application(application['name'],application['description'],application['id'],application['accountGuid'],tierList))
+        else:
+            applicationList.append(Application(application['name'],application['description'],application['id'],application['accountGuid']))
+    if 'DEBUG' in locals():
+        print "Number of applications:" + str(len(applicationList))
+        for application in applicationList:
+            print str(application)
 
 def write_applications_CSV(fileName=None):
     if fileName is not None:
@@ -152,6 +152,31 @@ def write_applications_CSV(fileName=None):
             csvfile.close()
             exit(1)
     csvfile.close()
+
+def export_applications_CSV(outFileName,inFileName):
+    if not inFileName or not outFileName:
+        print "Missing arguments"
+        return
+    applications = load_applications_JSON(inFileName)
+    applicationList = parse_applications(applications)
+    write_applications_CSV(applicationList,outFileName)
+
+def export_applications_CSV(outFileName,baseUrl,userName,password,includeNodes=False):
+    if not outFileName or not baseUrl or not userName or not password:
+        print "Missing arguments"
+        return        
+    # Obtain the applications list
+    applications = fetch_applications(baseUrl,userName,password)
+    applicationList = parse_applications(applications,includeNodes)
+    write_applications_CSV(applicationList,outFileName)
+
+def load_applications(baseUrl,userName,password,includeNodes=False):
+    if not baseUrl or not userName or not password:
+        print "Missing arguments"
+        return        
+    # Obtain the applications list
+    applications = fetch_applications(baseUrl,userName,password)
+    applicationList = parse_applications(applications,includeNodes)
 
 def getID(appName):
     for application in applicationList:
