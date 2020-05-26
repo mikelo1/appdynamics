@@ -66,36 +66,37 @@ run_ImpExp() {
   if [ -z $APP_ID ]; then echo "Could not find the App ID for application $app_name."; exit; fi
 
   for ENTITY in health-rules actions policies schedules; do
-    echo "$OPERATION $ENTITY for application $app_name($APP_ID)..."
+    echo -ne "$OPERATION $ENTITY for application $app_name($APP_ID)... "
     if [ $OPERATION == "export" ]; then
-      # curl -s -X GET --user "${USER}@${ACCOUNT}:${PASS}" https://$HOST/controller/$ENTITY/$APP_ID -o ${FILEPATH}/${FILE}
       curl -s -X GET --user "${USER}:${PASS}" https://$HOST/controller/alerting/rest/v1/applications/$APP_ID/$ENTITY -o ${FILEPATH}/${ENTITY}.json
-      if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; fi
-    elif [ $OPERATION == "importFromFile" ] && [ -f ${FILEPATH}/${FILE} ]; then
-      # curl -s -X POST --user "${USER}@${ACCOUNT}:${PASS}" https://$HOST/controller/$ENTITY/$APP_ID -F file=@${FILEPATH}/${FILE}
+      if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; else echo "OK"; fi
+    elif [ $OPERATION == "import" ]; then
+      if [ ! -f ${FILEPATH}/${ENTITY}.json ]; then echo "missing data file ${ENTITY}.json"; continue; fi
       curl -sL -w "%{http_code}" -X POST --user "${USER}:${PASS}" https://$HOST/controller/alerting/rest/v1/applications/$APP_ID/$ENTITY -H "Content-Type: application/json" -F file=@${FILEPATH}/${ENTITY}.json
-      if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; fi
-    elif [ $OPERATION == "updateFromFile" ] && [ ${FILEPATH}/${FILE} ];  then
-      # curl -s -X POST --user "${USER}@${ACCOUNT}:${PASS}" "https://$HOST/controller/$ENTITY/$APP_ID?overwrite=true" -F file=@${FILEPATH}/${FILE}
+      if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; else echo .; fi
+    elif [ $OPERATION == "update" ];  then
+      if [ ! -f ${FILEPATH}/${ENTITY}.json ]; then echo "missing data file ${ENTITY}.json"; continue; fi
       curl -sL -w "%{http_code}" -X POST --user "${USER}:${PASS}" https://$HOST/controller/alerting/rest/v1/applications/$APP_ID/$ENTITY -H "Content-Type: application/json" -F file=@${FILEPATH}/${ENTITY}.json
-      if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; fi
+      if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; else echo .; fi
     fi
   done
   for FILE in transactiondetection-auto transactiondetection-custom; do
     ENTITY=`echo $FILE | awk -F[.-] '{print $1}'`
     TYPE=`echo $FILE | awk -F[.-] '{print $2}'`
-    echo "$OPERATION $ENTITY for application $app_name($APP_ID)..."
+    echo -ne "$OPERATION $ENTITY for application $app_name($APP_ID)... "
     if [ $OPERATION == "export" ]; then
         curl -s --user "${USER}:${PASS}" https://$HOST/controller/$ENTITY/$APP_ID/$TYPE -o ${FILEPATH}/${FILE}.xml
-        if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; fi
-    elif [ $OPERATION == "importFromFile" ]; then        
+        if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; else echo "OK"; fi
+    elif [ $OPERATION == "import" ]; then        
+        if [ ! -f ${FILEPATH}/${FILE}.xml ]; then echo "missing data file ${FILE}.xml"; continue; fi
         curl -sL -w "%{http_code}" -X POST --user "${USER}:${PASS}" https://$HOST/controller/$ENTITY/$APP_ID/$TYPE -F file=@${FILEPATH}/${FILE}.xml
-        if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; fi
-    elif [ $OPERATION == "updateFromFile" ]; then
+        if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; else echo .; fi
+    elif [ $OPERATION == "update" ]; then
+        if [ ! -f ${FILEPATH}/${FILE}.xml ]; then echo "missing data file ${FILE}.xml"; continue; fi
         curl -sL -w "%{http_code}" -X POST --user "${USER}:${PASS}" "https://$HOST/controller/$ENTITY/$APP_ID/$TYPE?overwrite=true" -F file=@${FILEPATH}/${FILE}.xml
-        if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; fi
+        echo .
+        if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; else echo .; fi
     fi
-    if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; fi
   done
 }
 
@@ -122,33 +123,33 @@ run_ImpExp_legacy() {
 
   for FILE in healthrules.xml actions.json policies.json; do
     ENTITY=`echo $FILE | awk -F. '{print $1}'`
-    echo "$OPERATION $ENTITY for application $app_name($APP_ID)..."
+    echo -ne "$OPERATION $ENTITY for application $app_name($APP_ID)... "
     if [ $OPERATION == "export" ]; then
       curl -s -X GET --user "${USER}:${PASS}" https://$HOST/controller/$ENTITY/$APP_ID -o ${FILEPATH}/${FILE}
-      if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; fi
-    elif [ $OPERATION == "importFromFile" ] && [ -f ${FILEPATH}/${FILE} ]; then
-      curl -s -X POST --user "${USER}:${PASS}" https://$HOST/controller/$ENTITY/$APP_ID -F file=@${FILEPATH}/${FILE}
-      if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; fi
-    elif [ $OPERATION == "updateFromFile" ] && [ ${FILEPATH}/${FILE} ];  then
-      curl -s -X POST --user "${USER}:${PASS}" "https://$HOST/controller/$ENTITY/$APP_ID?overwrite=true" -F file=@${FILEPATH}/${FILE}
-      if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; fi
+      if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; else echo "OK"; fi
+    elif [ $OPERATION == "import" ] && [ -f ${FILEPATH}/${FILE} ]; then
+      curl -sL -w "%{http_code}" -X POST --user "${USER}:${PASS}" https://$HOST/controller/$ENTITY/$APP_ID -F file=@${FILEPATH}/${FILE}
+      if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; else echo .; fi
+    elif [ $OPERATION == "update" ] && [ ${FILEPATH}/${FILE} ];  then
+      curl -sL -w "%{http_code}" -X POST --user "${USER}:${PASS}" "https://$HOST/controller/$ENTITY/$APP_ID?overwrite=true" -F file=@${FILEPATH}/${FILE}
+      if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; else echo .; fi
     fi
   done
   for FILE in transactiondetection-auto transactiondetection-custom; do
     ENTITY=`echo $FILE | awk -F[.-] '{print $1}'`
     TYPE=`echo $FILE | awk -F[.-] '{print $2}'`
-    echo "$OPERATION $ENTITY for application $app_name($APP_ID)..."
+    echo -ne "$OPERATION $ENTITY for application $app_name($APP_ID)... "
     if [ $OPERATION == "export" ]; then
         curl -s --user "${USER}:${PASS}" https://$HOST/controller/$ENTITY/$APP_ID/$TYPE -o ${FILEPATH}/${FILE}.xml
-        if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; fi
-    elif [ $OPERATION == "importFromFile" ]; then        
+        if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; else echo "OK"; fi
+    elif [ $OPERATION == "import" ]; then        
         curl -sL -w "%{http_code}" -X POST --user "${USER}:${PASS}" https://$HOST/controller/$ENTITY/$APP_ID/$TYPE -F file=@${FILEPATH}/${FILE}.xml
-        if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; fi
-    elif [ $OPERATION == "updateFromFile" ]; then
+        if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; else echo .; fi
+    elif [ $OPERATION == "update" ]; then
         curl -sL -w "%{http_code}" -X POST --user "${USER}:${PASS}" "https://$HOST/controller/$ENTITY/$APP_ID/$TYPE?overwrite=true" -F file=@${FILEPATH}/${FILE}.xml
-        if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; fi
+        echo .
+        if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; else echo .; fi
     fi
-    if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; fi
   done
 }
 
@@ -158,4 +159,4 @@ PASS=`grep $ENVIRONMENT -A6 $CRED_FILE | grep password | awk -F: '{print $2}' | 
 HOST=`grep $ENVIRONMENT -A6 $CRED_FILE | grep url | awk -F: '{print $3}' | sed 's/\///g'`
 #env_name=`echo $ENVIRONMENT | awk -F"." '{print $3}' | tr '[:lower:]' '[:upper:]'`
 
-run_ImpExp $HOST ${USER}@${ACCOUNT} $PASS $APPLICATION $ENVIRONMENT/$APPLICATION $OPERATION
+run_ImpExp_legacy $HOST ${USER}@${ACCOUNT} $PASS $APPLICATION $ENVIRONMENT/$APPLICATION $OPERATION
