@@ -24,8 +24,8 @@ ENVIRONMENT=$2
 APPLICATION=$3
 OPERATION=$4
 
-if [ $OPERATION != "export" ] && [ $OPERATION != "import" ] && [ $OPERATION != "update" ]; then
-  echo "Syntax: $0 <credentials_yaml_file> <environment> <application> <import|export|update>"; exit
+if [ $OPERATION != "retrieve" ] && [ $OPERATION != "create" ] && [ $OPERATION != "update" ]; then
+  echo "Syntax: $0 <credentials_yaml_file> <environment> <application> <retrieve|create|update>"; exit
 fi
 
 ###
@@ -51,7 +51,7 @@ get_App_ID() {
  # @param PASS password for the specified user and host. i.e.: mypassword
  # @param APP_NAME Name of the application to be imported/exported. i.e.: myApp
  # @param FILEPATH Path where the JSON file is stored. i.e.: ./myService/PROD
- # @param OPERATION The operation to be executed (import/export/update). i.e.: import
+ # @param OPERATION The operation to be executed (retrieve/create/update). i.e.: retrieve
 ###
 run_ImpExp() {
   HOST=$1
@@ -60,34 +60,57 @@ run_ImpExp() {
   APP_NAME=$4
   FILEPATH=$5
 
-  if [ $OPERATION == "export" ] && [ ! -d ${FILEPATH} ]; then mkdir -p ${FILEPATH}; elif [ ! -d ${FILEPATH} ]; then echo "Path does not exist"; return; fi
+  if [ $OPERATION == "retrieve" ] && [ ! -d ${FILEPATH} ]; then mkdir -p ${FILEPATH}; elif [ ! -d ${FILEPATH} ]; then echo "Path does not exist"; return; fi
 
   APP_ID=$(get_App_ID $HOST $USER $PASS $APP_NAME)
   if [ -z $APP_ID ]; then echo "Could not find the App ID for application $app_name."; exit; fi
 
   for ENTITY in health-rules actions policies schedules; do
     echo -ne "$OPERATION $ENTITY for application $app_name($APP_ID)... "
-    if [ $OPERATION == "export" ]; then
-      curl -s -X GET --user "${USER}:${PASS}" https://$HOST/controller/alerting/rest/v1/applications/$APP_ID/$ENTITY -o ${FILEPATH}/${ENTITY}.json
+    if [ $OPERATION == "retrieve" ]; then
+      curl -s -X GET --user "${USER}:${PASS}" -o ${FILEPATH}/${ENTITY}.json \
+                      https://$HOST/controller/alerting/rest/v1/applications/$APP_ID/$ENTITY
       if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; else echo "OK"; fi
-    elif [ $OPERATION == "import" ]; then
+      ENTITY_LIST=$(grep -o "\"id\":[0-9]*" ${FILEPATH}/${ENTITY}.json | awk -F: '{ print $2}')
+      if [ ! -z "$ENTITY_LIST" ] && [ ! -d ${FILEPATH}/${ENTITY} ]; then mkdir -p ${FILEPATH}/${ENTITY}; fi
+      for ELEMENT in $ENTITY_LIST; do
+        echo -ne "$OPERATION $ENTITY $ELEMENT for application $app_name($APP_ID)... "
+        curl -s -X GET --user "${USER}:${PASS}" -o ${FILEPATH}/${ENTITY}/${ELEMENT}.json \
+                        https://$HOST/controller/alerting/rest/v1/applications/$APP_ID/$ENTITY/$ELEMENT
+        if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; else echo "OK"; fi
+      done
+    elif [ $OPERATION == "create" ]; then
       if [ ! -f ${FILEPATH}/${ENTITY}.json ]; then echo "missing data file ${ENTITY}.json"; continue; fi
-      curl -sL -w "%{http_code}" -X POST --user "${USER}:${PASS}" https://$HOST/controller/alerting/rest/v1/applications/$APP_ID/$ENTITY -H "Content-Type: application/json" -F file=@${FILEPATH}/${ENTITY}.json
-      if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; else echo .; fi
+      ENTITY_LIST=$(grep -o "\"id\":[0-9]*" ${FILEPATH}/${ENTITY}.json | awk -F: '{ print $2}')
+      for ELEMENT in $ENTITY_LIST; do
+        if [ ! -f ${FILEPATH}/${ENTITY}/${ELEMENT}.json ]; then echo "missing data file ${ENTITY}/${ELEMENT}.json"; continue; fi
+        echo -ne "$OPERATION $ENTITY $ELEMENT for application $app_name($APP_ID)... "
+        curl -sL -w "%{http_code}" -X POST --user "${USER}:${PASS}" \
+                      -H "Content-Type: application/json" -F file=@${FILEPATH}/${ENTITY}/${ELEMENT}.json \
+                      https://$HOST/controller/alerting/rest/v1/applications/$APP_ID/$ENTITY/$ELEMENT
+        if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; else echo .; fi
+      done
     elif [ $OPERATION == "update" ];  then
       if [ ! -f ${FILEPATH}/${ENTITY}.json ]; then echo "missing data file ${ENTITY}.json"; continue; fi
-      curl -sL -w "%{http_code}" -X POST --user "${USER}:${PASS}" https://$HOST/controller/alerting/rest/v1/applications/$APP_ID/$ENTITY -H "Content-Type: application/json" -F file=@${FILEPATH}/${ENTITY}.json
-      if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; else echo .; fi
+      ENTITY_LIST=$(grep -o "\"id\":[0-9]*" ${FILEPATH}/${ENTITY}.json | awk -F: '{ print $2}')
+      for ELEMENT in $ENTITY_LIST; do
+        if [ ! -f ${FILEPATH}/${ENTITY}/${ELEMENT}.json ]; then echo "missing data file ${ENTITY}/${ELEMENT}.json"; continue; fi
+        echo -ne "$OPERATION $ENTITY $ELEMENT for application $app_name($APP_ID)... "
+        curl -sL -w "%{http_code}" -X PUT --user "${USER}:${PASS}" \
+                      -H "Content-Type: application/json" -T ${FILEPATH}/${ENTITY}/${ELEMENT}.json \
+                      https://$HOST/controller/alerting/rest/v1/applications/$APP_ID/$ENTITY/$ELEMENT
+        if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; else echo .; fi
+      done
     fi
   done
   for FILE in transactiondetection-auto transactiondetection-custom; do
     ENTITY=`echo $FILE | awk -F[.-] '{print $1}'`
     TYPE=`echo $FILE | awk -F[.-] '{print $2}'`
     echo -ne "$OPERATION $ENTITY for application $app_name($APP_ID)... "
-    if [ $OPERATION == "export" ]; then
+    if [ $OPERATION == "retrieve" ]; then
         curl -s --user "${USER}:${PASS}" https://$HOST/controller/$ENTITY/$APP_ID/$TYPE -o ${FILEPATH}/${FILE}.xml
         if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; else echo "OK"; fi
-    elif [ $OPERATION == "import" ]; then        
+    elif [ $OPERATION == "create" ]; then
         if [ ! -f ${FILEPATH}/${FILE}.xml ]; then echo "missing data file ${FILE}.xml"; continue; fi
         curl -sL -w "%{http_code}" -X POST --user "${USER}:${PASS}" https://$HOST/controller/$ENTITY/$APP_ID/$TYPE -F file=@${FILEPATH}/${FILE}.xml
         if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; else echo .; fi
@@ -107,7 +130,7 @@ run_ImpExp() {
  # @param PASS password for the specified user and host. i.e.: mypassword
  # @param APP_NAME Name of the application to be imported/exported. i.e.: myApp
  # @param FILEPATH Path where the JSON file is stored. i.e.: ./myService/PROD
- # @param OPERATION The operation to be executed (import/export/update). i.e.: import
+ # @param OPERATION The operation to be executed (retrieve/create/update). i.e.: retrieve
 ###
 run_ImpExp_legacy() {
   HOST=$1
@@ -116,7 +139,7 @@ run_ImpExp_legacy() {
   APP_NAME=$4
   FILEPATH=$5
 
-  if [ $OPERATION == "export" ] && [ ! -d ${FILEPATH} ]; then mkdir -p ${FILEPATH}; elif [ ! -d ${FILEPATH} ]; then echo "Path does not exist"; return; fi
+  if [ $OPERATION == "retrieve" ] && [ ! -d ${FILEPATH} ]; then mkdir -p ${FILEPATH}; elif [ ! -d ${FILEPATH} ]; then echo "Path does not exist"; return; fi
 
   APP_ID=$(get_App_ID $HOST $USER $PASS $APP_NAME)
   if [ -z $APP_ID ]; then echo "Could not find the App ID for application $app_name."; exit; fi
@@ -124,10 +147,10 @@ run_ImpExp_legacy() {
   for FILE in healthrules.xml actions.json policies.json; do
     ENTITY=`echo $FILE | awk -F. '{print $1}'`
     echo -ne "$OPERATION $ENTITY for application $app_name($APP_ID)... "
-    if [ $OPERATION == "export" ]; then
+    if [ $OPERATION == "retrieve" ]; then
       curl -s -X GET --user "${USER}:${PASS}" https://$HOST/controller/$ENTITY/$APP_ID -o ${FILEPATH}/${FILE}
       if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; else echo "OK"; fi
-    elif [ $OPERATION == "import" ] && [ -f ${FILEPATH}/${FILE} ]; then
+    elif [ $OPERATION == "create" ] && [ -f ${FILEPATH}/${FILE} ]; then
       curl -sL -w "%{http_code}" -X POST --user "${USER}:${PASS}" https://$HOST/controller/$ENTITY/$APP_ID -F file=@${FILEPATH}/${FILE}
       if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; else echo .; fi
     elif [ $OPERATION == "update" ] && [ ${FILEPATH}/${FILE} ];  then
@@ -139,10 +162,10 @@ run_ImpExp_legacy() {
     ENTITY=`echo $FILE | awk -F[.-] '{print $1}'`
     TYPE=`echo $FILE | awk -F[.-] '{print $2}'`
     echo -ne "$OPERATION $ENTITY for application $app_name($APP_ID)... "
-    if [ $OPERATION == "export" ]; then
+    if [ $OPERATION == "retrieve" ]; then
         curl -s --user "${USER}:${PASS}" https://$HOST/controller/$ENTITY/$APP_ID/$TYPE -o ${FILEPATH}/${FILE}.xml
         if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; else echo "OK"; fi
-    elif [ $OPERATION == "import" ]; then        
+    elif [ $OPERATION == "create" ]; then
         curl -sL -w "%{http_code}" -X POST --user "${USER}:${PASS}" https://$HOST/controller/$ENTITY/$APP_ID/$TYPE -F file=@${FILEPATH}/${FILE}.xml
         if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; else echo .; fi
     elif [ $OPERATION == "update" ]; then
@@ -159,4 +182,4 @@ PASS=`grep $ENVIRONMENT -A6 $CRED_FILE | grep password | awk -F: '{print $2}' | 
 HOST=`grep $ENVIRONMENT -A6 $CRED_FILE | grep url | awk -F: '{print $3}' | sed 's/\///g'`
 #env_name=`echo $ENVIRONMENT | awk -F"." '{print $3}' | tr '[:lower:]' '[:upper:]'`
 
-run_ImpExp_legacy $HOST ${USER}@${ACCOUNT} $PASS $APPLICATION $ENVIRONMENT/$APPLICATION $OPERATION
+run_ImpExp $HOST ${USER}@${ACCOUNT} $PASS $APPLICATION $ENVIRONMENT/$APPLICATION $OPERATION
