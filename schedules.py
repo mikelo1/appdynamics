@@ -120,15 +120,15 @@ def fetch_schedules(baseUrl,userName,password,app_ID):
             print str(schedule)
     return appScheduleList
 
-def update_schedule(baseUrl,userName,password,app_ID,schedule_ID,data):
+def update_schedule(baseUrl,userName,password,schedElement):
     # Updates an existing schedule with a specified JSON payload
     # PUT <controller_url>/controller/alerting/rest/v1/applications/<application_id>/schedules/{schedule-id}
     #if 'DEBUG' in locals(): 
-    print ("Updating schedule " + str(schedule_ID) + " for App " + app_ID + "...")  
+    print ("Updating schedule " + str(schedElement.schedID) + " for App " + str(schedElement.appID) + "...")
     try:
-        response = requests.put(baseUrl + "alerting/rest/v1/applications/" + app_ID + "/schedules/" + str(schedule_ID),
+        response = requests.put(baseUrl + "alerting/rest/v1/applications/" + str(schedElement.appID) + "/schedules/" + str(schedElement.schedID),
                                 headers={"Content-Type": "application/json"},
-                                auth=(userName, password), data=json.dumps(data))
+                                auth=(userName, password), data=json.dumps(schedElement.data))
     except:
         print ("Could not get authentication token from " + baseUrl + ".  Do you have the right controller hostname?")
         return None
@@ -143,7 +143,7 @@ def update_schedule(baseUrl,userName,password,app_ID,schedule_ID,data):
         file1.close() 
         return None
 
-def load_schedules_JSON(fileName):
+def load_schedules_JSON(fileName,app_ID=0):
     if 'DEBUG' in locals(): print "Processing file " + fileName + "..."
     try:
         json_file = open(fileName)
@@ -162,7 +162,7 @@ def load_schedules_JSON(fileName):
         except:
             print ("Could not process JSON file " + schedFileName)
             continue
-        appScheduleList.append(ScheduleElement(appID=0,schedID=scheduleJSON['id'],data=scheduleJSON))
+        appScheduleList.append(ScheduleElement(appID=app_ID,schedID=scheduleJSON['id'],data=scheduleJSON))
 
     if 'DEBUG' in locals():
         print "Number of fetched schedules:" + str(len(appScheduleList))
@@ -277,16 +277,24 @@ def export_schedules_CSV(outFileName, *args):
 
     return
 
-def update_schedules_timezone(baseUrl,userName,password,app_ID,data):
-    if not baseUrl or not userName or not password or not app_ID or not data:
-        print "Missing arguments"
-        return
-    # Obtain the schedules list
-    schedules = fetch_schedules(baseUrl,userName,password,app_ID)
-    scheduleList = parse_schedules(schedules,app_ID)
-    # for each schedule, fetch the schedule full configuration and update data
-    for schedule in scheduleList:
-        schedule_spec=fetch_schedule_spec(baseUrl,userName,password,app_ID,schedule.Id)
-        #print schedule_spec
-        schedule_spec['timezone']='Europe/Brussels'
-        update_schedule(baseUrl,userName,password,app_ID,schedule.Id,schedule_spec)
+def update_schedules(baseUrl,userName,password,app_ID,source):
+    if source[-5:] == ".json":
+        schedList = load_schedules_JSON(source,app_ID)
+        for schedElement in schedList:
+            update_schedule(baseUrl,userName,password,schedElement)        
+    else:
+        try:
+            changesJSON = json.loads(source)
+        except:
+            print ("Could not process source data.")
+            return None
+            
+        # Load data for the application
+        list = fetch_schedules(baseUrl,userName,password,app_ID)
+        if list is not None:
+            scheduleList.extend(list)
+            for schedElement in scheduleList:
+                if schedElement.appID == app_ID:
+                    if 'timezone' in changesJSON:
+                        schedElement.data['timezone'] = changesJSON['timezone']
+                        update_schedule(baseUrl,userName,password,schedElement)
