@@ -4,6 +4,19 @@ import json
 import csv
 import sys
 
+scheduleList = []
+
+class ScheduleElement:
+    appID  = 0
+    schedID= 0
+    data   = None
+    def __init__(self,appID,schedID,data=None):
+        self.appID  = appID
+        self.schedID= schedID
+        self.data   = data
+    def __str__(self):
+        return "({0},{1},{2})".format(self.appID,self.schedID,self.data)
+
 class Schedule:
     Id         = 0
     name       = "" # i.e.: "End of Business Hour: 5pm-6pm, Mon-Fri"
@@ -49,6 +62,8 @@ class ScheduleConfiguration:
 def fetch_schedules(baseUrl,userName,password,app_ID):
     if 'DEBUG' in locals(): print ("Fetching schedules for App " + app_ID + "...")
     try:
+        # Retrieve a List of Schedules for a Given Application
+        # GET <controller_url>/controller/alerting/rest/v1/applications/<application_id>/schedules
         response = requests.get(baseUrl + "alerting/rest/v1/applications/" + app_ID + "/schedules", auth=(userName, password), params={"output": "JSON"})
     except:
         print ("Could not get authentication token from " + baseUrl + ".  Do you have the right controller hostname?")
@@ -65,7 +80,7 @@ def fetch_schedules(baseUrl,userName,password,app_ID):
         return None
 
     try:
-        schedules = json.loads(response.content)
+        schedulesJSON = json.loads(response.content)
     except:
         print ("Could not process authentication token for user " + userName + ".  Did you mess up your username/password?")
         print "   status:", response.status_code
@@ -75,12 +90,45 @@ def fetch_schedules(baseUrl,userName,password,app_ID):
         file1.write(response.content)
         file1.close() 
         return None
-    return schedules
 
-def fetch_schedule_spec(baseUrl,userName,password,app_ID,schedule_ID):
-    if 'DEBUG' in locals(): print ("Fetching schedule "+str(schedule_ID)+" for App " + app_ID + "...")
+    appScheduleList = []
+    for schedule in schedulesJSON:
+        if 'DEBUG' in locals(): print ("Fetching schedule "+str(schedule['id'])+" for App " + app_ID + "...")
+        try:
+            # Retrieve the Details of a Specified Schedule with a specified ID
+            # GET <controller_url>/controller/alerting/rest/v1/applications/<application_id>/schedules/{schedule-id}
+            response = requests.get(baseUrl + "alerting/rest/v1/applications/" + app_ID + "/schedules/" + str(schedule['id']), auth=(userName, password), params={"output": "JSON"})
+        except:
+            print ("Could not get authentication token from " + baseUrl + ".  Do you have the right controller hostname?")
+            continue
+
+        try:
+            scheduleJSON = json.loads(response.content)
+        except:
+            print ("Could not process authentication token for user " + userName + ". Did you mess up your username/password?")
+            print "   status:", response.status_code
+            print "   header:", response.headers
+            print "Writing content to file: response.txt"
+            file1 = open("response.txt","w") 
+            file1.write(response.content)
+            file1.close() 
+            continue
+        appScheduleList.append(ScheduleElement(appID=app_ID,schedID=scheduleJSON['id'],data=scheduleJSON))
+    if 'DEBUG' in locals():
+        print "Number of fetched schedules:" + str(len(appScheduleList))
+        for schedule in appScheduleList:
+            print str(schedule)
+    return appScheduleList
+
+def update_schedule(baseUrl,userName,password,app_ID,schedule_ID,data):
+    # Updates an existing schedule with a specified JSON payload
+    # PUT <controller_url>/controller/alerting/rest/v1/applications/<application_id>/schedules/{schedule-id}
+    #if 'DEBUG' in locals(): 
+    print ("Updating schedule " + str(schedule_ID) + " for App " + app_ID + "...")  
     try:
-        response = requests.get(baseUrl + "alerting/rest/v1/applications/" + app_ID + "/schedules/" + str(schedule_ID), auth=(userName, password), params={"output": "JSON"})
+        response = requests.put(baseUrl + "alerting/rest/v1/applications/" + app_ID + "/schedules/" + str(schedule_ID),
+                                headers={"Content-Type": "application/json"},
+                                auth=(userName, password), data=json.dumps(data))
     except:
         print ("Could not get authentication token from " + baseUrl + ".  Do you have the right controller hostname?")
         return None
@@ -94,74 +142,76 @@ def fetch_schedule_spec(baseUrl,userName,password,app_ID,schedule_ID):
         file1.write(response.content)
         file1.close() 
         return None
-    elif 'DEBUG' in locals():
-        file1 = open("response.txt","w") 
-        file1.write(response.content)
-
-    try:
-        schedule_spec = json.loads(response.content)
-    except:
-        print ("Could not process authentication token for user " + userName + ".  Did you mess up your username/password?")
-        print "   status:", response.status_code
-        print "   header:", response.headers
-        print "Writing content to file: response.txt"
-        file1 = open("response.txt","w") 
-        file1.write(response.content)
-        file1.close() 
-        return None
-    return schedule_spec
 
 def load_schedules_JSON(fileName):
-    print "Parsing file " + fileName + "..."
-    json_file = open(fileName)
-    schedules = json.load(json_file)
-    return schedules
+    if 'DEBUG' in locals(): print "Processing file " + fileName + "..."
+    try:
+        json_file = open(fileName)
+        schedulesJSON = json.load(json_file)
+    except:
+        print ("Could not process JSON file " + fileName)
+        return None
 
-def parse_schedules(schedules,app_ID=None):
-    scheduleList = []
-    for schedule in schedules:
-        scheduleList.append(Schedule(schedule['id'],schedule['name'],app_ID,schedule['description'],schedule['timezone']))
+    appScheduleList = []
+    for schedule in schedulesJSON:
+        if 'DEBUG' in locals(): print ("Fetching schedule "+str(schedule['id'])+" for App " + app_ID + "...")
+        schedFileName=fileName[:fileName.find('.json')]+"/"+str(schedule['id'])+".json"
+        try:
+            sched_json_file = open(schedFileName)
+            scheduleJSON = json.load(sched_json_file)
+        except:
+            print ("Could not process JSON file " + schedFileName)
+            continue
+        appScheduleList.append(ScheduleElement(appID=0,schedID=scheduleJSON['id'],data=scheduleJSON))
+
+    if 'DEBUG' in locals():
+        print "Number of fetched schedules:" + str(len(appScheduleList))
+        for schedule in appScheduleList:
+            print str(schedule)
+    return appScheduleList
+
+def schedules_JSON_to_structure(app_ID=None):
+    for schedule in scheduleList:
+        schedConfigData = schedule.data['scheduleConfiguration']
+
+        if 'scheduleFrequency' in schedConfigData:
+            if schedConfigData['scheduleFrequency'] == "CUSTOM":
+                scheduleConfiguration = ScheduleConfiguration(frequency=schedConfigData['scheduleFrequency'],
+                                             startCron=schedConfigData['startCron'],
+                                             endCron  =schedConfigData['endCron'] )
+            elif schedConfigData['scheduleFrequency'] == "DAILY":
+                scheduleConfiguration = ScheduleConfiguration(frequency=schedConfigData['scheduleFrequency'],
+                                             startTime=schedConfigData['startTime'],
+                                             endTime  =schedConfigData['endTime'] )
+            elif schedConfigData['scheduleFrequency'] == "WEEKLY":
+                dayList = []
+                for day in schedConfigData['days']:
+                    dayList.append(day)
+                scheduleConfiguration = ScheduleConfiguration(frequency=schedConfigData['scheduleFrequency'],
+                                             startTime=schedConfigData['startTime'],
+                                             endTime  =schedConfigData['endTime'],
+                                             days     =dayList )
+            elif schedConfigData['scheduleFrequency'] == "MONTHLY_SPECIFIC_DAY":
+                scheduleConfiguration = ScheduleConfiguration(frequency=schedConfigData['scheduleFrequency'],
+                                             startTime=schedConfigData['startTime'],
+                                             endTime  =schedConfigData['endTime'],
+                                             occurrenc=schedConfigData['occurrence'],
+                                             day      =schedConfigData['day'] )
+            elif schedConfigData['scheduleFrequency'] == "ONE_TIME" or schedConfigData['scheduleFrequency'] == "MONTHLY_SPECIFIC_DATE":
+                scheduleConfiguration = ScheduleConfiguration(frequency=schedConfigData['scheduleFrequency'],
+                                             startTime=schedConfigData['startTime'],
+                                             endTime  =schedConfigData['endTime'],
+                                             startDate=schedConfigData['startDate'],
+                                             endDate  =schedConfigData['endDate'] )
+            else:
+                print "Unknown schedule frequency:" + schedConfigData['scheduleFrequency']
+        schedule.data = Schedule(schedule['id'],schedule['name'],app_ID,schedule['description'],schedule['timezone'],scheduleConfiguration)
     if 'DEBUG' in locals():
         print "Number of schedules:" + str(len(scheduleList))
         for schedule in scheduleList:
             print str(schedule)
-    return scheduleList
 
-def parse_schedule_spec(schedule_spec):
-    scheduleconfig = schedule_spec['scheduleConfiguration']
-    if 'scheduleFrequency' in scheduleconfig:
-        if scheduleconfig['scheduleFrequency'] == "CUSTOM":
-            return ScheduleConfiguration(frequency=scheduleconfig['scheduleFrequency'],
-                                         startCron=scheduleconfig['startCron'],
-                                         endCron  =scheduleconfig['endCron'] )
-        elif scheduleconfig['scheduleFrequency'] == "DAILY":
-            return ScheduleConfiguration(frequency=scheduleconfig['scheduleFrequency'],
-                                         startTime=scheduleconfig['startTime'],
-                                         endTime  =scheduleconfig['endTime'] )
-        elif scheduleconfig['scheduleFrequency'] == "WEEKLY":
-            dayList = []
-            for day in scheduleconfig['days']:
-                dayList.append(day)
-            return ScheduleConfiguration(frequency=scheduleconfig['scheduleFrequency'],
-                                         startTime=scheduleconfig['startTime'],
-                                         endTime  =scheduleconfig['endTime'],
-                                         days     =dayList )
-        elif scheduleconfig['scheduleFrequency'] == "MONTHLY_SPECIFIC_DAY":
-            return ScheduleConfiguration(frequency=scheduleconfig['scheduleFrequency'],
-                                         startTime=scheduleconfig['startTime'],
-                                         endTime  =scheduleconfig['endTime'],
-                                         occurrenc=scheduleconfig['occurrence'],
-                                         day      =scheduleconfig['day'] )
-        elif scheduleconfig['scheduleFrequency'] == "ONE_TIME" or scheduleconfig['scheduleFrequency'] == "MONTHLY_SPECIFIC_DATE":
-            return ScheduleConfiguration(frequency=scheduleconfig['scheduleFrequency'],
-                                         startTime=scheduleconfig['startTime'],
-                                         endTime  =scheduleconfig['endTime'],
-                                         startDate=scheduleconfig['startDate'],
-                                         endDate  =scheduleconfig['endDate'] )
-        else:
-            print "Unknown schedule frequency:" + scheduleconfig['scheduleFrequency']
-
-def write_schedules_CSV(scheduleList,fileName=None):
+def write_schedules_CSV(fileName=None):
     if fileName is not None:
         try:
             csvfile = open(fileName, 'w')
@@ -178,57 +228,65 @@ def write_schedules_CSV(scheduleList,fileName=None):
 
     if len(scheduleList) > 0:           
         for schedule in scheduleList:
-            if schedule.config and schedule.config.startCron:
-                start=schedule.config.startCron
-            elif schedule.config and schedule.config.startDate:
-                start=schedule.config.startDate+" "+schedule.config.startTime
-            elif schedule.config and schedule.config.occurrenc:
-                start=schedule.config.occurrenc+" "+schedule.config.day+" "+schedule.config.startTime
-            elif schedule.config and schedule.config.startTime:
-                start=schedule.config.startTime
+            scheduleConfig = schedule.data['scheduleConfiguration']
 
-            if schedule.config and schedule.config.endCron:
-                end=schedule.config.endCron
-            elif schedule.config and schedule.config.endDate:
-                end=schedule.config.endDate+" "+schedule.config.endTime
-            elif schedule.config and schedule.config.occurrenc:
-                end=schedule.config.occurrenc+" "+schedule.config.day+" "+schedule.config.endTime
-            elif schedule.config and schedule.config.endTime:
-                end=schedule.config.endTime
+            if scheduleConfig and 'startCron' in scheduleConfig:
+                start=scheduleConfig['startCron']
+            elif scheduleConfig and 'startDate' in scheduleConfig:
+                start=scheduleConfig['startDate']+" "+scheduleConfig['startTime']
+            elif scheduleConfig and 'occurrence' in scheduleConfig:
+                start=scheduleConfig['occurrence']+" "+scheduleConfig['day']+" "+scheduleConfig['startTime']
+            elif scheduleConfig and 'startTime' in scheduleConfig:
+                start=scheduleConfig['startTime']
+
+            if scheduleConfig and 'endCron' in scheduleConfig:
+                end=scheduleConfig['endCron']
+            elif scheduleConfig and 'endDate' in scheduleConfig:
+                end=scheduleConfig['endDate']+" "+scheduleConfig['endTime']
+            elif scheduleConfig and 'occurrence' in scheduleConfig:
+                end=scheduleConfig['occurrence']+" "+scheduleConfig['day']+" "+scheduleConfig['endTime']
+            elif scheduleConfig and 'endTime' in scheduleConfig:
+                end=scheduleConfig['endTime']
 
             try:
-                filewriter.writerow({'Name': schedule.name,
-                                     'Application': schedule.appName,
-                                     'Description': schedule.description,
-                                     'Timezone': schedule.timezone,
-                                     'Frequency': schedule.config.frequency if schedule.config else "",
-                                     'Start': start if schedule.config else "",
-                                     'End':  end if schedule.config else "" })
+                filewriter.writerow({'Name': schedule.data['name'],
+                                     'Application': schedule.appID,
+                                     'Description': schedule.data['description'],
+                                     'Timezone': schedule.data['timezone'],
+                                     'Frequency': scheduleConfig['scheduleFrequency'] if scheduleConfig else "",
+                                     'Start': start if scheduleConfig else "",
+                                     'End':  end if scheduleConfig else "" })
             except:
                 print ("Could not write to the output.")
                 csvfile.close()
                 return (-1)
         csvfile.close()
 
-def export_schedules_CSV(outFileName,inFileName):
-    if not inFileName or not outFileName:
+def export_schedules_CSV(outFileName, *args):
+    if len(args)==1:
+        list = load_schedules_JSON(args[0])
+    elif len(args)==4:
+        list = fetch_schedules(args[0],args[1],args[2],args[3])
+    else:
+        print "Missing or wrong arguments"
+
+    if list is not None:
+        scheduleList.extend(list)
+        write_schedules_CSV(outFileName)
+        if 'DEBUG' in locals(): print "Data stored in file " + outFileName        
+
+    return
+
+def update_schedules_timezone(baseUrl,userName,password,app_ID,data):
+    if not baseUrl or not userName or not password or not app_ID or not data:
         print "Missing arguments"
         return
-    schedules = load_schedules_JSON(inFileName)
-    scheduleList = parse_schedules(schedules)
-    write_schedules_CSV(scheduleList,outFileName)
-
-def export_schedules_CSV(outFileName,baseUrl,userName,password,app_ID):
-    if not outFileName or not userName or not password or not baseUrl or not app_ID:
-        print "Missing arguments"
-        return        
+    # Obtain the schedules list
     schedules = fetch_schedules(baseUrl,userName,password,app_ID)
     scheduleList = parse_schedules(schedules,app_ID)
+    # for each schedule, fetch the schedule full configuration and update data
     for schedule in scheduleList:
         schedule_spec=fetch_schedule_spec(baseUrl,userName,password,app_ID,schedule.Id)
-        schedule.config=parse_schedule_spec(schedule_spec)
-    write_schedules_CSV(scheduleList,outFileName)
-
-
-#### TO DO:
-####        def update_schedules_timezone(baseUrl,userName,password,app_ID,timezone):
+        #print schedule_spec
+        schedule_spec['timezone']='Europe/Brussels'
+        update_schedule(baseUrl,userName,password,app_ID,schedule.Id,schedule_spec)
