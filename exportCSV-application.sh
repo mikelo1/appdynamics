@@ -37,7 +37,7 @@ SCRIPTPATH=$(dirname "$SCRIPT")
 
 ### Required packages: python python-requests python-libxml2
 
-if [ ! -d $APPLICATION ]; then mkdir $APPLICATION; fi
+if [ ! -d $ENVIRONMENT/$APPLICATION ]; then mkdir -p $ENVIRONMENT/$APPLICATION; fi
 
 for ENTITY in healthrules schedules actions policies; do
 #	if [ -f $APPLICATION/$FILE ]; then
@@ -45,7 +45,7 @@ for ENTITY in healthrules schedules actions policies; do
 #		$SCRIPTPATH/exportCSV.py $ENTITY -i $APPLICATION/$FILE -o $APPLICATION/$ENTITY.csv
 #	else
 	echo "Fetch $ENTITY data and translating to CSV..."
-	$SCRIPTPATH/exportCSV.py $ENTITY -s -P 443 -o $APPLICATION/$ENTITY.csv -H ${HOST} -u ${USER} -p ${PASS} -a ${APPLICATION}
+	$SCRIPTPATH/exportCSV.py $ENTITY -s -P 443 -o $ENVIRONMENT/$APPLICATION/$ENTITY.csv -H ${HOST} -u ${USER} -p ${PASS} -a ${APPLICATION}
 #	fi
 done
 
@@ -55,7 +55,7 @@ for ENTITY in business-transactions backends; do
 #		$SCRIPTPATH/exportCSV.py $ENTITY -i $APPLICATION/$FILE -o $APPLICATION/$ENTITY.csv
 #	else
 	echo "Fetch $ENTITY data and translating to CSV..."
-	$SCRIPTPATH/exportCSV.py $ENTITY -s -P 443 -o $APPLICATION/$ENTITY.csv -H ${HOST} -u ${USER} -p ${PASS} -a ${APPLICATION}
+	$SCRIPTPATH/exportCSV.py $ENTITY -s -P 443 -o $ENVIRONMENT/$APPLICATION/$ENTITY.csv -H ${HOST} -u ${USER} -p ${PASS} -a ${APPLICATION}
 #	fi
 done
 
@@ -67,7 +67,7 @@ for FILE in transactiondetection-auto transactiondetection-custom; do
 #		$SCRIPTPATH/exportCSV.py $ENTITY -i $APPLICATION/$FILE -o $APPLICATION/$ENTITY-$TYPE.csv
 #	else
 	echo "Fetch $ENTITY data and translating to CSV..."
-	$SCRIPTPATH/exportCSV.py $ENTITY -s -P 443 -o $APPLICATION/$ENTITY.csv -H ${HOST} -u ${USER} -p ${PASS} -a ${APPLICATION}
+	$SCRIPTPATH/exportCSV.py $ENTITY -s -P 443 -o $ENVIRONMENT/$APPLICATION/$ENTITY.csv -H ${HOST} -u ${USER} -p ${PASS} -a ${APPLICATION}
 #	fi
 done
 
@@ -79,6 +79,6 @@ for BT_ID in ${ALLOTHERTRAFFIC_LIST}; do
 #		$SCRIPTPATH/exportCSV.py allothertraffic -i $APPLICATION/$FILE -o $APPLICATION/allothertraffic-${BT_ID}.csv
 #	else
 	echo "Fetch ALLOTHERTRAFFIC data and translating to CSV..."
-	$SCRIPTPATH/exportCSV.py allothertraffic -s -P 443 -o $APPLICATION/$FILE.csv -H ${HOST} -u ${USER} -p ${PASS} -a ${APPLICATION} -t 1day
+	$SCRIPTPATH/exportCSV.py allothertraffic -s -P 443 -o $ENVIRONMENT/$APPLICATION/$FILE.csv -H ${HOST} -u ${USER} -p ${PASS} -a ${APPLICATION} -t 1day
 #	fi
 done
