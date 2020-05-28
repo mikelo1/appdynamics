@@ -3,7 +3,7 @@ import requests
 import sys
 import os.path
 from datetime import datetime, timedelta
-from applications import load_applications_JSON, fetch_applications, write_applications_CSV, getID
+from applications import load_applications, export_applications_CSV, getID
 from transactiondetection import load_transactiondetection_XML, fetch_transactiondetection, write_transactiondetection_CSV
 from businesstransactions import load_business_transactions_JSON, fetch_business_transactions, write_business_transactions_CSV
 from backends import load_backends_JSON, fetch_backends, write_backends_CSV
@@ -80,19 +80,18 @@ ENTITY = args[0]
 ### Application performance related entities
 if ENTITY.lower() == "applications":
     if options.inFileName:
-        load_applications_JSON(options.inFileName)
+        export_applications(options.inFileName,options.outFileName)
     elif options.user and options.password and options.hostname:
         baseUrl = buildBaseURL(options.hostname,options.port,options.SSLEnabled)
-        fetch_applications(baseUrl,options.user,options.password)
+        export_applications_CSV(baseUrl,options.user,options.password)
     else:
         optParser.error("Missing arguments")
-    write_applications_CSV(options.outFileName)
 elif ENTITY.lower() == "transactiondetection":
     if options.inFileName:
         load_transactiondetection_XML(options.inFileName)
     elif options.user and options.password and options.hostname and options.application:
         baseUrl = buildBaseURL(options.hostname,options.port,options.SSLEnabled)
-        fetch_applications(baseUrl,options.user,options.password)
+        load_applications(baseUrl,options.user,options.password)
         appID=getID(options.application)
         if appID < 0:
             print "Application",options.application,"doesn't exist."
@@ -106,7 +105,7 @@ elif ENTITY.lower() == "business-transactions":
         load_business_transactions_JSON(options.inFileName)
     elif options.user and options.password and options.hostname and options.application:
         baseUrl = buildBaseURL(options.hostname,options.port,options.SSLEnabled)
-        fetch_applications(baseUrl,options.user,options.password)
+        load_applications(baseUrl,options.user,options.password)
         appID=getID(options.application)
         if appID < 0:
             print "Application",options.application,"doesn't exist."
@@ -120,7 +119,7 @@ elif ENTITY.lower() == "backends":
         load_backends_JSON(options.inFileName)
     elif options.user and options.password and options.hostname and options.application:
         baseUrl = buildBaseURL(options.hostname,options.port,options.SSLEnabled)
-        fetch_applications(baseUrl,options.user,options.password)
+        load_applications(baseUrl,options.user,options.password)
         appID=getID(options.application)
         if appID < 0:
             print "Application",options.application,"doesn't exist."
@@ -134,7 +133,7 @@ elif ENTITY.lower() == "snapshots":
         load_snapshots_JSON(options.inFileName)
     elif options.user and options.password and options.hostname and options.application:
         baseUrl = buildBaseURL(options.hostname,options.port,options.SSLEnabled)
-        fetch_applications(baseUrl,options.user,options.password)
+        load_applications(baseUrl,options.user,options.password)
         appID=getID(options.application)
         if appID < 0:
             print "Application",options.application,"doesn't exist."
@@ -170,7 +169,7 @@ elif ENTITY.lower() == "allothertraffic":
         load_allothertraffic_JSON(options.inFileName)
     elif options.user and options.password and options.hostname and options.application:
         baseUrl = buildBaseURL(options.hostname,options.port,options.SSLEnabled)
-        fetch_applications(baseUrl,options.user,options.password)
+        load_applications(baseUrl,options.user,options.password)
         appID=getID(options.application)
         if appID < 0:
             print "Application",options.application,"doesn't exist."
@@ -209,7 +208,7 @@ elif ENTITY.lower() == "healthrules":
         load_health_rules_XML(options.inFileName)
     elif options.user and options.password and options.hostname and options.application:
         baseUrl = buildBaseURL(options.hostname,options.port,options.SSLEnabled)
-        fetch_applications(baseUrl,options.user,options.password)
+        load_applications(baseUrl,options.user,options.password)
         appID=getID(options.application)
         if appID > 0:
             options.application=str(appID)
@@ -219,14 +218,14 @@ elif ENTITY.lower() == "healthrules":
     write_health_rules_CSV(options.outFileName)
 elif ENTITY.lower() == "schedules":
     if options.inFileName:
-        export_schedules_CSV(outFileName=options.outFileName,inFileName=options.inFileName)
+        export_schedules_CSV(options.outFileName,options.inFileName)
     elif options.user and options.password and options.hostname and options.application:
         baseUrl = buildBaseURL(options.hostname,options.port,options.SSLEnabled)
-        fetch_applications(baseUrl,options.user,options.password)
+        load_applications(baseUrl,options.user,options.password)
         appID=getID(options.application)
         if appID > 0:
             options.application=str(appID)
-        export_schedules_CSV(outFileName=options.outFileName,baseUrl=baseUrl,userName=options.user,password=options.password,app_ID=options.application)
+        export_schedules_CSV(options.outFileName,baseUrl,options.user,options.password,options.application)
     else:
         optParser.error("Missing arguments")
 elif ENTITY.lower() == "events":
@@ -234,7 +233,7 @@ elif ENTITY.lower() == "events":
         load_events_XML(options.inFileName)
     elif options.user and options.password and options.hostname and options.application:
         baseUrl = buildBaseURL(options.hostname,options.port,options.SSLEnabled)
-        fetch_applications(baseUrl,options.user,options.password)
+        load_applications(baseUrl,options.user,options.password)
         appID=getID(options.application)
         if appID < 0:
             print "Application",options.application,"doesn't exist."
@@ -270,7 +269,7 @@ elif ENTITY.lower() == "policies":
         load_policies_JSON(options.inFileName)
     elif options.user and options.password and options.hostname and options.application:
         baseUrl = buildBaseURL(options.hostname,options.port,options.SSLEnabled)
-        fetch_applications(baseUrl,options.user,options.password)
+        load_applications(baseUrl,options.user,options.password)
         appID=getID(options.application)
         if appID > 0:
             options.application=str(appID)
@@ -290,7 +289,7 @@ elif ENTITY.lower() == "actions":
     elif options.user and options.password and options.hostname and options.application:
         
         baseUrl = buildBaseURL(options.hostname,options.port,options.SSLEnabled)
-        fetch_applications(baseUrl,options.user,options.password)
+        load_applications(baseUrl,options.user,options.password)
         appID=getID(options.application)
         if appID > 0:
             options.application=str(appID)
