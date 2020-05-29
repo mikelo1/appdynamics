@@ -173,7 +173,6 @@ def load_schedules_JSON(fileName,app_ID=0):
 def schedules_JSON_to_structure(app_ID=None):
     for schedule in scheduleList:
         schedConfigData = schedule.data['scheduleConfiguration']
-
         if 'scheduleFrequency' in schedConfigData:
             if schedConfigData['scheduleFrequency'] == "CUSTOM":
                 scheduleConfiguration = ScheduleConfiguration(frequency=schedConfigData['scheduleFrequency'],
@@ -211,7 +210,7 @@ def schedules_JSON_to_structure(app_ID=None):
         for schedule in scheduleList:
             print str(schedule)
 
-def write_schedules_CSV(fileName=None):
+def write_schedules_CSV(fileName=None,app_ID=None,schedList=None):
     if fileName is not None:
         try:
             csvfile = open(fileName, 'w')
@@ -226,8 +225,13 @@ def write_schedules_CSV(fileName=None):
     filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
     filewriter.writeheader()
 
-    if len(scheduleList) > 0:           
-        for schedule in scheduleList:
+    # if no list is passed as parameter, use the global one
+    if schedList is None: schedList = scheduleList
+
+    if len(schedList) > 0:
+        for schedule in schedList:
+            if app_ID and schedule.appID != app_ID: continue
+
             scheduleConfig = schedule.data['scheduleConfiguration']
 
             if scheduleConfig and 'startCron' in scheduleConfig:
@@ -278,23 +282,32 @@ def export_schedules_CSV(outFileName, *args):
     return
 
 def update_schedules(baseUrl,userName,password,app_ID,source):
-    if source[-5:] == ".json":
-        schedList = load_schedules_JSON(source,app_ID)
-        for schedElement in schedList:
-            update_schedule(baseUrl,userName,password,schedElement)        
-    else:
+    # Verify if the source is a file or stream JSON data
+    try:
+        changesJSON = json.loads(source)
+    except:
         try:
-            changesJSON = json.loads(source)
-        except:
-            print ("Could not process source data.")
+            f = open(source)
+            f.close()
+        except IOError:
+            print("Could not process source data.")
             return None
-            
+
+    if 'changesJSON' in locals():
         # Load data for the application
-        list = fetch_schedules(baseUrl,userName,password,app_ID)
-        if list is not None:
-            scheduleList.extend(list)
-            for schedElement in scheduleList:
-                if schedElement.appID == app_ID:
-                    if 'timezone' in changesJSON:
-                        schedElement.data['timezone'] = changesJSON['timezone']
-                        update_schedule(baseUrl,userName,password,schedElement)
+        schedList = fetch_schedules(baseUrl,userName,password,app_ID)
+        # Do the replacement and update remotely
+        if schedList is not None:
+            for schedElement in schedList:
+                if 'timezone' in changesJSON:
+                    schedElement.data['timezone'] = changesJSON['timezone']
+                    update_schedule(baseUrl,userName,password,schedElement)
+        # Add updated list to the global schedules list
+        scheduleList.extend(schedList)
+    else:
+        # Load data for the application
+        schedList = load_schedules_JSON(source,app_ID)
+        # Update remotely
+        if schedList is not None:
+            for schedElement in schedList:
+                update_schedule(baseUrl,userName,password,schedElement)
