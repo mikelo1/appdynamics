@@ -123,8 +123,7 @@ def fetch_schedules(baseUrl,userName,password,app_ID):
 def update_schedule(baseUrl,userName,password,schedElement):
     # Updates an existing schedule with a specified JSON payload
     # PUT <controller_url>/controller/alerting/rest/v1/applications/<application_id>/schedules/{schedule-id}
-    #if 'DEBUG' in locals(): 
-    print ("Updating schedule " + str(schedElement.schedID) + " for App " + str(schedElement.appID) + "...")
+    if 'DEBUG' in locals(): print ("Updating schedule " + str(schedElement.schedID) + " for App " + str(schedElement.appID) + "...")
     try:
         response = requests.put(baseUrl + "alerting/rest/v1/applications/" + str(schedElement.appID) + "/schedules/" + str(schedElement.schedID),
                                 headers={"Content-Type": "application/json"},
