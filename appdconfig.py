@@ -37,11 +37,28 @@ def get_current_context_user():
     if 'current-context' in data and len(data['current-context']) > 0:
         return data['current-context'].split('/')[1]
 
-def get_access_token(serverURL,API_Client,Client_Secret=None):
+def get_access_token(serverURL=None,API_Client=None,Client_Secret=None):
+    data = read_config_yaml()
+
+    # If controller was not provided, try to find in the configuration file
+    if serverURL is None or API_Client is None:
+        if len(data['current-context']) == 0:
+            print "Cannot get context data. Did you login to any controller machine?"
+            return None
+        else:
+            for context in data['contexts']:
+                if contexts['name'] == data['current-context']:
+                    serverURL  = context['server']
+                    API_Client = context['user']
+                    break
+            if 'context' not in locals() or contexts['name'] != data['current-context']:
+                print "Cannot get context data. Did you login to any controller machine?"
+                return None
+
     servername = serverURL.split('/')[2]
     username = API_Client + "/" + servername
     contextname = servername + "/" + API_Client
-    data = read_config_yaml()
+    
     # Check if user already exists in config YAML file
     # If the user exists and token is not expired, return token from file. Otherwise get a new token
     for user in data['users']:
