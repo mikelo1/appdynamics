@@ -3,7 +3,7 @@ import requests
 import json
 import csv
 import sys
-from accesstoken import fetch_access_token
+from appdconfig import fetch_access_token
 
 dashboardList = []
 class Dashboard:

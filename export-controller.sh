@@ -36,8 +36,26 @@ NC='\033[0m' # No Color
 
 if [ ! -d $ENVIRONMENT ]; then mkdir $ENVIRONMENT; fi
 
+# https://docs.appdynamics.com/display/PRO45/API+Clients#APIClients-using-the-access-token
+# https://docs.appdynamics.com/display/PRO45/API+Clients
+echo_appd_access_token() {
+	curl -s --user "$APICLIENT:$APISECRET" \
+		    -X POST -H "Content-Type: application/vnd.appd.cntrl+protobuf;v=1" \
+		    -d "grant_type=client_credentials&client_id=$APICLIENT&client_secret=$APISECRET" \
+			"https://${HOST}/controller/api/oauth/access_token" | grep -o "\"access_token\": \"[^\"]*\"," | awk -F\" '{print $4}'
+}
+
+ACCESS_TOKEN=$(echo_appd_access_token)
+if [ -z $ACCESS_TOKEN ]; then echo "Something went wrong with the access token. Exiting..." ; exit; fi
+
+echo -ne "AppDynamics Controller version: "
+curl -s -H "Authorization:Bearer $ACCESS_TOKEN" "https://${HOST}/controller/rest/configuration?name=schema.version&output=JSON" | grep value | awk '{print $2}' | sed -e 's/"//g'
+if [ $? -ne 0 ]; then
+	echo "Something went wrong with the cURL command. Exiting..." ; exit
+fi
+
 #APPLICATION_LIST
-curl -s --user "${USER}:${PASS}" "https://${HOST}/controller/rest/applications?output=JSON" -o ${ENVIRONMENT}/applications.json
+curl -s -H "Authorization:Bearer $ACCESS_TOKEN" "https://${HOST}/controller/rest/applications?output=JSON" -o ${ENVIRONMENT}/applications.json
 if [ $? -ne 0 ]; then
 	echo "Something went wrong with the cURL command. Exiting..." ; exit
 else
@@ -45,7 +63,7 @@ else
 fi
 
 #EMAIL TEMPLATES
-curl -s --user "${USER}:${PASS}" https://$HOST/controller/actiontemplate/email -o ${ENVIRONMENT}/emailTemplates.json
+curl -s -H "Authorization:Bearer $ACCESS_TOKEN" https://$HOST/controller/actiontemplate/email -o ${ENVIRONMENT}/emailTemplates.json
 if [ $? -ne 0 ]; then
 	echo "Something went wrong with the cURL command. Exiting..." ; exit
 else
@@ -53,37 +71,12 @@ else
 fi
 
 #CONFIGURATION
-curl -s --user "$USER@:$PASS" "https://${HOST}/controller/rest/configuration?output=JSON" -o ${ENVIRONMENT}/config.json
+curl -s -H "Authorization:Bearer $ACCESS_TOKEN" "https://${HOST}/controller/rest/configuration?output=JSON" -o ${ENVIRONMENT}/config.json
 if [ $? -ne 0 ]; then
 	echo "Something went wrong with the cURL command. Exiting..."; exit
 else
 	echo -e "$HOST controller configuration downloaded to file ${GREEN}config.xml${NC}"
 fi
-exit
-#DASHBOARDS
-# https://docs.appdynamics.com/display/PRO45/API+Clients#APIClients-using-the-access-token
-# https://docs.appdynamics.com/display/PRO45/API+Clients
-echo_appd_access_token() {
-	CONTROLLER_VERSION=`curl -s --user "$USER:$PASS" "https://${HOST}/controller/rest/configuration?name=schema.version&output=JSON" | grep value | awk '{print $2}' | sed -e 's/"//g'`
-	COMPARABLE_VERSION=`echo $CONTROLLER_VERSION | sed -e 's/-//g'`
-	PRETTY_VERSION=`echo $CONTROLLER_VERSION | sed -e 's/-/./g' -e 's/0\+\([0-9]\+\)/\1/g'`
-
-	if [ $COMPARABLE_VERSION -lt "004005009001" ]; then
-		# Controller version lower than 4.5.9
-		REQUEST=`curl -s -X POST -H "Content-Type: application/vnd.appd.cntrl+protobuf;v=1" \
-			-u "$APICLIENT:$APISECRET" \
-			"https://${HOST}/controller/api/oauth/access_token" \
-			-d "grant_type=client_credentials&client_id=$APICLIENT&client_secret=$APISECRET"`
-	else
-		# Controller version higher than 4.5.9
-		REQUEST=`curl -s --user "$USER:$PASS" -X POST -H "Content-Type: application/vnd.appd.cntrl+protobuf;v=1" \
-			"https://${HOST}/controller/api/oauth/access_token" \
-			-d "grant_type=client_credentials&client_id=$APICLIENT&client_secret=$APISECRET"`
-	fi
-	echo $REQUEST | grep -o "\"access_token\": \"[^\"]*\"," | awk -F\" '{print $4}'
-}
-
-ACCESS_TOKEN=$(echo_appd_access_token)
 
 #DASHBOARD_LIST
 DASHBOARDS_BY_TYPE=`curl -s -H "Authorization:Bearer $ACCESS_TOKEN" \
@@ -91,15 +84,15 @@ DASHBOARDS_BY_TYPE=`curl -s -H "Authorization:Bearer $ACCESS_TOKEN" \
 if [ $? -ne 0 ]; then
 	echo "Something went wrong with the cURL command. Exiting..."; exit
 else
-	echo $DASHBOARDS_BY_TYPE > ${ENVIRONMENT}/dashboards.csv
-	echo -e "Dashboard list from $ENVIRONMENT downloaded to file ${GREEN}dashboards.csv${NC}"
+	echo $DASHBOARDS_BY_TYPE > ${ENVIRONMENT}/dashboards.json
+	echo -e "Dashboard list from $ENVIRONMENT downloaded to file ${GREEN}dashboards.json${NC}"
 fi
-
+exit
 #DASHBOARD_EXPORT_ALL
  if [ $? ] && [ DASHBOARDS_BY_TYPE != "Failed to authenticate: invalid access token." ]; then 
 	DASHBOARD_LIST=`echo $DASHBOARDS_BY_TYPE | grep -o "\"id\" : [0-9]*," | sed -e 's/[id:",]//g'`
 	for DASHBOARD_ID in $DASHBOARD_LIST; do
-		curl -s --user "$USER:$PASS" "https://${HOST}/controller/CustomDashboardImportExportServlet?dashboardId=$DASHBOARD_ID" -o ${ENVIRONMENT}/dashboard-${DASHBOARD_ID}-${HOST}.json
+		curl -s -H "Authorization:Bearer $ACCESS_TOKEN" "https://${HOST}/controller/CustomDashboardImportExportServlet?dashboardId=$DASHBOARD_ID" -o ${ENVIRONMENT}/dashboard-${DASHBOARD_ID}-${HOST}.json
 		if [ $? -ne 0 ]; then
 			echo "Something went wrong with the cURL command. Exiting..."; exit
 		else
