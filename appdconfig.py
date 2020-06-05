@@ -16,23 +16,6 @@ class AccessToken:
     def __str__(self):
         return "({0},{1})".format(self.token,self.expireDate)
 
-def fetch_controller_version(baseUrl,username=None,password=None):
-    username="ATS5JMC@evobanco-dev"
-    password="Evo2019.uat"
-    try:
-        response = requests.get(baseUrl + "/controller/rest/configuration", auth=(username, password), params={"name": "schema.version","output": "JSON"})
-    except:
-        print ("Could not process authentication token for user " + username + ".  Did you mess up your username/password?")
-        return None
-    if response.status_code > 399:
-        print "Something went wrong on HTTP request:"
-        print "   status:", response.status_code
-        print "   header:", response.headers
-        return None
-
-    schemaVersion = json.loads(response.content)
-    return schemaVersion[0]['value'].replace("-","")
-
 # https://docs.appdynamics.com/display/PRO45/API+Clients#APIClients-using-the-access-token
 # https://docs.appdynamics.com/display/PRO45/API+Clients
 def fetch_access_token(serverURL,API_username,API_password):
@@ -50,7 +33,6 @@ def fetch_access_token(serverURL,API_username,API_password):
     return token_data
 
 def get_access_token(serverURL,API_Client,Client_Secret):
-    DEBUG=True
     username = API_Client + "/" + serverURL
     contextname = serverURL + "/" + API_Client
     data = read_config_yaml()
@@ -131,4 +113,3 @@ def create_sample_config_yaml():
     # Write YAML file
     with open("appdconfig.yaml", "w") as outfile:
         yaml.dump(data, outfile, default_flow_style=False, allow_unicode=True)
-        return yaml.safe_load(outfile)
