@@ -48,6 +48,11 @@ def get_access_token(serverURL,API_Client,Client_Secret=None):
         if user['name'] == username:
             if datetime.today() < user['user']['expire']:
                 if 'DEBUG' in locals(): print "Found valid token in config YAML file."
+                if data['current-context'] != contextname:
+                    data['current-context'] = contextname
+                    if 'DEBUG' in locals(): print "Saving context selection change..."
+                    with open(AppD_configfile, "w") as outfile:
+                        yaml.dump(data, outfile, default_flow_style=False, allow_unicode=True)
                 return user['user']['token']
             else:
                 if 'DEBUG' in locals(): print "Token expired in config YAML file. Fetching new token..."
