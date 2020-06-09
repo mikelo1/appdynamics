@@ -3,14 +3,14 @@ import requests
 import sys
 import os.path
 from datetime import datetime, timedelta
-from applications import load_applications, export_applications_CSV, getID
+from applications import load_applications, generate_applications_CSV, getID
 from transactiondetection import load_transactiondetection_XML, fetch_transactiondetection, write_transactiondetection_CSV
 from businesstransactions import load_business_transactions_JSON, fetch_business_transactions, write_business_transactions_CSV
 from backends import load_backends_JSON, fetch_backends, write_backends_CSV
 from healthrules import load_health_rules_XML, fetch_health_rules, write_health_rules_CSV
 from schedules import export_schedules_CSV
 from events import load_events_XML, fetch_healthrule_violations, write_events_CSV
-from policies import load_policies_JSON, fetch_policies, write_policies_CSV
+from policies import get_policies_list
 from actions import load_actions_JSON, fetch_actions, write_actions_CSV
 from snapshots import load_snapshots_JSON, fetch_snapshots, write_snapshots_CSV
 from allothertraffic import load_allothertraffic_JSON, fetch_allothertraffic, write_allothertraffic_CSV
@@ -25,8 +25,8 @@ def buildBaseURL(controller,port=None,SSLenabled=None):
             port = "443"
     elif not port:
             port = "80"
-    #print "Base URL: " + url + "://" + controller + ":" + port + "/controller/"
-    return url + "://" + controller + ":" + port + "/controller/"
+    #print "Base URL: " + url + "://" + controller + ":" + port
+    return url + "://" + controller + ":" + port
 
 
 usage = "usage: %prog [actions|allothertraffic|applications|backends|business-transactions|dashboards|events|healthrules|schedules|policies|transactiondetection|snapshots] [options]"
@@ -76,6 +76,9 @@ optParser.add_option_group(groupQuery)
 if len(args) != 1:
     optParser.error("incorrect number of arguments")
 
+
+
+
 ENTITY = args[0]
 ### Application performance related entities
 if ENTITY.lower() == "applications":
@@ -96,7 +99,7 @@ elif ENTITY.lower() == "transactiondetection":
         if appID < 0:
             print "Application",options.application,"doesn't exist."
             exit(1)
-        fetch_transactiondetection(baseUrl,options.user,options.password,str(appID))
+        fetch_transactiondetection(baseUrl+"/controller/",options.user,options.password,str(appID))
     else:
         optParser.error("Missing arguments")
     write_transactiondetection_CSV(options.outFileName)
@@ -110,7 +113,7 @@ elif ENTITY.lower() == "business-transactions":
         if appID < 0:
             print "Application",options.application,"doesn't exist."
             exit(1)
-        fetch_business_transactions(baseUrl,options.user,options.password,str(appID))
+        fetch_business_transactions(baseUrl+"/controller/",options.user,options.password,str(appID))
     else:
         optParser.error("Missing arguments")
     write_business_transactions_CSV(options.outFileName)
@@ -124,7 +127,7 @@ elif ENTITY.lower() == "backends":
         if appID < 0:
             print "Application",options.application,"doesn't exist."
             exit(1)
-        fetch_backends(baseUrl,options.user,options.password,str(appID))
+        fetch_backends(baseUrl+"/controller/",options.user,options.password,str(appID))
     else:
         optParser.error("Missing arguments")
     write_backends_CSV(options.outFileName)
@@ -152,7 +155,7 @@ elif ENTITY.lower() == "snapshots":
 
         for i in range(3,numberOfDays*24,3): # loop latest numberOfDays days in chunks of 3 hours
             for retry in range(1,4):
-                data_chunck = fetch_snapshots(baseUrl,options.user,options.password,str(appID), \
+                data_chunck = fetch_snapshots(baseUrl+"/controller/",options.user,options.password,str(appID), \
                                                 "AFTER_TIME","180",datetime.today()-timedelta(hours=i)) # fetch 3 hours of data
                 if data_chunck is not None:
                     break
@@ -174,7 +177,7 @@ elif ENTITY.lower() == "allothertraffic":
         if appID < 0:
             print "Application",options.application,"doesn't exist."
             exit(1)
-        fetch_business_transactions(baseUrl,options.user,options.password,str(appID))
+        fetch_business_transactions(baseUrl+"/controller/",options.user,options.password,str(appID))
         if options.timerange and options.timerange.endswith("day"):
             numberOfDays=int(options.timerange[0:options.timerange.find("day")])
             if numberOfDays > 14:
@@ -212,7 +215,7 @@ elif ENTITY.lower() == "healthrules":
         appID=getID(options.application)
         if appID > 0:
             options.application=str(appID)
-        fetch_health_rules(baseUrl,options.user,options.password,options.application)
+        fetch_health_rules(baseUrl+"/controller/",options.user,options.password,options.application)
     else:
         optParser.error("Missing arguments")
     write_health_rules_CSV(options.outFileName)
@@ -225,7 +228,7 @@ elif ENTITY.lower() == "schedules":
         appID=getID(options.application)
         if appID > 0:
             options.application=str(appID)
-        export_schedules_CSV(options.outFileName,baseUrl,options.user,options.password,options.application)
+        export_schedules_CSV(options.outFileName,baseUrl+"/controller/",options.user,options.password,options.application)
     else:
         optParser.error("Missing arguments")
 elif ENTITY.lower() == "events":
@@ -252,7 +255,7 @@ elif ENTITY.lower() == "events":
 
         for i in range(numberOfDays,0,-1): # loop latest numberOfDays days in chunks of 1 day
             for retry in range(1,4):
-                root = fetch_healthrule_violations(baseUrl,options.user,options.password,str(appID), \
+                root = fetch_healthrule_violations(baseUrl+"/controller/",options.user,options.password,str(appID), \
                                                     "AFTER_TIME","1440",datetime.today()-timedelta(days=i)) # fetch 1 day of data
                 if root is not None:
                     break
@@ -266,17 +269,17 @@ elif ENTITY.lower() == "events":
     write_events_CSV(options.outFileName)
 elif ENTITY.lower() == "policies":
     if options.inFileName:
-        load_policies_JSON(options.inFileName)
+        # TODO: Something about it
+        print "Feaure not implemented yet"
     elif options.user and options.password and options.hostname and options.application:
         baseUrl = buildBaseURL(options.hostname,options.port,options.SSLEnabled)
         load_applications(baseUrl,options.user,options.password)
         appID=getID(options.application)
         if appID > 0:
             options.application=str(appID)
-        fetch_policies(baseUrl,options.user,options.password,options.application)
+        get_policies_list(baseUrl, userName=options.user,password=options.password,app_ID=options.application,fileName=options.outFileName)
     else:
         optParser.error("Missing arguments")
-    write_policies_CSV(options.outFileName)
 elif ENTITY.lower() == "actions":
     if options.inFileName:
         head_tail = os.path.split(options.inFileName)
@@ -287,13 +290,12 @@ elif ENTITY.lower() == "actions":
             print ("File "+policiesXMLFile+" not found.")
         load_actions_JSON(options.inFileName)
     elif options.user and options.password and options.hostname and options.application:
-        
         baseUrl = buildBaseURL(options.hostname,options.port,options.SSLEnabled)
         load_applications(baseUrl,options.user,options.password)
         appID=getID(options.application)
         if appID > 0:
             options.application=str(appID)
-        fetch_actions(baseUrl,options.user,options.password,options.application)
+        fetch_actions(baseUrl+"/controller/",options.user,options.password,options.application)
     else:
         optParser.error("Missing arguments")
     write_actions_CSV(options.outFileName)
@@ -304,7 +306,7 @@ elif ENTITY.lower() == "dashboards":
         load_dashboards_JSON(options.inFileName)
     elif options.user and options.password and options.hostname and options.apiClientName and options.apiClientSecret :
         baseUrl = buildBaseURL(options.hostname,options.port,options.SSLEnabled)
-        fetch_dashboards(baseUrl,options.user,options.password,options.apiClientName,options.apiClientSecret)
+        fetch_dashboards(baseUrl+"/controller/",options.user,options.password,options.apiClientName,options.apiClientSecret)
     else:
         optParser.error("Missing arguments")
     write_dashboards_CSV(options.outFileName)

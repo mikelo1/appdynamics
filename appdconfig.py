@@ -9,18 +9,27 @@ import time
 
 AppD_configfile="appdconfig.yaml"
 
-# https://docs.appdynamics.com/display/PRO45/API+Clients#APIClients-using-the-access-token
-# https://docs.appdynamics.com/display/PRO45/API+Clients
+
+###
+ # Fetch access token from a controller. Provide an username/password.
+ # @param serverURL Full hostname of the Appdynamics controller. i.e.: https://demo1.appdynamics.com:443
+ # @param userName Full username, including account. i.e.: myuser@customer1
+ # @param password password for the specified user and host. i.e.: mypassword
+ # @return the access token string. Null if there was a problem getting the access token.
+###
 def fetch_access_token(serverURL,API_username,API_password):
+    if 'DEBUG' in locals(): print ("Fetching access token for controller " + serverURL + "...")
+    # https://docs.appdynamics.com/display/PRO45/API+Clients#APIClients-using-the-access-token
     response = requests.post(serverURL + "/controller/api/oauth/access_token",
                                 auth=(API_username, API_password),
                                 headers={"Content-Type": "application/vnd.appd.cntrl+protobuf", "v":"1"},
                                 data={"grant_type": "client_credentials", "client_id": API_username, "client_secret": API_password})
     if response.status_code > 399:
-        print "Something went wrong on HTTP request:"
-        print "   status:", response.status_code
-        print "   header:", response.headers
-        print "   content:", response.content
+        if 'DEBUG' in locals():
+            print "Something went wrong on HTTP request:"
+            print "   status:", response.status_code
+            print "   header:", response.headers
+            print "   content:", response.content
         return None
     token_data = json.loads(response.content)
     return token_data
@@ -77,6 +86,9 @@ def get_access_token(serverURL=None,API_Client=None,Client_Secret=None):
                     print "Authentication required for " + serverURL
                     Client_Secret = getpass(prompt='Password: ')
                 token_data = fetch_access_token(serverURL,API_Client,Client_Secret)
+                if token_data is None:
+                    print "Authentication failed. Did you mistype the password?"
+                    return None
                 user['user']['token']  = str(token_data['access_token'])
                 user['user']['expire'] = datetime.now()+timedelta(seconds=token_data['expires_in'])
                 data['current-context'] = contextname
@@ -89,6 +101,9 @@ def get_access_token(serverURL=None,API_Client=None,Client_Secret=None):
             print "Authentication required for " + serverURL
             Client_Secret = getpass(prompt='Password: ')
         token_data = fetch_access_token(serverURL,API_Client,Client_Secret)
+        if token_data is None:
+            print "Authentication failed. Did you mistype the password?"
+            return None
         expire = datetime.now()+timedelta(seconds=token_data['expires_in'])
         token = str(token_data['access_token'])
         data['users'].append({'name': username,'user': { 'token': token, 'expire': expire}})
