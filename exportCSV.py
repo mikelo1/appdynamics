@@ -10,7 +10,7 @@ from backends import load_backends_JSON, fetch_backends, write_backends_CSV
 from healthrules import load_health_rules_XML, fetch_health_rules, write_health_rules_CSV
 from schedules import export_schedules_CSV
 from events import load_events_XML, fetch_healthrule_violations, write_events_CSV
-from policies import get_policies_list
+from policies import get_policies_legacy
 from actions import load_actions_JSON, fetch_actions, write_actions_CSV
 from snapshots import load_snapshots_JSON, fetch_snapshots, write_snapshots_CSV
 from allothertraffic import load_allothertraffic_JSON, fetch_allothertraffic, write_allothertraffic_CSV
@@ -277,7 +277,7 @@ elif ENTITY.lower() == "policies":
         appID=getID(options.application)
         if appID > 0:
             options.application=str(appID)
-        get_policies_list(baseUrl, userName=options.user,password=options.password,app_ID=options.application,fileName=options.outFileName)
+        get_policies_legacy(baseUrl, userName=options.user,password=options.password,app_ID=options.application,fileName=options.outFileName)
     else:
         optParser.error("Missing arguments")
 elif ENTITY.lower() == "actions":

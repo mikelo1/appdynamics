@@ -4,21 +4,19 @@ import json
 import csv
 import sys
 
-policyList = []
+policyDict = dict()
 class Policy:
-    name       = ""
-    appName    = ""
-    healthRules= []
-    entities   = []
-    actions    = []
-    def __init__(self,name,appName,healthRules,entities,actions):
-        self.name       = name
-        self.appName    = appName
-        self.healthRules= healthRules
-        self.entities   = entities
-        self.actions    = actions
+    id   = 0
+    name = ""
+    appID= 0
+    data = None
+    def __init__(self,id,name,appID,data):
+        self.id   = id
+        self.name = name
+        self.appID= appID
+        self.data = data
     def __str__(self):
-        return "({0},{1},{2},{3},{4})".format(self.name,self.appName,self.healthRules,self.entities,self.actions)
+        return "({0},{1},{2},{3})".format(self.id,self.name,self.appID,self.data)
 
 
 def to_entityName(entityType):
@@ -33,7 +31,14 @@ def to_entityName(entityType):
     }
     return switcher.get(entityType, entityType)
 
-def fetch_policies(serverURL,app_ID,userName=None,password=None,token=None):
+def test_dictionary():
+    mydict = dict()
+    mydict.update({str(app_ID):json.loads('{"appID": "'+str(app_ID)+'", "policies": []}')})
+    mydict.update({str(app_ID+1):json.loads('{"appID": "'+str(app_ID+1)+'", "policies": []}')})
+    if str(app_ID) in mydict:
+        print (mydict[str(app_ID)])
+
+def fetch_policies(serverURL,app_ID,userName=None,password=None,token=None,loadData=False):
     if 'DEBUG' in locals(): print ("Fetching policies for App " + str(app_ID) + "...")
     try:
         # Retrieve a list of Policies associated with an Application
@@ -45,6 +50,60 @@ def fetch_policies(serverURL,app_ID,userName=None,password=None,token=None):
         else:
             print "fetch_policies_list: Incorrect parameters."
             return None
+    except requests.exceptions.InvalidURL:
+        print ("Invalid URL: " + serverURL + ".  Do you have the right controller hostname?")
+        return None
+
+    if response.status_code != 200:
+        print "Something went wrong on HTTP request. Status:", response.status_code
+        if 'DEBUG' in locals():
+            print "   header:", response.headers
+            print "Writing content to file: response.txt"
+            file1 = open("response.txt","w") 
+            file1.write(response.content)
+            file1.close() 
+        return None
+
+    try:
+        policies = json.loads(response.content)
+    except:
+        print ("Could not process authentication token for user " + userName + ".  Did you mess up your username/password?")
+        return None
+    if loadData:
+        for policy in policies:
+            if 'DEBUG' in locals(): print ("Fetching policy " + policy['name'] + "...")
+            try:
+                # Retrieve Details of a Specified Policy
+                # GET <controller_url>/controller/alerting/rest/v1/applications/<application_id>/policies/{policy-id}
+                if userName and password:
+                    response = requests.get(serverURL + "/controller/alerting/rest/v1/applications/" + str(app_ID) + "/policies/" + str(policy['id']),
+                                            auth=(userName, password), params={"output": "JSON"})
+                elif token:
+                    response = requests.get(serverURL + "/controller/alerting/rest/v1/applications/" + str(app_ID) + "/policies/" + str(policy['id']),
+                                            headers={"Authorization": "Bearer "+token}, params={"output": "JSON"})
+            except requests.exceptions.InvalidURL:
+                print ("Invalid URL: " + serverURL + "/controller/alerting/rest/v1/applications/" + str(app_ID) + "/policies/" + str(policy['id']))
+                return None
+            try:
+                policyJSON = json.loads(response.content)
+            except:
+                print ("Could not process authentication token for user " + userName + ".  Did you mess up your username/password?")
+                return None
+            policy = policyJSON
+
+    # Add loaded policies to the policy dictionary
+    policyDict.update({str(app_ID):policies})
+    if 'DEBUG' in locals(): print (policyDict[str(app_ID)])
+
+    return policies
+
+def fetch_policies_legacy(serverURL,app_ID,userName,password):
+    if 'DEBUG' in locals(): print ("Fetching policies for App " + str(app_ID) + "...")
+    try:
+        # https://docs.appdynamics.com/display/PRO44/Configuration+Import+and+Export+API#ConfigurationImportandExportAPI-ExportPolicies
+        # export policies to a JSON file.
+        # GET /controller/policies/application_id 
+        response = requests.get(serverURL + "/controller/policies/" + str(app_ID), auth=(userName, password), params={"output": "JSON"})
     except:
         print ("Could not get authentication token from " + serverURL + ".  Do you have the right controller hostname?")
         return None
@@ -78,8 +137,81 @@ def load_policies_JSON(fileName):
     policies = json.load(json_file)
     generate_policies_CSV_legacy(policies,0)
 
-def generate_policies_CSV_legacy(policyList,app_ID,fileName=None):
-    if len(policyList) == 0: return
+def generate_policies_CSV(app_ID,policies=None,fileName=None):
+    if policies is None and str(app_ID) not in policyDict:
+        print "Policies for application "+str(app_ID)+" not loaded."
+        return
+    elif policies is None and str(app_ID) in policyDict:
+        policies = policyDict[str(app_ID)]
+
+    if fileName is not None:
+        try:
+            csvfile = open(fileName, 'w')
+        except:
+            print ("Could not open output file " + fileName + ".")
+            return (-1)
+    else:
+        csvfile = sys.stdout
+
+    # create the csv writer object
+    fieldnames = ['Policy', 'Application', 'Events', 'Actions']
+    filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
+    filewriter.writeheader()
+
+    for policy in policies:
+        if len(policy['events']['healthRuleEvents']) > 0:
+            events = policy['events']['healthRuleEvents']['healthRuleScopeType']
+        # TODO elif len(policy['events']['customEvents']) > 0:
+        # TODO elif len(policy['events']['anomalyEvents']) > 0:
+        # TODO elif len(policy['events']['otherEvents']) > 0:
+        else:
+            events = "None"
+        if len(policy['actions']) > 0:
+            Action_String = ""
+            for action in policy['actions']:
+                if Action_String is not "":
+                    Action_String = Action_String + "\n"
+                Action_String = Action_String + action['actionName']
+        else:
+            Action_String = ""
+        try:
+            filewriter.writerow({'Policy': policy['name'],
+                                 'Application': app_ID,
+                                 'Events': events,
+                                 'Actions': Action_String})
+        except:
+            print ("Could not write to the output.")
+            csvfile.close()
+            return (-1)
+    if 'DEBUG' in locals(): print "INFO: Displayed number of policies:" + str(len(policies))
+    csvfile.close()
+
+def generate_policies_JSON(app_ID,policies=None,fileName=None):
+    if policies is None and str(app_ID) not in policyDict:
+        print "Policies for application "+str(app_ID)+" not loaded."
+        return
+    elif policies is None and str(app_ID) in policyDict:
+        policies = policyDict[str(app_ID)]
+
+    if fileName is not None:
+        try:
+            JSONfile = open(fileName, 'w')
+        except:
+            print ("Could not open output file " + fileName + ".")
+            return (-1)
+    else:
+        JSONfile = sys.stdout
+
+    data=json.dump(policies,JSONfile)
+    JSONfile.close()
+
+def generate_policies_CSV_legacy(app_ID,policies=None,fileName=None):
+    if policies is None and str(app_ID) not in policyDict:
+        print "Policies for application "+str(app_ID)+" not loaded."
+        return
+    elif policies is None and str(app_ID) in policyDict:
+        policies = policyDict[str(app_ID)]
+
     if fileName is not None:
         try:
             csvfile = open(fileName, 'w')
@@ -94,7 +226,7 @@ def generate_policies_CSV_legacy(policyList,app_ID,fileName=None):
     filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
     filewriter.writeheader()
 
-    for policy in policyList:
+    for policy in policies:
         if 'reactorType' not in policy:
             continue        
         Name = policy['name']
@@ -177,91 +309,36 @@ def generate_policies_CSV_legacy(policyList,app_ID,fileName=None):
             print ("Could not write to the output.")
             csvfile.close()
             return (-1)
-    if 'DEBUG' in locals(): print "INFO: Number of policies:" + str(len(policyList))
+    if 'DEBUG' in locals(): print "INFO: Number of policies:" + str(len(policies))
     csvfile.close()
 
+def get_policies(serverURL,app_ID,userName=None,password=None,token=None):
+    if userName and password:
+        if fetch_policies(serverURL,app_ID,userName=userName,password=password) is not None:
+            generate_policies_CSV(app_ID)
+    elif token:
+        if fetch_policies(serverURL,app_ID,token=token) is not None:
+            generate_policies_CSV(app_ID)
 
-def generate_policies_CSV(policyList,app_ID,fileName=None):
-    if len(policyList) == 0: return
-    if fileName is not None:
-        try:
-            csvfile = open(fileName, 'w')
-        except:
-            print ("Could not open output file " + fileName + ".")
-            return (-1)
-    else:
-        csvfile = sys.stdout
+def get_policies_legacy(serverURL,app_ID,userName=None,password=None,token=None,fileName=None):
+    if userName and password:
+        policies_List = fetch_policies_legacy(serverURL,app_ID,userName,password)
+        generate_policies_CSV_legacy(app_ID,policies=policies_List,fileName=fileName)
+    elif token:
+        policies_List = fetch_policies_legacy(serverURL,app_ID,token=token)
+        generate_policies_CSV_legacy(policies_List,app_ID,fileName=fileName)
 
-    # create the csv writer object
-    fieldnames = ['Policy', 'Application', 'Events', 'Actions']
-    filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
-    filewriter.writeheader()
-
-    for policy in policyList:
-        if len(policy['events']['healthRuleEvents']) > 0:
-            events = policy['events']['healthRuleEvents']['healthRuleScopeType']
-        # TODO elif len(policy['events']['customEvents']) > 0:
-        # TODO elif len(policy['events']['anomalyEvents']) > 0:
-        # TODO elif len(policy['events']['otherEvents']) > 0:
-        else:
-            events = "None"
-        if len(policy['actions']) > 0:
-            Action_String = ""
-            for action in policy['actions']:
-                if Action_String is not "":
-                    Action_String = Action_String + "\n"
-                Action_String = Action_String + action['actionName']
-        else:
-            Action_String = ""
-        try:
-            filewriter.writerow({'Policy': policy['name'],
-                                 'Application': app_ID,
-                                 'Events': events,
-                                 'Actions': Action_String})
-        except:
-            print ("Could not write to the output.")
-            csvfile.close()
-            return (-1)
-    if 'DEBUG' in locals(): print "INFO: Number of policies:" + str(len(policyList))
-    csvfile.close()
-
-def get_policies_list(serverURL,userName=None,password=None,token=None,app_ID=None,fileName=None):
-    if app_ID and userName and password:
-        policies_List = fetch_policies(serverURL,app_ID,userName=userName,password=password)
-        generate_policies_CSV(policies_List,app_ID,fileName=fileName)
-    elif app_ID and token:
-        policies_List = fetch_policies(serverURL,app_ID,token=token)
-        generate_policies_CSV(policies_List,app_ID,fileName=fileName)
-    else:
-        # TODO: get all aplications list and fetch the policies list 
-        pass
-
-
-
-
-def get_policies_matching_action(name):
+def get_policies_matching_action(app_ID,name):
     MatchList = []
-    if len(policyList) > 0:
-        for policy in policyList:
-            for policy_action in policy.actions:
-                if policy_action == name:
+    if str(app_ID) in policyDict:
+        for policy in policyDict[str(app_ID)]:
+            for policy_action in policy['actions']:
+                if policy_action['actionName'] == name:
                     MatchList.append(policy.name)
-    else:
-        pass # Policy list is empty
-    return MatchList
-
-def get_policies_matching_health_rule(name):
-    MatchList = []
-    if len(policyList) > 0:
-        for policy in policyList:
-            for policy_healthrule in policy.healthRules:
-                if policy_healthrule == name:
-                    MatchList.append(policy.name)
-    else:
-        pass # Policy list is empty
     return MatchList
 	
 #### TO DO:
+####        get_policies_matching_health_rule(app_ID,name)
 ####        get_policies_matching_business_transaction
 ####        get_policies_matching_tiers_and_nodes
 ####        get_policies_matching_JMX

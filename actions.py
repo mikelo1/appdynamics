@@ -105,7 +105,7 @@ def parse_actions(actions):
             print("Warning: Unknown action type ",action['actionType'])
             return
 
-        Policies = get_policies_matching_action(action['name'])
+        Policies = [] #get_policies_matching_action(action['name'])
 
         actionsList.append(Action(action['name'],Emails,Policies,ActionPlan,CustomProperties))
 

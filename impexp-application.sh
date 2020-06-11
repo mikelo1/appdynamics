@@ -125,6 +125,7 @@ run_ImpExp() {
 
 ###
  # Import / Export of entities to a SaaS or OnPrem Appdynamics controller, using the legacy REST application.
+ # https://docs.appdynamics.com/display/PRO44/Configuration+Import+and+Export+API
  # @param HOST Full hostname of the Appdynamics controller. i.e.: demo1.appdynamics.com:443
  # @param USER Full username, including account. i.e.: myuser@customer1
  # @param PASS password for the specified user and host. i.e.: mypassword

@@ -62,7 +62,7 @@ def fetch_applications(serverURL,userName=None,password=None,token=None,includeN
             print "fetch_applications: Incorrect parameters."
             return 0
     except requests.exceptions.InvalidURL:
-        print ("Could not get authentication token from " + serverURL + ". Do you have the right controller hostname?")
+        print ("Invalid URL: " + serverURL + ". Do you have the right controller hostname?")
         return 0
 
     if response.status_code != 200:
@@ -193,7 +193,7 @@ def generate_applications_CSV(fileName=None):
             exit(1)
     csvfile.close()
 
-def get_applications_list(serverURL,userName=None,password=None,token=None,includeNodes=False):
+def get_applications(serverURL,userName=None,password=None,token=None,includeNodes=False):
     if userName and password:
         if fetch_applications(serverURL,userName=userName,password=password,includeNodes=includeNodes) > 0:
             generate_applications_CSV()
@@ -210,10 +210,18 @@ def load_applications(serverURL,userName=None,password=None,token=None,includeNo
     else:
         print "load_applications: Incorrect parameters."
         return 0
-    print "Loaded applications: "+str(val)
+    if 'DEBUG' in locals(): print "Loaded applications: "+str(val)
     return val
 
 
+def get_application_list():
+    if applicationList is None or len(applicationList) == 0:
+        print "getID: Application list is empty"
+        return -1
+    appList = []
+    for application in applicationList:
+        appList.append(application.name)
+    return appList
 
 def getID(appName):
     if applicationList is None or len(applicationList) == 0:
