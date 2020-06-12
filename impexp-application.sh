@@ -40,8 +40,12 @@ get_App_ID() {
   HOST=$1
   USER=$2
   PASS=$3
-  APP_NAME=$4
-  curl -s --user "${USER}:${PASS}" https://${HOST}/controller/rest/applications/ | grep "<name>$APP_NAME</name>" -B1 -A1 | grep "<id>" | awk -F"[<>]" '{print $3}'
+  APPLICATION=$4
+  response=$(curl -si --user "$USER:$PASS" https://${HOST}/controller/rest/applications/${APPLICATION})
+  respCode=$(echo $response | grep -o "^HTTP\/......." | awk '{print $2}')
+  if [ "$respCode" == "200" ]; then
+    echo $response | grep -o "<id>.*</id>" | awk -F"[<>]" '{print $3}'
+  fi
 }
 
 ###
@@ -63,10 +67,10 @@ run_ImpExp() {
   if [ $OPERATION == "retrieve" ] && [ ! -d ${FILEPATH} ]; then mkdir -p ${FILEPATH}; elif [ ! -d ${FILEPATH} ]; then echo "Path does not exist"; return; fi
 
   APP_ID=$(get_App_ID $HOST $USER $PASS $APP_NAME)
-  if [ -z $APP_ID ]; then echo "Could not find the App ID for application $app_name."; exit; fi
+  if [ -z $APP_ID ]; then echo "Could not find the App ID for application $APP_NAME."; exit; fi
 
   for ENTITY in health-rules actions policies schedules; do
-    echo -ne "$OPERATION $ENTITY for application $app_name($APP_ID)... "
+    echo -ne "$OPERATION $ENTITY for application $APP_NAME($APP_ID)... "
     if [ $OPERATION == "retrieve" ]; then
       curl -s -X GET --user "${USER}:${PASS}" -o ${FILEPATH}/${ENTITY}.json \
                       https://$HOST/controller/alerting/rest/v1/applications/$APP_ID/$ENTITY
@@ -74,7 +78,7 @@ run_ImpExp() {
       ENTITY_LIST=$(grep -o "\"id\":[0-9]*" ${FILEPATH}/${ENTITY}.json | awk -F: '{ print $2}')
       if [ ! -z "$ENTITY_LIST" ] && [ ! -d ${FILEPATH}/${ENTITY} ]; then mkdir -p ${FILEPATH}/${ENTITY}; fi
       for ELEMENT in $ENTITY_LIST; do
-        echo -ne "$OPERATION $ENTITY $ELEMENT for application $app_name($APP_ID)... "
+        echo -ne "$OPERATION $ENTITY $ELEMENT for application $APP_NAME($APP_ID)... "
         curl -s -X GET --user "${USER}:${PASS}" -o ${FILEPATH}/${ENTITY}/${ELEMENT}.json \
                         https://$HOST/controller/alerting/rest/v1/applications/$APP_ID/$ENTITY/$ELEMENT
         if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; else echo "OK"; fi
@@ -84,7 +88,7 @@ run_ImpExp() {
       ENTITY_LIST=$(grep -o "\"id\":[0-9]*" ${FILEPATH}/${ENTITY}.json | awk -F: '{ print $2}')
       for ELEMENT in $ENTITY_LIST; do
         if [ ! -f ${FILEPATH}/${ENTITY}/${ELEMENT}.json ]; then echo "missing data file ${ENTITY}/${ELEMENT}.json"; continue; fi
-        echo -ne "$OPERATION $ENTITY $ELEMENT for application $app_name($APP_ID)... "
+        echo -ne "$OPERATION $ENTITY $ELEMENT for application $APP_NAME($APP_ID)... "
         curl -sL -w "%{http_code}" -X POST --user "${USER}:${PASS}" \
                       -H "Content-Type: application/json" -F file=@${FILEPATH}/${ENTITY}/${ELEMENT}.json \
                       https://$HOST/controller/alerting/rest/v1/applications/$APP_ID/$ENTITY/$ELEMENT
@@ -95,7 +99,7 @@ run_ImpExp() {
       ENTITY_LIST=$(grep -o "\"id\":[0-9]*" ${FILEPATH}/${ENTITY}.json | awk -F: '{ print $2}')
       for ELEMENT in $ENTITY_LIST; do
         if [ ! -f ${FILEPATH}/${ENTITY}/${ELEMENT}.json ]; then echo "missing data file ${ENTITY}/${ELEMENT}.json"; continue; fi
-        echo -ne "$OPERATION $ENTITY $ELEMENT for application $app_name($APP_ID)... "
+        echo -ne "$OPERATION $ENTITY $ELEMENT for application $APP_NAME($APP_ID)... "
         curl -sL -w "%{http_code}" -X PUT --user "${USER}:${PASS}" \
                       -H "Content-Type: application/json" -T ${FILEPATH}/${ENTITY}/${ELEMENT}.json \
                       https://$HOST/controller/alerting/rest/v1/applications/$APP_ID/$ENTITY/$ELEMENT
@@ -106,7 +110,7 @@ run_ImpExp() {
   for FILE in transactiondetection-auto transactiondetection-custom; do
     ENTITY=`echo $FILE | awk -F[.-] '{print $1}'`
     TYPE=`echo $FILE | awk -F[.-] '{print $2}'`
-    echo -ne "$OPERATION $ENTITY for application $app_name($APP_ID)... "
+    echo -ne "$OPERATION $ENTITY for application $APP_NAME($APP_ID)... "
     if [ $OPERATION == "retrieve" ]; then
         curl -s --user "${USER}:${PASS}" https://$HOST/controller/$ENTITY/$APP_ID/$TYPE -o ${FILEPATH}/${FILE}.xml
         if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; else echo "OK"; fi
@@ -143,11 +147,11 @@ run_ImpExp_legacy() {
   if [ $OPERATION == "retrieve" ] && [ ! -d ${FILEPATH} ]; then mkdir -p ${FILEPATH}; elif [ ! -d ${FILEPATH} ]; then echo "Path does not exist"; return; fi
 
   APP_ID=$(get_App_ID $HOST $USER $PASS $APP_NAME)
-  if [ -z $APP_ID ]; then echo "Could not find the App ID for application $app_name."; exit; fi
+  if [ -z $APP_ID ]; then echo "Could not find the App ID for application $APP_NAME."; exit; fi
 
   for FILE in healthrules.xml actions.json policies.json; do
     ENTITY=`echo $FILE | awk -F. '{print $1}'`
-    echo -ne "$OPERATION $ENTITY for application $app_name($APP_ID)... "
+    echo -ne "$OPERATION $ENTITY for application $APP_NAME($APP_ID)... "
     if [ $OPERATION == "retrieve" ]; then
       curl -s -X GET --user "${USER}:${PASS}" https://$HOST/controller/$ENTITY/$APP_ID -o ${FILEPATH}/${FILE}
       if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; else echo "OK"; fi
@@ -162,7 +166,7 @@ run_ImpExp_legacy() {
   for FILE in transactiondetection-auto transactiondetection-custom; do
     ENTITY=`echo $FILE | awk -F[.-] '{print $1}'`
     TYPE=`echo $FILE | awk -F[.-] '{print $2}'`
-    echo -ne "$OPERATION $ENTITY for application $app_name($APP_ID)... "
+    echo -ne "$OPERATION $ENTITY for application $APP_NAME($APP_ID)... "
     if [ $OPERATION == "retrieve" ]; then
         curl -s --user "${USER}:${PASS}" https://$HOST/controller/$ENTITY/$APP_ID/$TYPE -o ${FILEPATH}/${FILE}.xml
         if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; else echo "OK"; fi
