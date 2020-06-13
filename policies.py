@@ -31,12 +31,16 @@ def to_entityName(entityType):
     }
     return switcher.get(entityType, entityType)
 
-def test_dictionary():
-    mydict = dict()
-    mydict.update({str(app_ID):json.loads('{"appID": "'+str(app_ID)+'", "policies": []}')})
-    mydict.update({str(app_ID+1):json.loads('{"appID": "'+str(app_ID+1)+'", "policies": []}')})
-    if str(app_ID) in mydict:
-        print (mydict[str(app_ID)])
+def test_policies(app_ID):
+    policies1=json.loads('{"appID": "'+str(app_ID)+'", "policies": [{"id":1854,"name":"POLICY_SANDBOX","enabled":true,"executeActionsInBatch":true,"frequency":null,"actions":[{"actionName":"gogs@acme.com","actionType":"EMAIL","notes":""}],"events":{"healthRuleEvents":null,"otherEvents":[],"anomalyEvents":["ANOMALY_OPEN_CRITICAL"],"customEvents":[]},"selectedEntities":{"selectedEntityType":"ANY_ENTITY"}}]}')
+    policies2=json.loads('{"appID": "'+str(app_ID+1)+'", "policies": [{"id":1855,"name":"POLICY_SANDBOX","enabled":true,"executeActionsInBatch":true,"frequency":null,"actions":[{"actionName":"gogs@acme.com","actionType":"EMAIL","notes":""}],"events":{"healthRuleEvents":null,"otherEvents":[],"anomalyEvents":["ANOMALY_OPEN_CRITICAL"],"customEvents":[]},"selectedEntities":{"selectedEntityType":"ANY_ENTITY"}}]}')
+    #policies3=json.loads('{"appID": "'+str(app_ID+1)+'", "policies": [{"id":1856,"name":"POLICY_SANDBOX","enabled":true,"executeActionsInBatch":true,"frequency":null,"actions":[{"actionName":"gogs@acme.com","actionType":"EMAIL","notes":""}],"events":{"healthRuleEvents":null,"otherEvents":[],"anomalyEvents":["ANOMALY_OPEN_CRITICAL"],"customEvents":[]},"selectedEntities":{"selectedEntityType":"ANY_ENTITY"}}]}')
+    policyDict.update({str(app_ID):policies1})
+    policyDict.update({str(app_ID+1):policies2})
+#    policyDict.update({str(app_ID+1):policies3})
+    print "Number of entries: " + str(len(policyDict))
+    if str(app_ID) in policyDict:
+        print (policyDict[str(app_ID)])
 
 def fetch_policies(serverURL,app_ID,userName=None,password=None,token=None,loadData=False):
     if 'DEBUG' in locals(): print ("Fetching policies for App " + str(app_ID) + "...")
