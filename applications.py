@@ -267,10 +267,9 @@ def generate_applications_CSV(fileName=None):
                                 'Nodes': Nodes_str})
         except:
             print ("Could not write application "+application['name']+" to the output.")
-            csvfile.close()
+            if fileName is not None: csvfile.close()
             exit(1)
-
-    csvfile.close()
+    if fileName is not None: csvfile.close()
 
 def get_applications(serverURL,appList=None,userName=None,password=None,token=None,includeNodes=False):
     if userName and password:
@@ -307,7 +306,8 @@ def get_application_list():
 
 def getID(appName):
     for appID in applicationDict:
-        if applicationDict[appID]['name'] == appName:
+        print applicationDict[appID]
+        if applicationDict[appID][0]['name'] == appName:
             return appID
     # Request for provided application, although is not in the loaded application list
     server = get_current_context_server()

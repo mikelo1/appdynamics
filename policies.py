@@ -185,10 +185,10 @@ def generate_policies_CSV(app_ID,policies=None,fileName=None):
                                  'Actions': Action_String})
         except:
             print ("Could not write to the output.")
-            csvfile.close()
+            if fileName is not None: csvfile.close()
             return (-1)
     if 'DEBUG' in locals(): print "INFO: Displayed number of policies:" + str(len(policies))
-    csvfile.close()
+    if fileName is not None: csvfile.close()
 
 def generate_policies_JSON(app_ID,policies=None,fileName=None):
     if policies is None and str(app_ID) not in policyDict:
