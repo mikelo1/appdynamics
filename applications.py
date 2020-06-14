@@ -55,7 +55,6 @@ def test_applications_with_tiers_and_nodes():
         app_ID = application['id']
         applicationDict.update({str(app_ID):application})
 
-
 ###
  # Fetch applications from a controller then add it to the application dictionary. Provide either an username/password or an access token.
  # @param serverURL Full hostname of the Appdynamics controller. i.e.: https://demo1.appdynamics.com:443
@@ -113,7 +112,7 @@ def fetch_application(serverURL,key,userName=None,password=None,token=None,inclu
 
     # Add loaded application to the application dictionary
     app_ID = applicationJSON[0]['id']
-    applicationDict.update({str(app_ID):applicationJSON})
+    applicationDict.update({str(app_ID):applicationJSON[0]})
  
     if 'DEBUG' in locals():
         print "Loaded application:" + str(applicationJSON)
@@ -307,7 +306,7 @@ def get_application_list():
 def getID(appName):
     for appID in applicationDict:
         print applicationDict[appID]
-        if applicationDict[appID][0]['name'] == appName:
+        if applicationDict[appID]['name'] == appName:
             return appID
     # Request for provided application, although is not in the loaded application list
     server = get_current_context_server()

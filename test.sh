@@ -14,3 +14,7 @@ done
 for JSON_ENTITY in business-transactions backends actions policies; do
 	$SCRIPTPATH/exportCSV.py $JSON_ENTITY -i test.json
 done
+
+./appdctl.py get applications
+./appdctl.py get policies -a hipoteca-portal
+./appdctl.py get policies -a hipoteca-portal,FullOnline
