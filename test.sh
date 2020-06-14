@@ -8,10 +8,12 @@ SCRIPTPATH=$(dirname "$SCRIPT")
 ### Required packages: python python-requests python-libxml2
 
 for XML_ENTITY in healthrules transactiondetection; do
+	echo "### ExportCSV $XML_ENTITY"
 	$SCRIPTPATH/exportCSV.py $XML_ENTITY -i test.xml
 done
 
 for JSON_ENTITY in business-transactions backends actions policies; do
+	echo "### ExportCSV $JSON_ENTITY"
 	$SCRIPTPATH/exportCSV.py $JSON_ENTITY -i test.json
 done
 

@@ -61,7 +61,7 @@ def load_actions_JSON(fileName):
 def parse_actions(actions):
     for action in actions:
         if 'actionType' not in action:
-            print action
+            print "Warn: ActionType not recognized: " + str(action)
             continue
         if action['actionType'] == "EmailAction":
             CustomProperties = []

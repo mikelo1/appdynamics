@@ -287,7 +287,7 @@ elif ENTITY.lower() == "actions":
         if os.path.exists(policiesXMLFile):
             load_policies_JSON(policiesXMLFile)
         else:
-            print ("File "+policiesXMLFile+" not found.")
+            print ("Warn: File "+policiesXMLFile+" not found. No policies will be added.")
         load_actions_JSON(options.inFileName)
     elif options.user and options.password and options.hostname and options.application:
         baseUrl = buildBaseURL(options.hostname,options.port,options.SSLEnabled)
