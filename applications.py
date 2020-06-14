@@ -305,7 +305,6 @@ def get_application_list():
 
 def getID(appName):
     for appID in applicationDict:
-        print applicationDict[appID]
         if applicationDict[appID]['name'] == appName:
             return appID
     # Request for provided application, although is not in the loaded application list
