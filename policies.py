@@ -42,21 +42,32 @@ def test_policies(app_ID):
     if str(app_ID) in policyDict:
         print (policyDict[str(app_ID)])
 
+###
+ # Fetch application policies from a controller then add them to the policies dictionary. Provide either an username/password or an access token.
+ # @param serverURL Full hostname of the Appdynamics controller. i.e.: https://demo1.appdynamics.com:443
+ # @param app_ID the ID number of the application policies to fetch
+ # @param userName Full username, including account. i.e.: myuser@customer1
+ # @param password password for the specified user and host. i.e.: mypassword
+ # @param token API acccess token
+ # @return the number of fetched policies. Zero if no policy was found.
+###
 def fetch_policies(serverURL,app_ID,userName=None,password=None,token=None,loadData=False):
     if 'DEBUG' in locals(): print ("Fetching policies for App " + str(app_ID) + "...")
     try:
         # Retrieve a list of Policies associated with an Application
         # GET <controller_url>/controller/alerting/rest/v1/applications/<application_id>/policies
         if userName and password:
-            response = requests.get(serverURL + "/controller/alerting/rest/v1/applications/" + str(app_ID) + "/policies", auth=(userName, password), params={"output": "JSON"})
+            response = requests.get(serverURL + "/controller/alerting/rest/v1/applications/" + str(app_ID) + "/policies",
+                                    auth=(userName, password), params={"output": "JSON"})
         elif token:
-            response = requests.get(serverURL + "/controller/alerting/rest/v1/applications/" + str(app_ID) + "/policies", headers={"Authorization": "Bearer "+token}, params={"output": "JSON"})
+            response = requests.get(serverURL + "/controller/alerting/rest/v1/applications/" + str(app_ID) + "/policies",
+                                    headers={"Authorization": "Bearer "+token}, params={"output": "JSON"})
         else:
-            print "fetch_policies_list: Incorrect parameters."
-            return None
+            print "fetch_policies: Incorrect parameters."
+            return 0
     except requests.exceptions.InvalidURL:
-        print ("Invalid URL: " + serverURL + ".  Do you have the right controller hostname?")
-        return None
+        print ("Invalid URL: " + serverURL + ". Do you have the right controller hostname?")
+        return 0
 
     if response.status_code != 200:
         print "Something went wrong on HTTP request. Status:", response.status_code
@@ -66,13 +77,13 @@ def fetch_policies(serverURL,app_ID,userName=None,password=None,token=None,loadD
             file1 = open("response.txt","w") 
             file1.write(response.content)
             file1.close() 
-        return None
+        return 0
 
     try:
         policies = json.loads(response.content)
     except:
         print ("Could not process authentication token for user " + userName + ".  Did you mess up your username/password?")
-        return None
+        return 0
     if loadData:
         for policy in policies:
             if 'DEBUG' in locals(): print ("Fetching policy " + policy['name'] + "...")
@@ -87,19 +98,23 @@ def fetch_policies(serverURL,app_ID,userName=None,password=None,token=None,loadD
                                             headers={"Authorization": "Bearer "+token}, params={"output": "JSON"})
             except requests.exceptions.InvalidURL:
                 print ("Invalid URL: " + serverURL + "/controller/alerting/rest/v1/applications/" + str(app_ID) + "/policies/" + str(policy['id']))
-                return None
+                return 0
             try:
                 policyJSON = json.loads(response.content)
             except:
                 print ("Could not process authentication token for user " + userName + ".  Did you mess up your username/password?")
-                return None
+                continue
             policy = policyJSON
 
     # Add loaded policies to the policy dictionary
     policyDict.update({str(app_ID):policies})
-    if 'DEBUG' in locals(): print (policyDict[str(app_ID)])
 
-    return policies
+    if 'DEBUG' in locals():
+        print "Loaded policies:" + str(len(policyDict))
+        for appID in policyDict:
+            print str(policyDict[appID])
+
+    return len(policies)
 
 def fetch_policies_legacy(serverURL,app_ID,userName,password):
     if 'DEBUG' in locals(): print ("Fetching policies for App " + str(app_ID) + "...")
@@ -318,10 +333,10 @@ def generate_policies_CSV_legacy(app_ID,policies=None,fileName=None):
 
 def get_policies(serverURL,app_ID,userName=None,password=None,token=None):
     if userName and password:
-        if fetch_policies(serverURL,app_ID,userName=userName,password=password) is not None:
+        if fetch_policies(serverURL,app_ID,userName=userName,password=password) > 0:
             generate_policies_CSV(app_ID)
     elif token:
-        if fetch_policies(serverURL,app_ID,token=token) is not None:
+        if fetch_policies(serverURL,app_ID,token=token) > 0:
             generate_policies_CSV(app_ID)
 
 def get_policies_legacy(serverURL,app_ID,userName=None,password=None,token=None,fileName=None):

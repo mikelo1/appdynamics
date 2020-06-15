@@ -221,14 +221,15 @@ elif ENTITY.lower() == "healthrules":
     write_health_rules_CSV(options.outFileName)
 elif ENTITY.lower() == "schedules":
     if options.inFileName:
-        export_schedules_CSV(options.outFileName,options.inFileName)
+        # TODO: Something about it
+        print "Feaure not implemented yet"
     elif options.user and options.password and options.hostname and options.application:
         baseUrl = buildBaseURL(options.hostname,options.port,options.SSLEnabled)
         load_applications(baseUrl,options.user,options.password)
         appID=getID(options.application)
         if appID > 0:
             options.application=str(appID)
-        export_schedules_CSV(options.outFileName,baseUrl+"/controller/",options.user,options.password,options.application)
+        get_schedules(baseUrl,userName=options.user,password=options.password,app_ID=options.application,fileName=options.outFileName)
     else:
         optParser.error("Missing arguments")
 elif ENTITY.lower() == "events":
@@ -277,7 +278,7 @@ elif ENTITY.lower() == "policies":
         appID=getID(options.application)
         if appID > 0:
             options.application=str(appID)
-        get_policies_legacy(baseUrl, userName=options.user,password=options.password,app_ID=options.application,fileName=options.outFileName)
+        get_policies_legacy(baseUrl,userName=options.user,password=options.password,app_ID=options.application,fileName=options.outFileName)
     else:
         optParser.error("Missing arguments")
 elif ENTITY.lower() == "actions":
