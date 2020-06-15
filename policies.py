@@ -32,9 +32,9 @@ def to_entityName(entityType):
     return switcher.get(entityType, entityType)
 
 def test_policies(app_ID):
-    policies1=json.loads('{"appID": "'+str(app_ID)+'", "policies": [{"id":1854,"name":"POLICY_SANDBOX","enabled":true,"executeActionsInBatch":true,"frequency":null,"actions":[{"actionName":"gogs@acme.com","actionType":"EMAIL","notes":""}],"events":{"healthRuleEvents":null,"otherEvents":[],"anomalyEvents":["ANOMALY_OPEN_CRITICAL"],"customEvents":[]},"selectedEntities":{"selectedEntityType":"ANY_ENTITY"}}]}')
-    policies2=json.loads('{"appID": "'+str(app_ID+1)+'", "policies": [{"id":1855,"name":"POLICY_SANDBOX","enabled":true,"executeActionsInBatch":true,"frequency":null,"actions":[{"actionName":"gogs@acme.com","actionType":"EMAIL","notes":""}],"events":{"healthRuleEvents":null,"otherEvents":[],"anomalyEvents":["ANOMALY_OPEN_CRITICAL"],"customEvents":[]},"selectedEntities":{"selectedEntityType":"ANY_ENTITY"}}]}')
-    #policies3=json.loads('{"appID": "'+str(app_ID+1)+'", "policies": [{"id":1856,"name":"POLICY_SANDBOX","enabled":true,"executeActionsInBatch":true,"frequency":null,"actions":[{"actionName":"gogs@acme.com","actionType":"EMAIL","notes":""}],"events":{"healthRuleEvents":null,"otherEvents":[],"anomalyEvents":["ANOMALY_OPEN_CRITICAL"],"customEvents":[]},"selectedEntities":{"selectedEntityType":"ANY_ENTITY"}}]}')
+    policies1=json.loads('[{"id":1854,"name":"POLICY_SANDBOX","enabled":true,"executeActionsInBatch":true,"frequency":null,"actions":[{"actionName":"gogs@acme.com","actionType":"EMAIL","notes":""}],"events":{"healthRuleEvents":null,"otherEvents":[],"anomalyEvents":["ANOMALY_OPEN_CRITICAL"],"customEvents":[]},"selectedEntities":{"selectedEntityType":"ANY_ENTITY"}]')
+    policies2=json.loads('[{"id":1855,"name":"POLICY_SANDBOX","enabled":true,"executeActionsInBatch":true,"frequency":null,"actions":[{"actionName":"gogs@acme.com","actionType":"EMAIL","notes":""}],"events":{"healthRuleEvents":null,"otherEvents":[],"anomalyEvents":["ANOMALY_OPEN_CRITICAL"],"customEvents":[]},"selectedEntities":{"selectedEntityType":"ANY_ENTITY"}]')
+    #policies3=json.loads('[{"id":1856,"name":"POLICY_SANDBOX","enabled":true,"executeActionsInBatch":true,"frequency":null,"actions":[{"actionName":"gogs@acme.com","actionType":"EMAIL","notes":""}],"events":{"healthRuleEvents":null,"otherEvents":[],"anomalyEvents":["ANOMALY_OPEN_CRITICAL"],"customEvents":[]},"selectedEntities":{"selectedEntityType":"ANY_ENTITY"}]')
     policyDict.update({str(app_ID):policies1})
     policyDict.update({str(app_ID+1):policies2})
 #    policyDict.update({str(app_ID+1):policies3})
@@ -85,6 +85,7 @@ def fetch_policies(serverURL,app_ID,userName=None,password=None,token=None,loadD
         print ("Could not process authentication token for user " + userName + ".  Did you mess up your username/password?")
         return 0
     if loadData:
+        index = 0
         for policy in policies:
             if 'DEBUG' in locals(): print ("Fetching policy " + policy['name'] + "...")
             try:
@@ -104,7 +105,8 @@ def fetch_policies(serverURL,app_ID,userName=None,password=None,token=None,loadD
             except:
                 print ("Could not process authentication token for user " + userName + ".  Did you mess up your username/password?")
                 continue
-            policy = policyJSON
+            policies[index] = policyJSON
+            index = index + 1
 
     # Add loaded policies to the policy dictionary
     policyDict.update({str(app_ID):policies})

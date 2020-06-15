@@ -60,16 +60,16 @@ class ScheduleConfiguration:
         return "({0},{1},{2},{3},{4},{5})".format(self.frequency,self.startTime,self.endTime,self.startCron,self.endCron,self.startDate,self.endDate,self.occurrenc,self.day,self.days)
 
 
-def test_policies(app_ID):
-    policies1=json.loads('{"appID": "'+str(app_ID)+'", "policies": [{"id":1854,"name":"POLICY_SANDBOX","enabled":true,"executeActionsInBatch":true,"frequency":null,"actions":[{"actionName":"gogs@acme.com","actionType":"EMAIL","notes":""}],"events":{"healthRuleEvents":null,"otherEvents":[],"anomalyEvents":["ANOMALY_OPEN_CRITICAL"],"customEvents":[]},"selectedEntities":{"selectedEntityType":"ANY_ENTITY"}}]}')
-    policies2=json.loads('{"appID": "'+str(app_ID+1)+'", "policies": [{"id":1855,"name":"POLICY_SANDBOX","enabled":true,"executeActionsInBatch":true,"frequency":null,"actions":[{"actionName":"gogs@acme.com","actionType":"EMAIL","notes":""}],"events":{"healthRuleEvents":null,"otherEvents":[],"anomalyEvents":["ANOMALY_OPEN_CRITICAL"],"customEvents":[]},"selectedEntities":{"selectedEntityType":"ANY_ENTITY"}}]}')
-    #policies3=json.loads('{"appID": "'+str(app_ID+1)+'", "policies": [{"id":1856,"name":"POLICY_SANDBOX","enabled":true,"executeActionsInBatch":true,"frequency":null,"actions":[{"actionName":"gogs@acme.com","actionType":"EMAIL","notes":""}],"events":{"healthRuleEvents":null,"otherEvents":[],"anomalyEvents":["ANOMALY_OPEN_CRITICAL"],"customEvents":[]},"selectedEntities":{"selectedEntityType":"ANY_ENTITY"}}]}')
-    policyDict.update({str(app_ID):policies1})
-    policyDict.update({str(app_ID+1):policies2})
-#    policyDict.update({str(app_ID+1):policies3})
-    print "Number of entries: " + str(len(policyDict))
-    if str(app_ID) in policyDict:
-        print (policyDict[str(app_ID)])
+def test_schedules(app_ID):
+    schedules1=json.loads('[{"timezone":"Europe/Brussels","description":"This schedule is active Monday through Friday, during business hours","id":30201,"scheduleConfiguration":{"scheduleFrequency":"WEEKLY","endTime":"17:00","days":["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY"],"startTime":"08:00"},"name":"Weekdays:8am-5pm,Mon-Fri"}]')
+    schedules2=json.loads('[{"timezone":"Europe/Brussels","description":"This schedule is active Monday through Friday, during business hours","id":30201,"scheduleConfiguration":{"scheduleFrequency":"WEEKLY","endTime":"17:00","days":["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY"],"startTime":"08:00"},"name":"Weekdays:8am-5pm,Mon-Fri"}]')
+    # Add loaded schedules to the schedule dictionary
+    scheduleDict.update({str(app_ID):schedules1})
+    scheduleDict.update({str(app_ID+1):schedules2})
+    if 'DEBUG' in locals():
+        print "Number of entries: " + str(len(scheduleDict))
+        if str(app_ID) in scheduleDict:
+            print (scheduleDict[str(app_ID)])
 
 ###
  # Fetch application schedules from a controller then add them to the policies dictionary. Provide either an username/password or an access token.
@@ -81,7 +81,7 @@ def test_policies(app_ID):
  # @return the number of fetched schedules. Zero if no schedule was found.
 ###
 def fetch_schedules(serverURL,app_ID,userName=None,password=None,token=None,loadData=False):
-    if 'DEBUG' in locals(): print ("Fetching schedules for App " + app_ID + "...")
+    if 'DEBUG' in locals(): print ("Fetching schedules for App " + str(app_ID) + "...")
     try:
         # Retrieve a List of Schedules for a Given Application
         # GET <controller_url>/controller/alerting/rest/v1/applications/<application_id>/schedules
@@ -115,6 +115,7 @@ def fetch_schedules(serverURL,app_ID,userName=None,password=None,token=None,load
         return 0
 
     if loadData:
+        index = 0
         for schedule in schedules:
             if 'DEBUG' in locals(): print ("Fetching schedule "+str(schedule['id'])+" for App " + str(app_ID) + "...")
             try:
@@ -135,7 +136,8 @@ def fetch_schedules(serverURL,app_ID,userName=None,password=None,token=None,load
             except:
                 print ("Could not process authentication token for user " + userName + ". Did you mess up your username/password?")
                 continue
-            schedule = scheduleJSON
+            schedules[index] = scheduleJSON
+            index = index + 1
     
     # Add loaded schedules to the schedule dictionary
     scheduleDict.update({str(app_ID):schedules})
@@ -323,7 +325,7 @@ def get_schedules(serverURL,app_ID,userName=None,password=None,token=None):
         if fetch_schedules(serverURL,app_ID,token=token) > 0:
             generate_schedules_CSV(app_ID)
 
-def update_schedules(serverURL,app_ID,source,userName=None,password=None,token=None):
+def update_schedules(serverURL,app_ID,source,userName=None,password=None,token=None,loadData=True):
     # Verify if the source is a file or stream JSON data
     try:
         changesJSON = json.loads(source)

@@ -306,7 +306,7 @@ def get_application_list():
 def getID(appName):
     for appID in applicationDict:
         if applicationDict[appID]['name'] == appName:
-            return appID
+            return applicationDict[appID]['id']
     # Request for provided application, although is not in the loaded application list
     server = get_current_context_server()
     username = get_current_context_user()
