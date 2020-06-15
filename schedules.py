@@ -280,35 +280,35 @@ def generate_schedules_CSV(app_ID,schedules=None,fileName=None):
     filewriter.writeheader()
 
     for schedule in schedules:
+        if 'scheduleConfiguration' in schedule:
+            scheduleConfig = schedule['scheduleConfiguration']
 
-        scheduleConfig = schedule['scheduleConfiguration']
+            if 'startCron' in scheduleConfig:
+                start=scheduleConfig['startCron']
+            elif 'startDate' in scheduleConfig:
+                start=scheduleConfig['startDate']+" "+scheduleConfig['startTime']
+            elif 'occurrence' in scheduleConfig:
+                start=scheduleConfig['occurrence']+" "+scheduleConfig['day']+" "+scheduleConfig['startTime']
+            elif 'startTime' in scheduleConfig:
+                start=scheduleConfig['startTime']
 
-        if scheduleConfig and 'startCron' in scheduleConfig:
-            start=scheduleConfig['startCron']
-        elif scheduleConfig and 'startDate' in scheduleConfig:
-            start=scheduleConfig['startDate']+" "+scheduleConfig['startTime']
-        elif scheduleConfig and 'occurrence' in scheduleConfig:
-            start=scheduleConfig['occurrence']+" "+scheduleConfig['day']+" "+scheduleConfig['startTime']
-        elif scheduleConfig and 'startTime' in scheduleConfig:
-            start=scheduleConfig['startTime']
-
-        if scheduleConfig and 'endCron' in scheduleConfig:
-            end=scheduleConfig['endCron']
-        elif scheduleConfig and 'endDate' in scheduleConfig:
-            end=scheduleConfig['endDate']+" "+scheduleConfig['endTime']
-        elif scheduleConfig and 'occurrence' in scheduleConfig:
-            end=scheduleConfig['occurrence']+" "+scheduleConfig['day']+" "+scheduleConfig['endTime']
-        elif scheduleConfig and 'endTime' in scheduleConfig:
-            end=scheduleConfig['endTime']
+            if 'endCron' in scheduleConfig:
+                end=scheduleConfig['endCron']
+            elif 'endDate' in scheduleConfig:
+                end=scheduleConfig['endDate']+" "+scheduleConfig['endTime']
+            elif 'occurrence' in scheduleConfig:
+                end=scheduleConfig['occurrence']+" "+scheduleConfig['day']+" "+scheduleConfig['endTime']
+            elif 'endTime' in scheduleConfig:
+                end=scheduleConfig['endTime']
 
         try:
             filewriter.writerow({'Name': schedule['name'],
                                  'Application': str(app_ID),
                                  'Description': schedule['description'],
                                  'Timezone': schedule['timezone'],
-                                 'Frequency': scheduleConfig['scheduleFrequency'] if scheduleConfig else "",
-                                 'Start': start if scheduleConfig else "",
-                                 'End':  end if scheduleConfig else "" })
+                                 'Frequency': scheduleConfig['scheduleFrequency'] if 'scheduleConfig' in locals() else "",
+                                 'Start': start if 'start' in locals() else "",
+                                 'End':  end if 'end' in locals() else "" })
         except:
             print ("Could not write to the output.")
             if fileName is not None: csvfile.close()
