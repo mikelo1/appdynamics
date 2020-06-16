@@ -1,0 +1,12 @@
+Kind: Config
+contexts:
+- context:
+    server: https://evobanco-dev.saas.appdynamics.com:443
+    user: EvoAPIClient@evobanco-dev/evobanco-dev.saas.appdynamics.com:443
+  name: evobanco-dev.saas.appdynamics.com:443/EvoAPIClient@evobanco-dev
+current-context: evobanco-dev.saas.appdynamics.com:443/EvoAPIClient@evobanco-dev
+users:
+- name: EvoAPIClient@evobanco-dev/evobanco-dev.saas.appdynamics.com:443
+  user:
+    expire: 2020-06-16 16:58:18.725977
+    token: eyJraWQiOiJlZGJlNTA5ZS1iZDRkLTRiYTktYTU4OC1lNzYxODI3YTg3MzAiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJBcHBEeW5hbWljcyIsImF1ZCI6IkFwcERfQVBJcyIsImp0aSI6IjQ0dF9KMHJnNjg2eVpxWGExWnlIckEiLCJzdWIiOiJFdm9BUElDbGllbnQiLCJpZFR5cGUiOiJBUElfQ0xJRU5UIiwiaWQiOiI1ZTgxOWNiMy1mZjEyLTQ1ZmYtYmU2Yi02NjNjZWI0N2NlMTgiLCJhY2N0SWQiOiJlZGJlNTA5ZS1iZDRkLTRiYTktYTU4OC1lNzYxODI3YTg3MzAiLCJ0bnRJZCI6ImVkYmU1MDllLWJkNGQtNGJhOS1hNTg4LWU3NjE4MjdhODczMCIsImFjY3ROYW1lIjoiZXZvYmFuY28tZGV2IiwidGVuYW50TmFtZSI6IiIsImZtbVRudElkIjpudWxsLCJhY2N0UGVybSI6W10sImlhdCI6MTU5MjMxOTE5OCwibmJmIjoxNTkyMzE5MDc4LCJleHAiOjE1OTIzMTk0OTgsInRva2VuVHlwZSI6IkFDQ0VTUyJ9.XpUeEh7ZfZBWgIfmPpTt3iCU8b3n5cUlj31P8Clpc5w
