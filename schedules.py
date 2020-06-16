@@ -362,6 +362,10 @@ def patch_schedules(serverURL,app_ID,source,userName=None,password=None,token=No
         if 'timezone' in changesJSON:
             schedule['timezone'] = changesJSON['timezone']
             schedID = schedule['id']
+        ### TODO: patch for one specific scheduleID (name|description|scheduleConfiguration)
+        if 'name' in changesJSON: print "schedule name patching not implemented yet"
+        if 'description' in changesJSON: print "schedule description patching not implemented yet"
+        if 'scheduleConfiguration' in changesJSON: print "schedule configuration patching not implemented yet"
         # Update controller data
         if schedID > 0 and serverURL != "dummyserver":
             update_schedule(serverURL,app_ID,schedID,userName,password,token)
