@@ -19,4 +19,6 @@ done
 
 #./appdctl.py get applications
 #./appdctl.py get policies -a hipoteca-portal
-#./appdctl.py get policies -a hipoteca-portal,FullOnline
+#./appdctl.py get policies -a FullOnline,hipoteca-api-aks,hipoteca-portal
+#./appdctl.py get schedules -a FullOnline,hipoteca-api-aks,hipoteca-portal
+#./appdctl.py patch schedules -a sandbox -p '{"timezone":"Europe\/Brussels"}'

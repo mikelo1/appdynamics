@@ -60,7 +60,7 @@ class ScheduleConfiguration:
         return "({0},{1},{2},{3},{4},{5})".format(self.frequency,self.startTime,self.endTime,self.startCron,self.endCron,self.startDate,self.endDate,self.occurrenc,self.day,self.days)
 
 
-def test_schedules(app_ID):
+def build_test_schedules(app_ID):
     schedules1=json.loads('[{"timezone":"Europe/Brussels","description":"This schedule is active Monday through Friday, during business hours","id":30201,"scheduleConfiguration":{"scheduleFrequency":"WEEKLY","endTime":"17:00","days":["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY"],"startTime":"08:00"},"name":"Weekdays:8am-5pm,Mon-Fri"}]')
     schedules2=json.loads('[{"timezone":"Europe/Brussels","description":"This schedule is active Monday through Friday, during business hours","id":30201,"scheduleConfiguration":{"scheduleFrequency":"WEEKLY","endTime":"17:00","days":["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY"],"startTime":"08:00"},"name":"Weekdays:8am-5pm,Mon-Fri"}]')
     # Add loaded schedules to the schedule dictionary
@@ -160,10 +160,10 @@ def fetch_schedules(serverURL,app_ID,userName=None,password=None,token=None,load
  # @return True if the update was successful. False if no schedule was updated.
 ###
 def update_schedule(serverURL,app_ID,sched_ID,userName=None,password=None,token=None):
-    for schedule in scheduleDict[app_ID]:
+    for schedule in scheduleDict[str(app_ID)]:
         if schedule['id'] == sched_ID: break
     if schedule['id'] != sched_ID:
-        print "No schedule " + sched_ID + " was found in application " + app_ID
+        print "No schedule " + str(sched_ID) + " was found in application " + str(app_ID)
         return None
     # Updates an existing schedule with a specified JSON payload
     # PUT <controller_url>/controller/alerting/rest/v1/applications/<application_id>/schedules/{schedule-id}
@@ -318,36 +318,52 @@ def generate_schedules_CSV(app_ID,schedules=None,fileName=None):
     if fileName is not None: csvfile.close()
 
 def get_schedules(serverURL,app_ID,userName=None,password=None,token=None):
-    if userName and password:
-        if fetch_schedules(serverURL,app_ID,userName=userName,password=password) > 0:
-            generate_schedules_CSV(app_ID)
+    if serverURL == "dummyserver":
+        build_test_schedules(app_ID)
+    elif userName and password:
+        if fetch_schedules(serverURL,app_ID,userName=userName,password=password) == 0:
+            print "get_schedules: Failed to retrieve schedules for application " + str(app_ID)
+            return None
     elif token:
-        if fetch_schedules(serverURL,app_ID,token=token) > 0:
-            generate_schedules_CSV(app_ID)
+        if fetch_schedules(serverURL,app_ID,token=token) == 0:
+            print "get_schedules: Failed to retrieve schedules for application " + str(app_ID)
+            return None
+    generate_schedules_CSV(app_ID)
 
-def update_schedules(serverURL,app_ID,source,userName=None,password=None,token=None,loadData=True):
+def patch_schedules(serverURL,app_ID,source,userName=None,password=None,token=None):
     # Verify if the source is a file or stream JSON data
     try:
+        # Load data from stream
         changesJSON = json.loads(source)
     except:
         try:
-            f = open(source)
-            f.close()
+            # Load data from file
+            json_file = open(source)
+            changesJSON = json.load(json_file)
+            json_file.close()
         except IOError:
             print("Could not process source data.")
             return None
 
-    # Load data for the application
-    if fetch_schedules(serverURL,app_ID,userName,password,token,loadData=True) == 0:
-        print "update_schedules: Failed to retrieve schedules for application " + str(app_ID)
-        return None
-    if 'changesJSON' in locals():
-        # Do the replacement locally and then update controller data
-        for schedule in scheduleDict[str(app_ID)]:
-            if 'timezone' in changesJSON:
-                schedule['timezone'] = changesJSON['timezone']
-                update_schedule(serverURL,app_ID,schedule['id'],userName,password,token)
-    else:
-        # Load schedule data for the application and then update controller data
-        schedID = load_schedule_JSON(source,app_ID)
-        if schedID > 0: update_schedule(serverURL,app_ID,schedID,userName,password,token)
+    # Load schedules data for provided application
+    if serverURL == "dummyserver":
+        build_test_schedules(app_ID)
+    elif userName and password:
+        if fetch_schedules(serverURL,app_ID,userName=userName,password=password,loadData=True) == 0:
+            print "update_schedules: Failed to retrieve schedules for application " + str(app_ID)
+            return None
+    elif token:
+        if fetch_schedules(serverURL,app_ID,token=token,loadData=True) == 0:
+            print "update_schedules: Failed to retrieve schedules for application " + str(app_ID)
+            return None
+
+    for schedule in scheduleDict[str(app_ID)]:
+        # Do the replacement in loaded data
+        if 'timezone' in changesJSON:
+            schedule['timezone'] = changesJSON['timezone']
+            schedID = schedule['id']
+        # Update controller data
+        if schedID > 0 and serverURL != "dummyserver":
+            update_schedule(serverURL,app_ID,schedID,userName,password,token)
+        elif schedID > 0:
+            generate_schedules_CSV(app_ID)

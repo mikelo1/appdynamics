@@ -31,7 +31,7 @@ def to_entityName(entityType):
     }
     return switcher.get(entityType, entityType)
 
-def test_policies(app_ID):
+def build_test_policies(app_ID):
     policies1=json.loads('[{"id":1854,"name":"POLICY_SANDBOX","enabled":true,"executeActionsInBatch":true,"frequency":null,"actions":[{"actionName":"gogs@acme.com","actionType":"EMAIL","notes":""}],"events":{"healthRuleEvents":null,"otherEvents":[],"anomalyEvents":["ANOMALY_OPEN_CRITICAL"],"customEvents":[]},"selectedEntities":{"selectedEntityType":"ANY_ENTITY"}]')
     policies2=json.loads('[{"id":1855,"name":"POLICY_SANDBOX","enabled":true,"executeActionsInBatch":true,"frequency":null,"actions":[{"actionName":"gogs@acme.com","actionType":"EMAIL","notes":""}],"events":{"healthRuleEvents":null,"otherEvents":[],"anomalyEvents":["ANOMALY_OPEN_CRITICAL"],"customEvents":[]},"selectedEntities":{"selectedEntityType":"ANY_ENTITY"}]')
     #policies3=json.loads('[{"id":1856,"name":"POLICY_SANDBOX","enabled":true,"executeActionsInBatch":true,"frequency":null,"actions":[{"actionName":"gogs@acme.com","actionType":"EMAIL","notes":""}],"events":{"healthRuleEvents":null,"otherEvents":[],"anomalyEvents":["ANOMALY_OPEN_CRITICAL"],"customEvents":[]},"selectedEntities":{"selectedEntityType":"ANY_ENTITY"}]')
@@ -334,12 +334,17 @@ def generate_policies_CSV_legacy(app_ID,policies=None,fileName=None):
     csvfile.close()
 
 def get_policies(serverURL,app_ID,userName=None,password=None,token=None):
-    if userName and password:
-        if fetch_policies(serverURL,app_ID,userName=userName,password=password) > 0:
-            generate_policies_CSV(app_ID)
+    if serverURL == "dummyserver":
+        build_test_policies(app_ID)
+    elif userName and password:
+        if fetch_policies(serverURL,app_ID,userName=userName,password=password) == 0:
+            print "get_policies: Failed to retrieve policies for application " + str(app_ID)
+            return None
     elif token:
-        if fetch_policies(serverURL,app_ID,token=token) > 0:
-            generate_policies_CSV(app_ID)
+        if fetch_policies(serverURL,app_ID,token=token) == 0:
+            print "get_policies: Failed to retrieve policies for application " + str(app_ID)
+            return None
+    generate_policies_CSV(app_ID)
 
 def get_policies_legacy(serverURL,app_ID,userName=None,password=None,token=None,fileName=None):
     if userName and password:
