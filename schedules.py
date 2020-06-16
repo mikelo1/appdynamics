@@ -345,6 +345,14 @@ def patch_schedules(serverURL,app_ID,source,userName=None,password=None,token=No
             print("Could not process source data.")
             return None
 
+    ### TODO: patch for one specific scheduleID (name|description|scheduleConfiguration)
+    if 'name' in changesJSON or 'description' in changesJSON or 'scheduleConfiguration' in changesJSON:
+        print "Warn: schedule (name|description|scheduleConfiguration) patching not implemented yet."
+
+    if 'timezone' not in changesJSON:
+        print "Nothing to be changed."
+        return
+
     # Load schedules data for provided application
     if serverURL == "dummyserver":
         build_test_schedules(app_ID)
@@ -361,13 +369,8 @@ def patch_schedules(serverURL,app_ID,source,userName=None,password=None,token=No
         # Do the replacement in loaded data
         if 'timezone' in changesJSON:
             schedule['timezone'] = changesJSON['timezone']
-            schedID = schedule['id']
-        ### TODO: patch for one specific scheduleID (name|description|scheduleConfiguration)
-        if 'name' in changesJSON: print "schedule name patching not implemented yet"
-        if 'description' in changesJSON: print "schedule description patching not implemented yet"
-        if 'scheduleConfiguration' in changesJSON: print "schedule configuration patching not implemented yet"
         # Update controller data
-        if schedID > 0 and serverURL != "dummyserver":
-            update_schedule(serverURL,app_ID,schedID,userName,password,token)
-        elif schedID > 0:
+        if serverURL != "dummyserver":
+            update_schedule(serverURL,app_ID,schedule['id'],userName,password,token)
+        else:
             generate_schedules_CSV(app_ID)
