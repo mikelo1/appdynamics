@@ -3,7 +3,8 @@ import requests
 import json
 import csv
 import sys
-from appdconfig import get_access_token, get_current_context_server, get_current_context_user
+from appdconfig import get_current_context_serverURL, get_current_context_username
+from appdRESTfulAPI import get_access_token
 
 applicationDict = dict()
 
@@ -293,8 +294,8 @@ def load_applications(serverURL,userName=None,password=None,token=None,includeNo
 def get_application_list():
     if len(applicationDict) == 0:
         # Request for applications data
-        server = get_current_context_server()
-        username = get_current_context_user()
+        server = get_current_context_serverURL()
+        username = get_current_context_username()
         token=get_access_token(server,username)
         if token is None: return -1
         if fetch_applications(server,token=token) == 0: return -1
@@ -308,8 +309,8 @@ def getID(appName):
         if applicationDict[appID]['name'] == appName:
             return applicationDict[appID]['id']
     # Request for provided application, although is not in the loaded application list
-    server = get_current_context_server()
-    username = get_current_context_user()
+    server = get_current_context_serverURL()
+    username = get_current_context_username()
     token=get_access_token(server,username)
     if token is None: return -1
     return fetch_application(server,appName,token=token)
@@ -318,8 +319,8 @@ def getName(appID):
     if appID in applicationDict:
         return applicationDict[appID]['name']
     # Request for provided application, although is not in the loaded application list
-    server = get_current_context_server()
-    username = get_current_context_user()
+    server = get_current_context_serverURL()
+    username = get_current_context_username()
     token=get_access_token(server,username)
     if token is None: return -1
     return fetch_application(server,appID,token=token)

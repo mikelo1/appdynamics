@@ -1,84 +1,98 @@
-#/bin/bash
+#!/usr/bin/python
+import requests
+import json
+from getpass import getpass
+from appdconfig import get_current_context_serverURL, get_current_context_username, get_current_context_token, create_or_select_user, set_new_token
 
-###########################################
-### Read credentials from YAML file     ###
-###########################################
-### Script will read from a YAML file   ###
-### with the following format:          ###
-### ----------------------------------- ###
-### <environment>:                      ###
-###     secret:                         ###
-###         username: <user>@<account>  ###
-###         password: <password>        ###
-###         apiclient: <apiClient_name> ###
-###         apisecret: <client_secret>  ###
-###         url: <base_controller_url>  ###
-###########################################
 
-if [ $# -ne 3 ]; then 
-    echo "Syntax: $0 <credentials_yaml_file> <environment> <application>"
-	exit
-fi
+###
+ # Fetch access token from a controller. Provide an username/password.
+ # @param serverURL Full hostname of the Appdynamics controller. i.e.: https://demo1.appdynamics.com:443
+ # @param userName Full username, including account. i.e.: myuser@customer1
+ # @param password password for the specified user and host. i.e.: mypassword
+ # @return the access token string. Null if there was a problem getting the access token.
+###
+def fetch_access_token(serverURL,API_username,API_password):
+    if 'DEBUG' in locals(): print ("Fetching access token for controller " + serverURL + "...")
+    # https://docs.appdynamics.com/display/PRO45/API+Clients#APIClients-using-the-access-token
+    response = requests.post(serverURL + "/controller/api/oauth/access_token",
+                                auth=(API_username, API_password),
+                                headers={"Content-Type": "application/vnd.appd.cntrl+protobuf", "v":"1"},
+                                data={"grant_type": "client_credentials", "client_id": API_username, "client_secret": API_password})
+    if response.status_code > 399:
+        if 'DEBUG' in locals():
+            print "Something went wrong on HTTP request:"
+            print "   status:", response.status_code
+            print "   header:", response.headers
+            print "   content:", response.content
+        return None
+    token_data = json.loads(response.content)
+    return token_data
 
-CRED_FILE=$1
-ENVIRONMENT=$2
-APPLICATION=$3
+###
+ # Fetch RESTful Path from a controller. Either provide an username/password or gets an access token automatically.
+ # @param RESTfulPath RESTful path to retrieve data
+ # @param userName Full username, including account. i.e.: myuser@customer1
+ # @param password password for the specified user and host. i.e.: mypassword
+ # @return the response JSON data. Null if no JSON data was received.
+###
+def fetch_RESTful_JSON(RESTfulPath,userName=None,password=None):
+    if 'DEBUG' in locals(): print ("Fetching JSON for RESTful path " + RESTfulPath + "...")
+    try:
+        if userName and password:
+            response = requests.get(serverURL + "/controller/alerting/rest/v1/applications/" + str(app_ID) + "/schedules",
+                                    auth=(userName, password), params={"output": "JSON"})
+        else:
+        	token = get_access_token()
+        	response = requests.get(serverURL + RESTfulPath,
+                                headers={"Authorization": "Bearer "+token}, params={"output": "JSON"})
+    except requests.exceptions.InvalidURL:
+        print ("Invalid URL: " + serverURL + RESTfulPath + ". Do you have the right controller hostname and RESTful path?")
+        return None
 
-USER=`grep $ENVIRONMENT -A6 $CRED_FILE | grep username | awk -F: '{print $2}' | sed 's/\s//g'`
-PASS=`grep $ENVIRONMENT -A6 $CRED_FILE | grep password | awk -F: '{print $2}' | sed 's/\s//g'`
-APICLIENT=`grep $ENVIRONMENT -A6 $CRED_FILE | grep apiclient | awk -F: '{print $2}' | sed 's/\s//g'`
-APISECRET=`grep $ENVIRONMENT -A6 $CRED_FILE | grep apisecret | awk -F: '{print $2}' | sed 's/\s//g'`
-HOST=`grep $ENVIRONMENT -A6 $CRED_FILE | grep url | awk -F: '{print $3}' | sed 's/\///g'`
+    if response.status_code != 200:
+        print "Something went wrong on HTTP request. Status:", response.status_code
+        if 'DEBUG' in locals():
+            print "   header:", response.headers
+            print "Writing content to file: response.txt"
+            file1 = open("response.txt","w") 
+            file1.write(response.content)
+            file1.close() 
+        return None
 
-# Absolute path to this script, e.g. /home/user/bin/foo.sh
-SCRIPT=$(readlink -f "$0")
-# Absolute path this script is in, thus /home/user/bin
-SCRIPTPATH=$(dirname "$SCRIPT")
+    try:
+        responseJSON = json.loads(response.content)
+    except:
+        print ("Could not process JSON content")
+        return None
+    return responseJSON
 
-### Required packages: python python-requests python-libxml2
+###
+ # Get access token from a controller. If no credentials provided it will try to get them from config file.
+ # @param serverURL Full hostname of the Appdynamics controller. i.e.: https://demo1.appdynamics.com:443
+ # @param userName Full username, including account. i.e.: myuser@customer1
+ # @param password password for the specified user and host. i.e.: mypassword
+ # @return the access token string. Null if there was a problem getting the access token.
+###
+def get_access_token(serverURL=None,API_Client=None,Client_Secret=None):
+    if serverURL is None or API_Client is None:
+        # If controller was not provided, try to find in the configuration file
+        serverURL  = get_current_context_serverURL()
+        API_Client = get_current_context_username()
+        if serverURL is None or API_Client is None:
+            print "Cannot get context data. Did you login to any controller machine?"
+            return None
 
-if [ ! -d $ENVIRONMENT/$APPLICATION ]; then mkdir -p $ENVIRONMENT/$APPLICATION; fi
-
-for ENTITY in healthrules schedules actions policies; do
-#	if [ -f $APPLICATION/$FILE ]; then
-#		echo "Converting file $FILE to CSV..."
-#		$SCRIPTPATH/exportCSV.py $ENTITY -i $APPLICATION/$FILE -o $APPLICATION/$ENTITY.csv
-#	else
-	echo "Fetch $ENTITY data and translating to CSV..."
-	$SCRIPTPATH/exportCSV.py $ENTITY -s -P 443 -o $ENVIRONMENT/$APPLICATION/$ENTITY.csv -H ${HOST} -u ${USER} -p ${PASS} -a ${APPLICATION}
-#	fi
-done
-
-for ENTITY in business-transactions backends; do
-#	if [ -f $APPLICATION/$FILE ]; then
-#		echo "Converting file $FILE to CSV..."
-#		$SCRIPTPATH/exportCSV.py $ENTITY -i $APPLICATION/$FILE -o $APPLICATION/$ENTITY.csv
-#	else
-	echo "Fetch $ENTITY data and translating to CSV..."
-	$SCRIPTPATH/exportCSV.py $ENTITY -s -P 443 -o $ENVIRONMENT/$APPLICATION/$ENTITY.csv -H ${HOST} -u ${USER} -p ${PASS} -a ${APPLICATION}
-#	fi
-done
-
-for FILE in transactiondetection-auto transactiondetection-custom; do
-	ENTITY=`echo $FILE | awk -F[.-] '{print $1}'`
-	TYPE=`echo $FILE | awk -F[.-] '{print $2}'`
-#	if [ -f $APPLICATION/$FILE ]; then
-#		echo "Converting file $FILE to CSV..."
-#		$SCRIPTPATH/exportCSV.py $ENTITY -i $APPLICATION/$FILE -o $APPLICATION/$ENTITY-$TYPE.csv
-#	else
-	echo "Fetch $ENTITY data and translating to CSV..."
-	$SCRIPTPATH/exportCSV.py $ENTITY -s -P 443 -o $ENVIRONMENT/$APPLICATION/$ENTITY.csv -H ${HOST} -u ${USER} -p ${PASS} -a ${APPLICATION}
-#	fi
-done
-
-ALLOTHERTRAFFIC_LIST=$(curl -s --user $USER:$PASS "https://$HOST/controller/rest/applications/$APP_ID/business-transactions?output=JSON" | grep "_APPDYNAMICS_DEFAULT_TX_" -A2 | grep "id" | awk -F[:,] '{print $2}')
-for BT_ID in ${ALLOTHERTRAFFIC_LIST}; do
-	FILE=allothertraffic-${BT_ID}.json
-#	if [ -f $APPLICATION/$FILE ]; then
-#		echo "Converting file $FILE to CSV..."
-#		$SCRIPTPATH/exportCSV.py allothertraffic -i $APPLICATION/$FILE -o $APPLICATION/allothertraffic-${BT_ID}.csv
-#	else
-	echo "Fetch ALLOTHERTRAFFIC data and translating to CSV..."
-	$SCRIPTPATH/exportCSV.py allothertraffic -s -P 443 -o $ENVIRONMENT/$APPLICATION/$FILE.csv -H ${HOST} -u ${USER} -p ${PASS} -a ${APPLICATION} -t 1day
-#	fi
-done
+    create_or_select_user(serverURL,API_Client)
+    token = get_current_context_token()
+    if token is None:
+        if Client_Secret is None:
+            print "Authentication required for " + serverURL
+            Client_Secret = getpass(prompt='Password: ')    	
+        token_data = fetch_access_token(serverURL,API_Client,Client_Secret)
+        if token_data is None:
+            print "Authentication failed. Did you mistype the password?"
+            return None
+        set_new_token(API_Client,token_data['access_token'],token_data['expires_in'])
+        token = token_data['access_token']
+    return token
