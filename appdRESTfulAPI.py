@@ -38,17 +38,22 @@ def fetch_access_token(serverURL,API_username,API_password):
 ###
 def fetch_RESTful_JSON(RESTfulPath,userName=None,password=None):
     if 'DEBUG' in locals(): print ("Fetching JSON for RESTful path " + RESTfulPath + "...")
-    try:
-        if userName and password:
+    if userName and password:
+        try:
             response = requests.get(serverURL + "/controller/alerting/rest/v1/applications/" + str(app_ID) + "/schedules",
                                     auth=(userName, password), params={"output": "JSON"})
-        else:
-        	token = get_access_token()
+        except requests.exceptions.InvalidURL:
+            print ("Invalid URL: " + serverURL + RESTfulPath + ". Do you have the right controller hostname and RESTful path?")
+            return None
+    else:
+    	token = get_access_token()
+        if token is None: return None
+        try:
         	response = requests.get(serverURL + RESTfulPath,
                                 headers={"Authorization": "Bearer "+token}, params={"output": "JSON"})
-    except requests.exceptions.InvalidURL:
-        print ("Invalid URL: " + serverURL + RESTfulPath + ". Do you have the right controller hostname and RESTful path?")
-        return None
+        except requests.exceptions.InvalidURL:
+            print ("Invalid URL: " + serverURL + RESTfulPath + ". Do you have the right controller hostname and RESTful path?")
+            return None
 
     if response.status_code != 200:
         print "Something went wrong on HTTP request. Status:", response.status_code
