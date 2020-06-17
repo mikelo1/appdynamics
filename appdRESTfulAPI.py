@@ -38,6 +38,7 @@ def fetch_access_token(serverURL,API_username,API_password):
 ###
 def fetch_RESTful_JSON(RESTfulPath,userName=None,password=None):
     if 'DEBUG' in locals(): print ("Fetching JSON for RESTful path " + RESTfulPath + "...")
+    serverURL = get_current_context_serverURL()
     if userName and password:
         try:
             response = requests.get(serverURL + "/controller/alerting/rest/v1/applications/" + str(app_ID) + "/schedules",

@@ -1,8 +1,8 @@
 #!/usr/bin/python
-import requests
 import json
 import csv
 import sys
+from appdRESTfulAPI import fetch_RESTful_JSON
 
 policyDict = dict()
 class Policy:
@@ -53,57 +53,31 @@ def build_test_policies(app_ID):
 ###
 def fetch_policies(serverURL,app_ID,userName=None,password=None,token=None,loadData=False):
     if 'DEBUG' in locals(): print ("Fetching policies for App " + str(app_ID) + "...")
-    try:
-        # Retrieve a list of Policies associated with an Application
-        # GET <controller_url>/controller/alerting/rest/v1/applications/<application_id>/policies
-        if userName and password:
-            response = requests.get(serverURL + "/controller/alerting/rest/v1/applications/" + str(app_ID) + "/policies",
-                                    auth=(userName, password), params={"output": "JSON"})
-        elif token:
-            response = requests.get(serverURL + "/controller/alerting/rest/v1/applications/" + str(app_ID) + "/policies",
-                                    headers={"Authorization": "Bearer "+token}, params={"output": "JSON"})
-        else:
-            print "fetch_policies: Incorrect parameters."
-            return 0
-    except requests.exceptions.InvalidURL:
-        print ("Invalid URL: " + serverURL + ". Do you have the right controller hostname?")
-        return 0
+    # Retrieve a list of Policies associated with an Application
+    # GET <controller_url>/controller/alerting/rest/v1/applications/<application_id>/policies
+    restfulPath = "/controller/alerting/rest/v1/applications/" + str(app_ID) + "/policies"
+    if userName and password:
+        policies = fetch_RESTful_JSON(restfulPath,userName=userName,password=password)
+    else:
+        policies = fetch_RESTful_JSON(restfulPath)
 
-    if response.status_code != 200:
-        print "Something went wrong on HTTP request. Status:", response.status_code
-        if 'DEBUG' in locals():
-            print "   header:", response.headers
-            print "Writing content to file: response.txt"
-            file1 = open("response.txt","w") 
-            file1.write(response.content)
-            file1.close() 
-        return 0
+    if policies is None:
+        print "get_policies: Failed to retrieve policies for application " + str(app_ID)
+        return None
 
-    try:
-        policies = json.loads(response.content)
-    except:
-        print ("Could not process authentication token for user " + userName + ".  Did you mess up your username/password?")
-        return 0
     if loadData:
         index = 0
         for policy in policies:
             if 'DEBUG' in locals(): print ("Fetching policy " + policy['name'] + "...")
-            try:
-                # Retrieve Details of a Specified Policy
-                # GET <controller_url>/controller/alerting/rest/v1/applications/<application_id>/policies/{policy-id}
-                if userName and password:
-                    response = requests.get(serverURL + "/controller/alerting/rest/v1/applications/" + str(app_ID) + "/policies/" + str(policy['id']),
-                                            auth=(userName, password), params={"output": "JSON"})
-                elif token:
-                    response = requests.get(serverURL + "/controller/alerting/rest/v1/applications/" + str(app_ID) + "/policies/" + str(policy['id']),
-                                            headers={"Authorization": "Bearer "+token}, params={"output": "JSON"})
-            except requests.exceptions.InvalidURL:
-                print ("Invalid URL: " + serverURL + "/controller/alerting/rest/v1/applications/" + str(app_ID) + "/policies/" + str(policy['id']))
-                return 0
-            try:
-                policyJSON = json.loads(response.content)
-            except:
-                print ("Could not process authentication token for user " + userName + ".  Did you mess up your username/password?")
+            # Retrieve Details of a Specified Policy
+            # GET <controller_url>/controller/alerting/rest/v1/applications/<application_id>/policies/{policy-id}
+            restfulPath = "/controller/alerting/rest/v1/applications/" + str(app_ID) + "/policies/" + str(policy['id'])
+            if userName and password:
+                policyJSON = fetch_RESTful_JSON(restfulPath,userName=userName,password=password)
+            else:
+                policyJSON = fetch_RESTful_JSON(restfulPath)
+            if policyJSON is None:
+                "get_policies: Failed to retrieve policy " + str(policy['id']) + " for application " + str(app_ID)
                 continue
             policies[index] = policyJSON
             index = index + 1
