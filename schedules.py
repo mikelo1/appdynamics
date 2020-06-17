@@ -1,8 +1,8 @@
 #!/usr/bin/python
-import requests
 import json
 import csv
 import sys
+from appdRESTfulAPI import fetch_RESTful_JSON, update_RESTful_JSON
 
 scheduleDict = dict()
 
@@ -82,59 +82,32 @@ def build_test_schedules(app_ID):
 ###
 def fetch_schedules(serverURL,app_ID,userName=None,password=None,token=None,loadData=False):
     if 'DEBUG' in locals(): print ("Fetching schedules for App " + str(app_ID) + "...")
-    try:
-        # Retrieve a List of Schedules for a Given Application
-        # GET <controller_url>/controller/alerting/rest/v1/applications/<application_id>/schedules
-        if userName and password:
-            response = requests.get(serverURL + "/controller/alerting/rest/v1/applications/" + str(app_ID) + "/schedules",
-                                    auth=(userName, password), params={"output": "JSON"})
-        elif token:
-            response = requests.get(serverURL + "/controller/alerting/rest/v1/applications/" + str(app_ID) + "/schedules",
-                                    headers={"Authorization": "Bearer "+token}, params={"output": "JSON"})
-        else:
-            print "fetch_schedules: Incorrect parameters."
-            return 0
-    except requests.exceptions.InvalidURL:
-        print ("Invalid URL: " + serverURL + ". Do you have the right controller hostname?")
-        return 0
+    # Retrieve a List of Schedules for a Given Application
+    # GET <controller_url>/controller/alerting/rest/v1/applications/<application_id>/schedules
+    restfulPath = "/controller/alerting/rest/v1/applications/" + str(app_ID) + "/schedules"
+    if userName and password:
+        schedules = fetch_RESTful_JSON(restfulPath,userName=userName,password=password)
+    else:
+        schedules = fetch_RESTful_JSON(restfulPath)
 
-    if response.status_code != 200:
-        print "Something went wrong on HTTP request. Status:", response.status_code
-        if 'DEBUG' in locals():
-            print "   header:", response.headers
-            print "Writing content to file: response.txt"
-            file1 = open("response.txt","w") 
-            file1.write(response.content)
-            file1.close() 
-        return 0
-
-    try:
-        schedules = json.loads(response.content)
-    except:
-        print ("Could not process authentication token for user " + userName + ".  Did you mess up your username/password?")
-        return 0
+    if schedules is None:
+        print "fetch_schedules: Failed to retrieve schedules for application " + str(app_ID)
+        return None
 
     if loadData:
         index = 0
         for schedule in schedules:
             if 'DEBUG' in locals(): print ("Fetching schedule "+str(schedule['id'])+" for App " + str(app_ID) + "...")
-            try:
-                # Retrieve the Details of a Specified Schedule with a specified ID
-                # GET <controller_url>/controller/alerting/rest/v1/applications/<application_id>/schedules/{schedule-id}
-                if userName and password:
-                    response = requests.get(serverURL + "/controller/alerting/rest/v1/applications/" + str(app_ID) + "/schedules/" + str(schedule['id']),
-                                            auth=(userName, password), params={"output": "JSON"})
-                elif token:
-                    response = requests.get(serverURL + "/controller/alerting/rest/v1/applications/" + str(app_ID) + "/schedules/" + str(schedule['id']),
-                                            headers={"Authorization": "Bearer "+token}, params={"output": "JSON"})                            
-            except requests.exceptions.InvalidURL:
-                print ("Invalid URL: " + serverURL + "/controller/alerting/rest/v1/applications/" + str(app_ID) + "/schedules/" + str(schedule['id']))
-                continue
+            # Retrieve the Details of a Specified Schedule with a specified ID
+            # GET <controller_url>/controller/alerting/rest/v1/applications/<application_id>/schedules/{schedule-id}
+            restfulPath = "/controller/alerting/rest/v1/applications/" + str(app_ID) + "/schedules/" + str(schedule['id'])
+            if userName and password:
+                scheduleJSON = fetch_RESTful_JSON(restfulPath,userName=userName,password=password)
+            else:
+                scheduleJSON = fetch_RESTful_JSON(restfulPath)
 
-            try:
-                scheduleJSON = json.loads(response.content)
-            except:
-                print ("Could not process authentication token for user " + userName + ". Did you mess up your username/password?")
+            if scheduleJSON is None:
+                "fetch_schedules: Failed to retrieve schedule " + str(schedule['id']) + " for application " + str(app_ID)
                 continue
             schedules[index] = scheduleJSON
             index = index + 1
@@ -143,7 +116,7 @@ def fetch_schedules(serverURL,app_ID,userName=None,password=None,token=None,load
     scheduleDict.update({str(app_ID):schedules})
 
     if 'DEBUG' in locals():
-        print "Loaded schedules:" + str(len(scheduleDict))
+        print "fetch_schedules: Loaded " + str(len(scheduleDict)) + " schedules:" 
         for appID in scheduleDict:
             print str(scheduleDict[appID])
 
@@ -164,36 +137,15 @@ def update_schedule(serverURL,app_ID,sched_ID,userName=None,password=None,token=
         if schedule['id'] == sched_ID: break
     if schedule['id'] != sched_ID:
         print "No schedule " + str(sched_ID) + " was found in application " + str(app_ID)
-        return None
+        return False 
+    if 'DEBUG' in locals(): print ("Updating schedule " + str(sched_ID) + " for App " + str(app_ID) + "...")
     # Updates an existing schedule with a specified JSON payload
     # PUT <controller_url>/controller/alerting/rest/v1/applications/<application_id>/schedules/{schedule-id}
-    if 'DEBUG' in locals(): print ("Updating schedule " + str(sched_ID) + " for App " + str(app_ID) + "...")
-    try:
-        if userName and password:
-            response = requests.put(serverURL + "/controller/alerting/rest/v1/applications/" + str(app_ID) + "/schedules/" + str(sched_ID),
-                                headers={"Content-Type": "application/json"},
-                                auth=(userName, password), data=json.dumps(schedule))
-        elif token:
-            response = requests.put(serverURL + "/controller/alerting/rest/v1/applications/" + str(app_ID) + "/schedules/" + str(sched_ID),
-                                headers={"Content-Type": "application/json", "Authorization": "Bearer "+token},
-                                data=json.dumps(schedule))
-        else:
-            print "update_schedule: Incorrect parameters."
-            return False
-    except:
-        print ("Could not get authentication token from " + baseUrl + ".  Do you have the right controller hostname?")
-        return False
-
-    if response.status_code != 200:
-        print "Something went wrong on HTTP request. Status:", response.status_code
-        if 'DEBUG' in locals():
-            print "   header:", response.headers
-            print "Writing content to file: response.txt"
-            file1 = open("response.txt","w") 
-            file1.write(response.content)
-            file1.close() 
-        return False
-    return True
+    restfulPath = "/controller/alerting/rest/v1/applications/" + str(app_ID) + "/schedules/" + str(sched_ID)
+    if userName and password:
+        return update_RESTful_JSON(restfulPath,schedule,userName=userName,password=password)
+    else:
+        return update_RESTful_JSON(restfulPath,schedule)
 
 def load_schedule_JSON(fileName,app_ID):
     if 'DEBUG' in locals(): print "Processing file " + fileName + "..."

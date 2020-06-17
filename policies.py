@@ -62,7 +62,7 @@ def fetch_policies(serverURL,app_ID,userName=None,password=None,token=None,loadD
         policies = fetch_RESTful_JSON(restfulPath)
 
     if policies is None:
-        print "get_policies: Failed to retrieve policies for application " + str(app_ID)
+        print "fetch_policies: Failed to retrieve policies for application " + str(app_ID)
         return None
 
     if loadData:
@@ -77,7 +77,7 @@ def fetch_policies(serverURL,app_ID,userName=None,password=None,token=None,loadD
             else:
                 policyJSON = fetch_RESTful_JSON(restfulPath)
             if policyJSON is None:
-                "get_policies: Failed to retrieve policy " + str(policy['id']) + " for application " + str(app_ID)
+                "fetch_policies: Failed to retrieve policy " + str(policy['id']) + " for application " + str(app_ID)
                 continue
             policies[index] = policyJSON
             index = index + 1
@@ -86,45 +86,36 @@ def fetch_policies(serverURL,app_ID,userName=None,password=None,token=None,loadD
     policyDict.update({str(app_ID):policies})
 
     if 'DEBUG' in locals():
-        print "Loaded policies:" + str(len(policyDict))
+        print "fetch_policies: Loaded " + str(len(policyDict)) + " policies."
         for appID in policyDict:
             print str(policyDict[appID])
 
     return len(policies)
 
-def fetch_policies_legacy(serverURL,app_ID,userName,password):
+def fetch_policies_legacy(serverURL,app_ID,userName=None,password=None,token=None):
     if 'DEBUG' in locals(): print ("Fetching policies for App " + str(app_ID) + "...")
-    try:
-        # https://docs.appdynamics.com/display/PRO44/Configuration+Import+and+Export+API#ConfigurationImportandExportAPI-ExportPolicies
-        # export policies to a JSON file.
-        # GET /controller/policies/application_id 
-        response = requests.get(serverURL + "/controller/policies/" + str(app_ID), auth=(userName, password), params={"output": "JSON"})
-    except:
-        print ("Could not get authentication token from " + serverURL + ".  Do you have the right controller hostname?")
+    # https://docs.appdynamics.com/display/PRO44/Configuration+Import+and+Export+API#ConfigurationImportandExportAPI-ExportPolicies
+    # export policies to a JSON file.
+    # GET /controller/policies/application_id
+    restfulPath = "/controller/policies/" + str(app_ID)
+    if userName and password:
+        policies = fetch_RESTful_JSON(restfulPath,userName=userName,password=password)
+    else:
+        policies = fetch_RESTful_JSON(restfulPath)
+
+    if policies is None:
+        print "fetch_policies: Failed to retrieve policies for application " + str(app_ID)
         return None
 
-    if response.status_code != 200:
-        print "Something went wrong on HTTP request:"
-        print "   status:", response.status_code
-        print "   header:", response.headers
-        print "Writing content to file: response.txt"
-        file1 = open("response.txt","w") 
-        file1.write(response.content)
-        file1.close() 
-        return None
+    # Add loaded policies to the policy dictionary
+    policyDict.update({str(app_ID):policies})
 
-    try:
-        policies = json.loads(response.content)
-    except:
-        print ("Could not process authentication token for user " + userName + ".  Did you mess up your username/password?")
-        print "   status:", response.status_code
-        print "   header:", response.headers
-        print "Writing content to file: response.txt"
-        file1 = open("response.txt","w") 
-        file1.write(response.content)
-        file1.close() 
-        return None
-    return policies
+    if 'DEBUG' in locals():
+        print "fetch_policies: Loaded " + str(len(policyDict)) + " policies."
+        for appID in policyDict:
+            print str(policyDict[appID])
+
+    return len(policies)
 
 def load_policies_JSON(fileName):
     print "Parsing file " + fileName + "..."
@@ -322,11 +313,14 @@ def get_policies(serverURL,app_ID,userName=None,password=None,token=None):
 
 def get_policies_legacy(serverURL,app_ID,userName=None,password=None,token=None,fileName=None):
     if userName and password:
-        policies_List = fetch_policies_legacy(serverURL,app_ID,userName,password)
-        generate_policies_CSV_legacy(app_ID,policies=policies_List,fileName=fileName)
+        if fetch_policies_legacy(serverURL,app_ID,userName,password) == 0:
+            print "get_policies: Failed to retrieve policies for application " + str(app_ID)
+            return None
     elif token:
-        policies_List = fetch_policies_legacy(serverURL,app_ID,token=token)
-        generate_policies_CSV_legacy(policies_List,app_ID,fileName=fileName)
+        if fetch_policies_legacy(serverURL,app_ID,token=token) == 0:
+            print "get_policies: Failed to retrieve policies for application " + str(app_ID)
+            return None
+    generate_policies_CSV_legacy(app_ID,fileName=fileName)
 
 def get_policies_matching_action(app_ID,name):
     MatchList = []

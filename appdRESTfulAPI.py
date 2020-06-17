@@ -30,14 +30,44 @@ def fetch_access_token(serverURL,API_username,API_password):
     return token_data
 
 ###
- # Fetch RESTful Path from a controller. Either provide an username/password or gets an access token automatically.
+ # Get access token from a controller. If no credentials provided it will try to get them from config file.
+ # @param serverURL Full hostname of the Appdynamics controller. i.e.: https://demo1.appdynamics.com:443
+ # @param userName Full username, including account. i.e.: myuser@customer1
+ # @param password password for the specified user and host. i.e.: mypassword
+ # @return the access token string. Null if there was a problem getting the access token.
+###
+def get_access_token(serverURL=None,API_Client=None,Client_Secret=None):
+    if serverURL is None or API_Client is None:
+        # If controller was not provided, try to find in the configuration file
+        serverURL  = get_current_context_serverURL()
+        API_Client = get_current_context_username()
+        if serverURL is None or API_Client is None:
+            print "Cannot get context data. Did you login to any controller machine?"
+            return None
+
+    create_or_select_user(serverURL,API_Client)
+    token = get_current_context_token()
+    if token is None:
+        if Client_Secret is None:
+            print "Authentication required for " + serverURL
+            Client_Secret = getpass(prompt='Password: ')
+        token_data = fetch_access_token(serverURL,API_Client,Client_Secret)
+        if token_data is None:
+            print "Authentication failed. Did you mistype the password?"
+            return None
+        set_new_token(API_Client,token_data['access_token'],token_data['expires_in'])
+        token = token_data['access_token']
+    return token
+
+###
+ # Fetch RESTful Path from a controller. Either provide an username/password or let it get an access token automatically.
  # @param RESTfulPath RESTful path to retrieve data
  # @param userName Full username, including account. i.e.: myuser@customer1
  # @param password password for the specified user and host. i.e.: mypassword
  # @return the response JSON data. Null if no JSON data was received.
 ###
 def fetch_RESTful_JSON(RESTfulPath,userName=None,password=None):
-    if 'DEBUG' in locals(): print ("Fetching JSON for RESTful path " + RESTfulPath + "...")
+    if 'DEBUG' in locals(): print ("Fetching JSON from RESTful path " + RESTfulPath + "...")
     serverURL = get_current_context_serverURL()
     if userName and password:
         try:
@@ -47,7 +77,7 @@ def fetch_RESTful_JSON(RESTfulPath,userName=None,password=None):
             print ("Invalid URL: " + serverURL + RESTfulPath + ". Do you have the right controller hostname and RESTful path?")
             return None
     else:
-    	token = get_access_token()
+        token = get_access_token()
         if token is None: return None
         try:
         	response = requests.get(serverURL + RESTfulPath,
@@ -74,31 +104,42 @@ def fetch_RESTful_JSON(RESTfulPath,userName=None,password=None):
     return responseJSON
 
 ###
- # Get access token from a controller. If no credentials provided it will try to get them from config file.
- # @param serverURL Full hostname of the Appdynamics controller. i.e.: https://demo1.appdynamics.com:443
+ # Update data from a controller. Either provide an username/password or let it get an access token automatically.
+ # @param RESTfulPath RESTful path to upload data
+ # @param JSONdata the data to be updated in JSON format
  # @param userName Full username, including account. i.e.: myuser@customer1
  # @param password password for the specified user and host. i.e.: mypassword
- # @return the access token string. Null if there was a problem getting the access token.
+ # @return True if the update was successful. False if no schedule was updated.
 ###
-def get_access_token(serverURL=None,API_Client=None,Client_Secret=None):
-    if serverURL is None or API_Client is None:
-        # If controller was not provided, try to find in the configuration file
-        serverURL  = get_current_context_serverURL()
-        API_Client = get_current_context_username()
-        if serverURL is None or API_Client is None:
-            print "Cannot get context data. Did you login to any controller machine?"
-            return None
+def update_RESTful_JSON(RESTfulPath,JSONdata,userName=None,password=None):
+    if 'DEBUG' in locals(): print ("Updating RESTful path " + RESTfulPath + " with provided JSON data...")
+    serverURL = get_current_context_serverURL()
+    if userName and password:
+        try:
+            response = requests.put(serverURL + RESTfulPath,
+                                    headers={"Content-Type": "application/json"},
+                                    auth=(userName, password), data=json.dumps(JSONdata))
+        except requests.exceptions.InvalidURL:
+            print ("Invalid URL: " + serverURL + RESTfulPath + ". Do you have the right controller hostname and RESTful path?")
+            return False
+    else:
+        token = get_access_token()
+        if token is None: return False
+        try:
+            response = requests.put(serverURL + RESTfulPath,
+                                    headers={"Content-Type": "application/json", "Authorization": "Bearer "+token},
+                                    data=json.dumps(JSONdata))
+        except requests.exceptions.InvalidURL:
+            print ("Invalid URL: " + serverURL + RESTfulPath + ". Do you have the right controller hostname and RESTful path?")
+            return False
 
-    create_or_select_user(serverURL,API_Client)
-    token = get_current_context_token()
-    if token is None:
-        if Client_Secret is None:
-            print "Authentication required for " + serverURL
-            Client_Secret = getpass(prompt='Password: ')    	
-        token_data = fetch_access_token(serverURL,API_Client,Client_Secret)
-        if token_data is None:
-            print "Authentication failed. Did you mistype the password?"
-            return None
-        set_new_token(API_Client,token_data['access_token'],token_data['expires_in'])
-        token = token_data['access_token']
-    return token
+    if response.status_code != 200:
+        print "Something went wrong on HTTP request. Status:", response.status_code
+        if 'DEBUG' in locals():
+            print "   header:", response.headers
+            print "Writing content to file: response.txt"
+            file1 = open("response.txt","w")
+            file1.write(response.content)
+            file1.close()
+        return False
+    return True

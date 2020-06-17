@@ -11,7 +11,7 @@ from healthrules import load_health_rules_XML, fetch_health_rules, write_health_
 from schedules import get_schedules
 from events import load_events_XML, fetch_healthrule_violations, write_events_CSV
 from policies import get_policies_legacy
-from actions import load_actions_JSON, fetch_actions, write_actions_CSV
+from actions import get_actions_legacy
 from snapshots import load_snapshots_JSON, fetch_snapshots, write_snapshots_CSV
 from allothertraffic import load_allothertraffic_JSON, fetch_allothertraffic, write_allothertraffic_CSV
 from dashboards import load_dashboards_JSON, fetch_dashboards, write_dashboards_CSV
@@ -283,23 +283,17 @@ elif ENTITY.lower() == "policies":
         optParser.error("Missing arguments")
 elif ENTITY.lower() == "actions":
     if options.inFileName:
-        head_tail = os.path.split(options.inFileName)
-        policiesXMLFile=head_tail[0] + "/policies.json"
-        if os.path.exists(policiesXMLFile):
-            load_policies_JSON(policiesXMLFile)
-        else:
-            print ("Warn: File "+policiesXMLFile+" not found. No policies will be added.")
-        load_actions_JSON(options.inFileName)
+        # TODO: Something about it
+        print "Feaure not implemented yet"
     elif options.user and options.password and options.hostname and options.application:
         baseUrl = buildBaseURL(options.hostname,options.port,options.SSLEnabled)
         load_applications(baseUrl,options.user,options.password)
         appID=getID(options.application)
         if appID > 0:
             options.application=str(appID)
-        fetch_actions(baseUrl+"/controller/",options.user,options.password,options.application)
+        get_actions_legacy(baseUrl,userName=options.user,password=options.password,app_ID=options.application,fileName=options.outFileName)
     else:
         optParser.error("Missing arguments")
-    write_actions_CSV(options.outFileName)
 
 ### Dashboards & Reports related entities
 elif ENTITY.lower() == "dashboards":
