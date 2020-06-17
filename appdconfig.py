@@ -17,7 +17,7 @@ def get_current_context_servername():
     if 'current-context' in data and len(data['current-context']) > 0:
         return data['current-context'].split('/')[0]
     else:
-        print "Cannot get context data. Did you login to any controller machine?"
+        if 'DEBUG' in locals(): print "Cannot get context data. Did you login to any controller machine?"
         return None
 
 def get_current_context_username():
@@ -25,7 +25,7 @@ def get_current_context_username():
     if 'current-context' in data and len(data['current-context']) > 0:
         return data['current-context'].split('/')[1]
     else:
-        print "Cannot get context data. Did you login to any controller machine?"
+        if 'DEBUG' in locals(): print "Cannot get context data. Did you login to any controller machine?"
         return None
 
 def get_current_context_token():
@@ -35,11 +35,11 @@ def get_current_context_token():
         for user in data['users']:
             username = context[1] + "/" + context[0]
             if user['name'] == username:
-                if datetime.today() < user['user']['expire']:
+                if 'expire' in user['user'] and datetime.today() < user['user']['expire']:
                     if 'DEBUG' in locals(): print "Found valid token in config YAML file."
                     return user['user']['token']
                 else:
-                    if 'DEBUG' in locals(): print "Token expired in config YAML file."
+                    if 'DEBUG' in locals(): print "Token expired or invalid in config YAML file."
                     return None
     else:
         print "Cannot get context data. Did you login to any controller machine?"
@@ -69,7 +69,7 @@ def create_or_select_user(serverURL,API_Client):
         if user['name'] == username:
             break
 
-    if user['name'] != username:
+    if 'user' not in locals() or user['name'] != username:
         # Create the new user
         data['users'].append({'name': username,'user': {}})
         data['contexts'].append({'name': contextname,'context': { 'server': serverURL, 'user': username}})
