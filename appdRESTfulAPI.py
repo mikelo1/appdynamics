@@ -72,7 +72,7 @@ def fetch_RESTful_JSON(RESTfulPath,userName=None,password=None):
     serverURL = get_current_context_serverURL()
     if userName and password:
         try:
-            response = requests.get(serverURL + + RESTfulPath,
+            response = requests.get(serverURL + RESTfulPath,
                                     auth=(userName, password), params={"output": "JSON"})
         except requests.exceptions.InvalidURL:
             print ("Invalid URL: " + serverURL + RESTfulPath + ". Do you have the right controller hostname and RESTful path?")
@@ -191,8 +191,52 @@ def fetch_RESTful_XML(RESTfulPath,params=None,userName=None,password=None):
         return None
     return root
 
+###
+ # Get the controller version. Either provide an username/password or let it get an access token automatically.
+ # @param serverURL Full hostname of the Appdynamics controller. i.e.: https://demo1.appdynamics.com:443
+ # @param userName Full username, including account. i.e.: myuser@customer1
+ # @param password password for the specified user and host. i.e.: mypassword
+ # @return the controller release version number. Null if no data was received.
+###
+def get_controller_version(serverURL=None,userName=None,password=None):
+    if serverURL is None: serverURL = get_current_context_serverURL() 
+    if 'DEBUG' in locals(): print ("Fetching controller version for controller " + serverURL + "...")
+    if userName and password:
+        try:
+            response = requests.get(serverURL + "/controller/rest/configuration",
+                                    auth=(userName, password), params={"name": "schema.version","output": "JSON"})
+        except requests.exceptions.InvalidURL:
+            print ("Invalid URL: " + serverURL + "/controller/rest/configuration. Do you have the right controller hostname?")
+            return None
+    else:
+        token = get_access_token()
+        if token is None: return None
+        try:
+            response = requests.get(serverURL + "/controller/rest/configuration",
+                                headers={"Authorization": "Bearer "+token}, params={"name": "schema.version","output": "JSON"})
+        except requests.exceptions.InvalidURL:
+            print ("Invalid URL: " + serverURL + "/controller/rest/configuration. Do you have the right controller hostname?")
+            return None
+
+    if response.status_code > 399:
+        print "Something went wrong on HTTP request:"
+        print "   status:", response.status_code
+        print "   header:", response.headers
+        return None
+
+    schemaVersion = json.loads(response.content)
+    return schemaVersion[0]['value'].replace("-","")
+
+###
+ # Translates start/end time range into HTTP param compliant string.
+ # @param time_range_type time range type, which could be one of these: {"BEFORE_NOW","BEFORE_TIME","AFTER_TIME","BETWEEN_TIMES"}
+ # @param duration duration in minutes
+ # @param startEpoch range start time in Epoch format
+ # @param endEpoch range end time in Epoch format
+ # @return HTTP param compliant string. Null if provided data could not be interpreted.
+###
 def timerange_to_params(time_range_type,duration=None,startEpoch=None,endEpoch=None):
-    # time_range_type='{"BEFORE_NOW","BEFORE_TIME","AFTER_TIME","BETWEEN_TIMES"}'
+    # 
     # duration_in_mins: {1day:"1440" 1week:"10080" 1month:"43200"}
     if time_range_type == "BEFORE_NOW" and duration is not None:
         params={"time-range-type": time_range_type,"duration-in-mins": duration}
