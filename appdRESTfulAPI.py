@@ -1,6 +1,7 @@
 #!/usr/bin/python
 import requests
 import json
+import xml.etree.ElementTree as ET
 from getpass import getpass
 from appdconfig import get_current_context_serverURL, get_current_context_username, get_current_context_token, create_or_select_user, set_new_token
 
@@ -71,7 +72,7 @@ def fetch_RESTful_JSON(RESTfulPath,userName=None,password=None):
     serverURL = get_current_context_serverURL()
     if userName and password:
         try:
-            response = requests.get(serverURL + "/controller/alerting/rest/v1/applications/" + str(app_ID) + "/schedules",
+            response = requests.get(serverURL + + RESTfulPath,
                                     auth=(userName, password), params={"output": "JSON"})
         except requests.exceptions.InvalidURL:
             print ("Invalid URL: " + serverURL + RESTfulPath + ". Do you have the right controller hostname and RESTful path?")
@@ -99,7 +100,7 @@ def fetch_RESTful_JSON(RESTfulPath,userName=None,password=None):
     try:
         responseJSON = json.loads(response.content)
     except:
-        print ("Could not process JSON content")
+        print ("Could not process JSON content.")
         return None
     return responseJSON
 
@@ -143,3 +144,65 @@ def update_RESTful_JSON(RESTfulPath,JSONdata,userName=None,password=None):
             file1.close()
         return False
     return True
+
+###
+ # Fetch RESTful Path from a controller. Either provide an username/password or let it get an access token automatically.
+ # @param RESTfulPath RESTful path to retrieve data
+ # @param userName Full username, including account. i.e.: myuser@customer1
+ # @param password password for the specified user and host. i.e.: mypassword
+ # @return the response XML data root. Null if no XML data was received.
+###
+def fetch_RESTful_XML(RESTfulPath,params=None,userName=None,password=None):
+    if 'DEBUG' in locals(): print ("Fetching XML from RESTful path " + RESTfulPath + "...")
+    serverURL = get_current_context_serverURL()
+    if params is None: params={"output": "XML"}
+    if userName and password:
+        try:
+            response = requests.get(serverURL + RESTfulPath,
+                                    auth=(userName, password), params=params)
+        except requests.exceptions.InvalidURL:
+            print ("Invalid URL: " + serverURL + RESTfulPath + ". Do you have the right controller hostname and RESTful path?")
+            return None
+    else:
+        token = get_access_token()
+        if token is None: return None
+        try:
+            response = requests.get(serverURL + RESTfulPath,
+                                headers={"Authorization": "Bearer "+token}, params=params)
+        except requests.exceptions.InvalidURL:
+            print ("Invalid URL: " + serverURL + RESTfulPath + ". Do you have the right controller hostname and RESTful path?")
+            return None
+
+    if response.status_code != 200:
+        print "Something went wrong on HTTP request. Status:", response.status_code
+        if 'DEBUG' in locals():
+            print "   status:", response.status_code
+            print "   header:", response.headers
+            print "Writing content to file: response.txt"
+            file1 = open("response.txt","w") 
+            file1.write(response.content)
+            file1.close() 
+        return None
+
+    try:
+        root = ET.fromstring(response.content)
+    except:
+        print ("Could not process XML content.")
+        return None
+    return root
+
+def timerange_to_params(time_range_type,duration=None,startEpoch=None,endEpoch=None):
+    # time_range_type='{"BEFORE_NOW","BEFORE_TIME","AFTER_TIME","BETWEEN_TIMES"}'
+    # duration_in_mins: {1day:"1440" 1week:"10080" 1month:"43200"}
+    if time_range_type == "BEFORE_NOW" and duration is not None:
+        params={"time-range-type": time_range_type,"duration-in-mins": duration}
+    elif time_range_type == "BEFORE_TIME" and duration is not None and endEpoch is not None:
+        params={"time-range-type": time_range_type,"duration-in-mins": duration,"end-time": endEpoch}
+    elif time_range_type == "AFTER_TIME" and duration is not None and startEpoch is not None:
+        params={"time-range-type": time_range_type,"duration-in-mins": duration,"start-time": startEpoch}
+    elif time_range_type == "BETWEEN_TIMES" and startEpoch is not None and endEpoch is not None:
+        params={"time-range-type": time_range_type,"start-time": startEpoch,"end-time": endEpoch}
+    else:
+        print ("Unknown time range or missing arguments.")
+        return None
+    return params

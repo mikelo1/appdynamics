@@ -86,7 +86,7 @@ def fetch_policies(serverURL,app_ID,userName=None,password=None,token=None,loadD
     policyDict.update({str(app_ID):policies})
 
     if 'DEBUG' in locals():
-        print "fetch_policies: Loaded " + str(len(policyDict)) + " policies."
+        print "fetch_policies: Loaded " + str(len(policies)) + " policies."
         for appID in policyDict:
             print str(policyDict[appID])
 

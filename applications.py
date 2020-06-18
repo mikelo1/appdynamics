@@ -4,7 +4,7 @@ import json
 import csv
 import sys
 from appdconfig import get_current_context_serverURL, get_current_context_username
-from appdRESTfulAPI import get_access_token
+from appdRESTfulAPI import get_access_token, fetch_RESTful_JSON
 
 applicationDict = dict()
 
@@ -67,38 +67,16 @@ def test_applications_with_tiers_and_nodes():
 ###
 def fetch_application(serverURL,key,userName=None,password=None,token=None,includeNodes=False):
     if 'DEBUG' in locals(): print ("Fetching applications for controller " + serverURL + "...")
-    try:
-        if userName and password:
-            response = requests.get(serverURL + "/controller/rest/applications/"+key, auth=(userName, password), params={"output": "JSON"})
-        elif token:
-            response = requests.get(serverURL + "/controller/rest/applications/"+key, headers={"Authorization": "Bearer "+token}, params={"output": "JSON"})
-        else:
-            print "fetch_applications: Incorrect parameters."
-            return 0
-    except requests.exceptions.InvalidURL:
-        print ("Invalid URL: " + serverURL + ". Do you have the right controller hostname?")
-        return 0
+    # Retrieve a specific Business Application
+    # GET /controller/rest/applications/application_name
+    restfulPath = "/controller/rest/applications/" + str(key)
+    if userName and password:
+        application = fetch_RESTful_JSON(restfulPath,userName=userName,password=password)
+    else:
+        application = fetch_RESTful_JSON(restfulPath)
 
-    if response.status_code != 200:
-        if 'DEBUG' in locals():
-            print "fetch_applications: Something went wrong on HTTP request. Status:", response.status_code
-            print "   header:", response.headers
-            print "Writing content to file: response.txt"
-            file1 = open("response.txt","w") 
-            file1.write(response.content)
-            file1.close() 
-        return 0
-
-    try:
-        applicationJSON = json.loads(response.content)
-    except:
-        print ("Could not process response content. Did you mess up your username/password or token?")
-        print "   status:", response.status_code
-        print "   header:", response.headers
-        print "Writing content to file: response.txt"
-        file1 = open("response.txt","w") 
-        file1.write(response.content)
-        file1.close() 
+    if application is None:
+        print "fetch_application: Failed to retrieve applications for controller " + serverURL
         return 0
 
     if includeNodes:
@@ -109,14 +87,14 @@ def fetch_application(serverURL,key,userName=None,password=None,token=None,inclu
                 nodes = fetch_nodes(serverURL,applicationJSON['name'],tier['name'],userName,password,token)
                 if nodes is None: continue
                 tier.append(nodes)
-            applicationJSON.append(tiers)
+            application.append(tiers)
 
     # Add loaded application to the application dictionary
-    app_ID = applicationJSON[0]['id']
-    applicationDict.update({str(app_ID):applicationJSON[0]})
+    app_ID = application[0]['id']
+    applicationDict.update({str(app_ID):application[0]})
  
     if 'DEBUG' in locals():
-        print "Loaded application:" + str(applicationJSON)
+        print "Loaded application:" + str(application)
 
     return app_ID
 
@@ -131,42 +109,19 @@ def fetch_application(serverURL,key,userName=None,password=None,token=None,inclu
 ###
 def fetch_applications(serverURL,userName=None,password=None,token=None,includeNodes=False):
     if 'DEBUG' in locals(): print ("Fetching applications for controller " + serverURL + "...")
-    try:
-        if userName and password:
-            response = requests.get(serverURL + "/controller/rest/applications/", auth=(userName, password), params={"output": "JSON"})
-        elif token:
-            response = requests.get(serverURL + "/controller/rest/applications/", headers={"Authorization": "Bearer "+token}, params={"output": "JSON"})
-        else:
-            print "fetch_applications: Incorrect parameters."
-            return 0
-    except requests.exceptions.InvalidURL:
-        print ("Invalid URL: " + serverURL + ". Do you have the right controller hostname?")
+    # Retrieve All Business Applications
+    # GET /controller/rest/applications
+    restfulPath = "/controller/rest/applications/"
+    if userName and password:
+        applications = fetch_RESTful_JSON(restfulPath,userName=userName,password=password)
+    else:
+        applications = fetch_RESTful_JSON(restfulPath)
+
+    if applications is None:
+        print "fetch_application: Failed to retrieve applications for controller " + serverURL
         return 0
 
-    if response.status_code != 200:
-        print "fetch_applications: Something went wrong on HTTP request. Status:", response.status_code
-        if 'DEBUG' in locals():
-            print "   header:", response.headers
-            print "Writing content to file: response.txt"
-            file1 = open("response.txt","w") 
-            file1.write(response.content)
-            file1.close() 
-        return 0
-
-    if 'DEBUG' in locals(): print ("Applications fetch successful. Parsing data...")
-    try:
-        applicationsJSON = json.loads(response.content)
-    except:
-        print ("Could not process response content. Did you mess up your username/password or token?")
-        print "   status:", response.status_code
-        print "   header:", response.headers
-        print "Writing content to file: response.txt"
-        file1 = open("response.txt","w") 
-        file1.write(response.content)
-        file1.close() 
-        return 0
-
-    for application in applicationsJSON:
+    for application in applications:
         if includeNodes:
             # Add tiers and nodes to the application data
             tiers = fetch_tiers(serverURL,application['name'],userName,password,token)
@@ -185,47 +140,35 @@ def fetch_applications(serverURL,userName=None,password=None,token=None,includeN
         for appID in applicationDict:
             print str(applicationDict[appID])
 
-    return len(applicationsJSON)
+    return len(applications)
 
 def fetch_tiers(serverURL,appName,userName=None,password=None,token=None):
     if 'DEBUG' in locals(): print ("Fetching tiers for application " + appName + "...")
-    try:
-        if userName and password:
-            response = requests.get(serverURL + "/controller/rest/applications/" + appName + "/tiers", auth=(userName, password), params={"output": "JSON"})
-        elif token:
-            response = requests.get(serverURL + "/controller/rest/applications/" + appName + "/tiers", headers={"Authorization": "Bearer "+token}, params={"output": "JSON"})
-        else:
-            print "fetch_tiers: Incorrect parameters."
-            return None
-    except requests.exceptions.InvalidURL:
-       print ("Invalid URL: " + serverURL + "/controller/rest/applications/" + appName + "/tiers")
-       return None
+    # Retrieve All Tiers in a Business Application
+    # GET /controller/rest/applications/application_name/tiers
+    restfulPath = "/controller/rest/applications/" + appName + "/tiers"
+    if userName and password:
+        tiers = fetch_RESTful_JSON(restfulPath,userName=userName,password=password)
+    else:
+        tiers = fetch_RESTful_JSON(restfulPath)
 
-    try:
-        tiers = json.loads(response.content)
-    except:
-        print ("Could not parse the tiers for application " + appName + ".")
+    if tiers is None:
+        print "fetch_tiers: Failed to retrieve the tiers for application " + appName + "."
         return None
     return tiers
 
 def fetch_nodes(serverURL,appName,tierName,userName=None,password=None,token=None):
     if 'DEBUG' in locals(): print ("Fetching nodes for tier " + tierName + ", application " + appName)
-    try:
-        if userName and password:
-            response = requests.get(serverURL + "/controller/rest/applications/" + appName + "/tiers/" + tierName + "/nodes", auth=(userName, password), params={"output": "JSON"})
-        elif token:
-            response = requests.get(serverURL + "/controller/rest/applications/" + appName + "/tiers/" + tierName + "/nodes", headers={"Authorization": "Bearer "+token}, params={"output": "JSON"})
-        else:
-            print "fetch_nodes: Incorrect parameters."
-            return None
-    except requests.exceptions.InvalidURL:
-        print ("Invalid URL: " + serverURL + "/controller/rest/applications/" + appName + "/tiers/" + tierName + "/nodes")
-        return None
+    # Retrieve Node Information for All Nodes in a Tier
+    # GET /controller/rest/applications/application_name/tiers/tier_name/nodes
+    restfulPath = "/controller/rest/applications/" + appName + "/tiers/" + tierName + "/nodes"
+    if userName and password:
+        nodes = fetch_RESTful_JSON(restfulPath,userName=userName,password=password)
+    else:
+        nodes = fetch_RESTful_JSON(restfulPath)
 
-    try:
-        nodes = json.loads(response.content)
-    except:
-        print ("Could not parse the nodes for tier " + tierName + " in application " + appName + ".")
+    if nodes is None:
+        print "fetch_tiers: Failed to retrieve the nodes for tier " + tierName + " in application " + appName + "."
         return None
     return nodes
 

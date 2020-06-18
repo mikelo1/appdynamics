@@ -62,8 +62,6 @@ def fetch_actions(serverURL,app_ID,userName=None,password=None,token=None,loadDa
             if 'DEBUG' in locals(): print ("Fetching action "+str(actions['id'])+" for App " + str(app_ID) + "...")
             # Retrieve Details of a Specified Action
             # GET <controller_url>/controller/alerting/rest/v1/applications/<application_id>/actions/{action-id}
-
-
             restfulPath = "/controller/alerting/rest/v1/applications/" + str(app_ID) + "/actions/" + str(action['id'])
             if userName and password:
                 actionJSON = fetch_RESTful_JSON(restfulPath,userName=userName,password=password)
@@ -79,7 +77,7 @@ def fetch_actions(serverURL,app_ID,userName=None,password=None,token=None,loadDa
     actionDict.update({str(app_ID):actions})
 
     if 'DEBUG' in locals():
-        print "fetch_actions: Loaded " + str(len(actionDict)) + " actions:"
+        print "fetch_actions: Loaded " + str(len(actions)) + " actions:"
         for appID in actionDict:
             print str(actionDict[appID])
 

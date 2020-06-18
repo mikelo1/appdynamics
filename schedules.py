@@ -116,7 +116,7 @@ def fetch_schedules(serverURL,app_ID,userName=None,password=None,token=None,load
     scheduleDict.update({str(app_ID):schedules})
 
     if 'DEBUG' in locals():
-        print "fetch_schedules: Loaded " + str(len(scheduleDict)) + " schedules:" 
+        print "fetch_schedules: Loaded " + str(len(schedules)) + " schedules:"
         for appID in scheduleDict:
             print str(scheduleDict[appID])
 

@@ -9,7 +9,7 @@ from businesstransactions import load_business_transactions_JSON, fetch_business
 from backends import load_backends_JSON, fetch_backends, write_backends_CSV
 from healthrules import load_health_rules_XML, fetch_health_rules, write_health_rules_CSV
 from schedules import get_schedules
-from events import load_events_XML, fetch_healthrule_violations, write_events_CSV
+from events import get_healthrule_violations
 from policies import get_policies_legacy
 from actions import get_actions_legacy
 from snapshots import load_snapshots_JSON, fetch_snapshots, write_snapshots_CSV
@@ -234,40 +234,17 @@ elif ENTITY.lower() == "schedules":
         optParser.error("Missing arguments")
 elif ENTITY.lower() == "events":
     if options.inFileName:
-        load_events_XML(options.inFileName)
+        # TODO: Something about it
+        print "Feaure not implemented yet"
     elif options.user and options.password and options.hostname and options.application:
         baseUrl = buildBaseURL(options.hostname,options.port,options.SSLEnabled)
         load_applications(baseUrl,options.user,options.password)
         appID=getID(options.application)
         if appID < 0:
-            print "Application",options.application,"doesn't exist."
-            exit(1)
-        if options.timerange and options.timerange.endswith("day"):
-            numberOfDays=int(options.timerange[0:options.timerange.find("day")])
-            if numberOfDays > 14:
-                print "Warning: time range [",numberOfDays,"] cannot be longer than 14 days."
-                numberOfDays=14
-        elif options.timerange:
-            print "Time range must be given in days."
-            exit (1)
-        else:
-            optParser.error("Missing arguments")
-            exit (1)
-
-        for i in range(numberOfDays,0,-1): # loop latest numberOfDays days in chunks of 1 day
-            for retry in range(1,4):
-                root = fetch_healthrule_violations(baseUrl+"/controller/",options.user,options.password,str(appID), \
-                                                    "AFTER_TIME","1440",datetime.today()-timedelta(days=i)) # fetch 1 day of data
-                if root is not None:
-                    break
-                elif retry < 3:
-                    print "Failed to fetch healthrule violations. Retrying (",retry," of 3)..."
-                else:
-                    print "Giving up."
-                    exit (1)
+            options.application=str(appID)
+        get_healthrule_violations(baseUrl,options.application,"1440",userName=options.user,password=options.password)
     else:
         optParser.error("Missing arguments")
-    write_events_CSV(options.outFileName)
 elif ENTITY.lower() == "policies":
     if options.inFileName:
         # TODO: Something about it
