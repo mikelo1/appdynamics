@@ -1,5 +1,4 @@
 #!/usr/bin/python
-import requests
 import sys
 import os.path
 from datetime import datetime, timedelta
