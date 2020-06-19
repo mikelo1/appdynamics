@@ -7,42 +7,6 @@ from appdRESTfulAPI import get_access_token, fetch_RESTful_JSON
 
 applicationDict = dict()
 
-class Application:
-    id         = 0
-    name       = ""
-    description= ""
-    accountGuid= ""
-    tierList   = []
-    def __init__(self,id,name,description,accountGuid,tierList=None):
-        self.id         = id
-        self.name       = name
-        self.description= description
-        self.accountGuid= accountGuid
-        self.tierList   = tierList
-    def __str__(self):
-        return "({0},{1},{2},{3},{4})".format(self.id,self.name,self.description,self.accountGuid,self.tierList)
-
-class Tier:
-    id         = 0
-    name       = ""
-    nodeList   = []
-    def __init__(self,id,name,nodeList):
-        self.id         = id
-        self.name       = name
-        self.nodeList   = nodeList
-    def __str__(self):
-        return "({0},{1},{2})".format(self.id,self.name,self.nodeList)
-
-class Node:
-    id         = 0
-    name       = ""
-    def __init__(self,id,name):
-        self.id         = id
-        self.name       = name
-    def __str__(self):
-        return "({0},{1})".format(self.id,self.name)
-
-
 def test_applications_with_tiers_and_nodes():
     applications=json.loads('[{"name":"evo-api-logalty-aks","description":"","id":15713322,"accountGuid":"edbe509e-bd4d-4ba9-a588-e761827a8730"},{"name":"ev-cajeros-web-srv","description":"","id":57502,"accountGuid":"edbe509e-bd4d-4ba9-a588-e761827a8730"}]')
     tiers=json.loads('[{"agentType":"APP_AGENT","name":"evo-api-logalty","description":"","id":16314693,"numberOfNodes":21,"type":"Application Server"}]')

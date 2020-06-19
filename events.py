@@ -9,28 +9,8 @@ from appdRESTfulAPI import fetch_RESTful_XML, timerange_to_params
 
 eventDict = dict()
 
-class Event:
-    name      = ""
-    entityName= ""
-    severity  = ""
-    status    = ""
-    startTime = 0
-    endTime   = 0
-    app_ID    = 0
-    def __init__(self,name,entityName,severity,status,startTime,endTime,app_ID=None):
-        self.name      = name
-        self.entityName= entityName
-        self.severity  = severity
-        self.status    = status
-        self.startTime = startTime
-        self.endTime   = endTime
-        self.app_ID    = app_ID
-    def __str__(self):
-        return "({0},{1},{2},{3},{4},{5},{6}".format(self.name,self.entityName,self.severity,self.status,self.startTime,self.endTime,self.app_ID)
-
-
 def fetch_healthrule_violations(serverURL,app_ID,minutesBeforeNow,userName=None,password=None,token=None):
-    if 'DEBUG' in locals(): print ("Fetching healthrule violations for App " + str(app_ID) + "...")
+    if 'DEBUG' in locals(): print ("Fetching healthrule violations for App " + str(app_ID) + ", for the last "+str(minutesBeforeNow)+" minutes...")
     # https://docs.appdynamics.com/display/PRO45/Events+and+Action+Suppression+API
     # Retrieve All Health Rule Violations that have occurred in an application within a specified time frame. 
     # URI /controller/rest/applications/application_id/problems/healthrule-violations
@@ -39,9 +19,10 @@ def fetch_healthrule_violations(serverURL,app_ID,minutesBeforeNow,userName=None,
     for i in range(int(minutesBeforeNow),0,-1440): # loop "minutesBeforeNow" minutes in chunks of 1440 minutes (1 day)
         sinceTime = datetime.today()-timedelta(minutes=i)
         sinceEpoch= long(time.mktime(sinceTime.timetuple())*1000)
-        params = timerange_to_params("AFTER_TIME",duration="1440",startEpoch=sinceEpoch) if i>1440 else timerange_to_params("BEFORE_TIME",duration=i,endEpoch=sinceEpoch)
+        params = timerange_to_params("AFTER_TIME",duration="1440",startEpoch=sinceEpoch)
 
         for retry in range(1,4):
+            if 'DEBUG' in locals(): print ("Fetching healthrule violations for App " + str(app_ID) + "params "+str(params)+"...")
             if userName and password:
                 chunked_root = fetch_RESTful_XML(restfulPath,params=params,userName=userName,password=password)
             elif token:
@@ -57,12 +38,12 @@ def fetch_healthrule_violations(serverURL,app_ID,minutesBeforeNow,userName=None,
     
         if 'root' not in locals():
             root = chunked_root
+            if 'DEBUG' in locals(): print "fetch_healthrule_violations: Added " + str(len(root.getchildren())) + " events."
         else:
             # Append retrieved data to root
-            mainElement = root.find("policy-violations")
-            new_elements = chunked_root.find("policy-violations")
-            for element in new_elements:
-                mainElement.append(element)
+            for element in chunked_root:
+                root.append(element)
+            if 'DEBUG' in locals(): print "fetch_healthrule_violations: Added " + str(len(chunked_root.getchildren())) + " events."
 
     # Add loaded events to the event dictionary
     eventDict.update({str(app_ID):root})
@@ -126,7 +107,7 @@ def generate_events_CSV(app_ID,events=None,fileName=None):
             else:
                 PolicyName = Definition.find('entityId').text
         else:
-            continue
+            PolicyName = ""
 
         Definition = policyviolation.find('affectedEntityDefinition')
         Type = Definition.find('entityType')
@@ -137,7 +118,7 @@ def generate_events_CSV(app_ID,events=None,fileName=None):
             else:
                 EntityName = Definition.find('entityId').text
         else:
-            continue
+            EntityName = ""
 
         #appName = str(app_ID)
         appName = getName(app_ID)
