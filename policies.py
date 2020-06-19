@@ -117,11 +117,10 @@ def fetch_policies_legacy(serverURL,app_ID,userName=None,password=None,token=Non
 
     return len(policies)
 
-def load_policies_JSON(fileName):
-    print "Parsing file " + fileName + "..."
-    json_file = open(fileName)
+def convert_policies_JSON_to_CSV(inFileName,outFilename=None):
+    json_file = open(inFileName)
     policies = json.load(json_file)
-    generate_policies_CSV_legacy(policies,0)
+    generate_policies_CSV_legacy(app_ID=0,policies=policies,fileName=outFilename)
 
 def generate_policies_CSV(app_ID,policies=None,fileName=None):
     if policies is None and str(app_ID) not in policyDict:

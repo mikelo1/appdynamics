@@ -108,11 +108,10 @@ def fetch_actions_legacy(serverURL,app_ID,userName=None,password=None,token=None
 
     return len(actions)
 
-def load_actions_JSON(fileName):
-    print "Parsing file " + fileName + "..."
-    json_file = open(fileName)
+def convert_actions_JSON_to_CSV(inFileName,outFilename=None):
+    json_file = open(inFileName)
     actions = json.load(json_file)
-    return actions
+    generate_actions_CSV_legacy(app_ID=0,actions=actions,fileName=outFilename)
 
 def generate_actions_CSV(app_ID,actions=None,fileName=None):
     if actions is None and str(app_ID) not in actionDict:

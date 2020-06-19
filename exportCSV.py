@@ -8,9 +8,9 @@ from businesstransactions import load_business_transactions_JSON, fetch_business
 from backends import load_backends_JSON, fetch_backends, write_backends_CSV
 from healthrules import get_health_rules, convert_health_rules_XML_to_CSV
 from schedules import get_schedules
-from events import get_healthrule_violations
-from policies import get_policies_legacy
-from actions import get_actions_legacy
+from events import get_healthrule_violations, convert_events_XML_to_CSV
+from policies import get_policies_legacy, convert_policies_JSON_to_CSV
+from actions import get_actions_legacy, convert_actions_JSON_to_CSV
 from snapshots import load_snapshots_JSON, fetch_snapshots, write_snapshots_CSV
 from allothertraffic import load_allothertraffic_JSON, fetch_allothertraffic, write_allothertraffic_CSV
 from dashboards import load_dashboards_JSON, fetch_dashboards, write_dashboards_CSV
@@ -232,8 +232,7 @@ elif ENTITY.lower() == "schedules":
         optParser.error("Missing arguments")
 elif ENTITY.lower() == "events":
     if options.inFileName:
-        # TODO: Something about it
-        print "Feaure not implemented yet"
+        convert_events_XML_to_CSV(options.inFileName,options.outFileName)
     elif options.user and options.password and options.hostname and options.application:
         baseUrl = buildBaseURL(options.hostname,options.port,options.SSLEnabled)
         load_applications(baseUrl,options.user,options.password)
@@ -245,8 +244,7 @@ elif ENTITY.lower() == "events":
         optParser.error("Missing arguments")
 elif ENTITY.lower() == "policies":
     if options.inFileName:
-        # TODO: Something about it
-        print "Feaure not implemented yet"
+        convert_policies_JSON_to_CSV(options.inFileName,options.outFileName)
     elif options.user and options.password and options.hostname and options.application:
         baseUrl = buildBaseURL(options.hostname,options.port,options.SSLEnabled)
         load_applications(baseUrl,options.user,options.password)
@@ -258,8 +256,7 @@ elif ENTITY.lower() == "policies":
         optParser.error("Missing arguments")
 elif ENTITY.lower() == "actions":
     if options.inFileName:
-        # TODO: Something about it
-        print "Feaure not implemented yet"
+        convert_actions_JSON_to_CSV(options.inFileName,options.outFileName)
     elif options.user and options.password and options.hostname and options.application:
         baseUrl = buildBaseURL(options.hostname,options.port,options.SSLEnabled)
         load_applications(baseUrl,options.user,options.password)

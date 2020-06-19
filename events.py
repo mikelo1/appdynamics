@@ -63,11 +63,10 @@ def fetch_healthrule_violations(serverURL,app_ID,minutesBeforeNow,userName=None,
 
     return len(root.getchildren())
 
-def load_events_XML(fileName):
-    print "Parsing file " + fileName + "..."
-    tree = ET.parse(fileName)
+def convert_events_XML_to_CSV(inFileName,outFilename=None):
+    tree = ET.parse(inFileName)
     root = tree.getroot()
-    parse_events_XML(root)
+    generate_events_CSV(app_ID=0,events=root,fileName=outFilename)
 
 def generate_events_CSV(app_ID,events=None,fileName=None):
     if events is None and str(app_ID) not in eventDict:
