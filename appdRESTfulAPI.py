@@ -236,8 +236,6 @@ def get_controller_version(serverURL=None,userName=None,password=None):
  # @return HTTP param compliant string. Null if provided data could not be interpreted.
 ###
 def timerange_to_params(time_range_type,duration=None,startEpoch=None,endEpoch=None):
-    # 
-    # duration_in_mins: {1day:"1440" 1week:"10080" 1month:"43200"}
     if time_range_type == "BEFORE_NOW" and duration is not None:
         params={"time-range-type": time_range_type,"duration-in-mins": duration}
     elif time_range_type == "BEFORE_TIME" and duration is not None and endEpoch is not None:

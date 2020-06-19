@@ -1,10 +1,12 @@
 #!/usr/bin/python
-import requests
 import xml.etree.ElementTree as ET
 import csv
 import sys
+from applications import getName
+from appdRESTfulAPI import fetch_RESTful_XML
 
-healthruleList = []
+healthruleDict = dict()
+
 class HealthRule:
     name          = ""
     duration      = 0
@@ -26,55 +28,70 @@ class HealthRule:
     def __str__(self):
         return "({0},{1},{2},{3},{4},{5},{6},{7})".format(self.name,self.duration,self.schedule,self.enabled,self.entityType,self.entityCriteria,self.critCondition,self.warnCondition)
 
-def fetch_health_rules(baseUrl,userName,password,app_ID):
-    print ("Fetching Health Rules for application " + app_ID + "...")
-    try:
-        response = requests.get(baseUrl + "healthrules/" + app_ID, auth=(userName, password))
-    except:
-       print ("Could not get the health rules of application " + app_ID + ".")
-       return None
+###
+ # Fetch health rules from a controller then add them to the healthrule dictionary. Provide either an username/password or an access token.
+ # @param serverURL Full hostname of the Appdynamics controller. i.e.: https://demo1.appdynamics.com:443
+ # @param app_ID the ID number of the application policies to fetch
+ # @param userName Full username, including account. i.e.: myuser@customer1
+ # @param password password for the specified user and host. i.e.: mypassword
+ # @param token API acccess token
+ # @return the number of fetched health rules. Zero if no health rule was found.
+###
+def fetch_health_rules(serverURL,app_ID,userName=None,password=None,token=None):
+    if 'DEBUG' in locals(): print ("Fetching Health Rules for application " + str(app_ID) + "...")
 
-    if response.status_code != 200:
-        print "Something went wrong on HTTP request:"
-        print "   status:", response.status_code
-        print "   header:", response.headers
-        print "Writing content to file: response.txt"
-        file1 = open("response.txt","w") 
-        file1.write(response.content)
-        file1.close() 
-        return None
-    elif 'DEBUG' in locals():
-        file1 = open("response.txt","w") 
-        file1.write(response.content)
-    try:
-        root = ET.fromstring(response.content)
-    except:
-        print ("Could not process authentication token for user " + userName + ".  Did you mess up your username/password?")
-        print "status:", response.status_code
-        print "single header:", response.headers['content-type']
-        print "Writing content to file: response.txt"
-        file1 = open("response.txt","w") 
-        file1.write(response.content)
-        file1.close() 
-        return None
-    parse_health_rules_XML(root)
+    restfulPath = "/controller/healthrules/" + str(app_ID)
+    if userName and password:
+        root = fetch_RESTful_XML(restfulPath,userName=userName,password=password)
+    elif token:
+        root = fetch_RESTful_XML(restfulPath)
 
-def load_health_rules_XML(fileName):
-    print "Parsing file " + fileName + "..."
-    tree = ET.parse(fileName)
+    if root is None:
+        print "fetch_health_rules: Failed to retrieve health rules for application " + str(app_ID)
+        return None
+
+    # Add loaded events to the event dictionary
+    healthruleDict.update({str(app_ID):root})
+
+    if 'DEBUG' in locals():
+        print "fetch_health_rules: Loaded " + str(len(root.getchildren())) + " health rules."
+
+    return len(root.getchildren())
+
+def convert_health_rules_XML_to_CSV(inFileName,outFilename=None):
+    tree = ET.parse(inFileName)
     root = tree.getroot()
-    parse_health_rules_XML(root)
+    generate_health_rules_CSV(app_ID=0,healthrules=root,fileName=outFilename)
 
-def parse_health_rules_XML(root):
+def generate_health_rules_CSV(app_ID,healthrules=None,fileName=None):
+    if healthrules is None and str(app_ID) not in healthruleDict:
+        print "Health Rules for application "+str(app_ID)+" not loaded."
+        return
+    elif healthrules is None and str(app_ID) in healthruleDict:
+        healthrules = healthruleDict[str(app_ID)]
 
-    if root.find('health-rule') is None:
+    if fileName is not None:
+        try:
+            csvfile = open(fileName, 'w')
+        except:
+            print ("Could not open output file " + fileName + ".")
+            return (-1)
+    else:
+        csvfile = sys.stdout
+
+    # create the csv writer object
+    fieldnames = ['HealthRule', 'Duration', 'Schedule', 'Enabled', 'Entity_Criteria', 'Critical_Condition']
+    filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
+    filewriter.writeheader()
+
+    if healthrules.find('health-rule') is None:
         print "No Health rules defined"
-        for child in root:
+        for child in healthrules:
             print(child.tag, child.attrib, child.text)
             print ("\n")
         return None
 
-    for healthrule in root.findall('health-rule'):
+    for healthrule in healthrules.findall('health-rule'):
 
         Enabled = ( healthrule.find('enabled').text == "true" )
     #    if Enabled == "false":
@@ -192,6 +209,10 @@ def parse_health_rules_XML(root):
             print "Unknown type: " + Type
             continue
 
+        Entity_Criteria = EntityType
+        for criteria in EntityCriteria:
+            Entity_Criteria = Entity_Criteria + "\n  " + criteria
+
         HRname = healthrule.find('name').text
         Duration = healthrule.find('duration-min').text
 
@@ -257,41 +278,28 @@ def parse_health_rules_XML(root):
     #    else:
     #        print ("No warning-execution-criteria for health-rule: "+healthrule.find('name').text)
 
-        healthruleList.append(HealthRule(HRname,Duration,Schedule,Enabled,EntityType,EntityCriteria,CritCondition))
-#    print "Number of health rules:" + str(len(healthruleList))
-#    for healthrule in healthruleList:
-#        print str(healthrule)
-
-def write_health_rules_CSV(fileName=None):
-    if fileName is not None:
-        try:
-            csvfile = open(fileName, 'w')
-        except:
-            print ("Could not open output file " + fileName + ".")
-            return (-1)
-    else:
-        csvfile = sys.stdout
-
-    # create the csv writer object
-    fieldnames = ['HealthRule', 'Duration', 'Schedule', 'Enabled', 'Entity_Criteria', 'Critical_Condition']
-    filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
-    filewriter.writeheader()
-
-    if len(healthruleList) > 0:
-        for healthrule in healthruleList:
-            Entity_Criteria = healthrule.entityType
-            for criteria in healthrule.entityCriteria:
-                Entity_Criteria = Entity_Criteria + "\n  " + criteria
-
             try:
-                filewriter.writerow({'HealthRule': healthrule.name,
-                                    'Duration': healthrule.duration,
-                                    'Schedule': healthrule.schedule,
-                                    'Enabled': healthrule.enabled,
+                filewriter.writerow({'HealthRule': HRname,
+                                    'Duration': Duration,
+                                    'Schedule': Schedule,
+                                    'Enabled': Enabled,
                                     'Entity_Criteria': Entity_Criteria,
-                                    'Critical_Condition':healthrule.critCondition})
+                                    'Critical_Condition':CritCondition})
             except:
                 print ("Could not write to the output.")
-                csvfile.close()
+                if fileName is not None: csvfile.close()
                 return (-1)
-        csvfile.close()
+        if fileName is not None: csvfile.close()
+
+def get_health_rules(serverURL,app_ID,userName=None,password=None,token=None):
+    if serverURL == "dummyserver":
+        build_test_health_rules(app_ID)
+    elif userName and password:
+        if fetch_health_rules(serverURL,app_ID,userName=userName,password=password) == 0:
+            print "get_health_rules: Failed to retrieve health rules for application " + str(app_ID)
+            return None
+    elif token:
+        if fetch_health_rules(serverURL,app_ID,token=token) == 0:
+            print "get_health_rules: Failed to retrieve health rules for application " + str(app_ID)
+            return None
+    generate_health_rules_CSV(app_ID)

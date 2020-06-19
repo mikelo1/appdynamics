@@ -6,7 +6,7 @@ from applications import load_applications, generate_applications_CSV, getID
 from transactiondetection import load_transactiondetection_XML, fetch_transactiondetection, write_transactiondetection_CSV
 from businesstransactions import load_business_transactions_JSON, fetch_business_transactions, write_business_transactions_CSV
 from backends import load_backends_JSON, fetch_backends, write_backends_CSV
-from healthrules import load_health_rules_XML, fetch_health_rules, write_health_rules_CSV
+from healthrules import get_health_rules, convert_health_rules_XML_to_CSV
 from schedules import get_schedules
 from events import get_healthrule_violations
 from policies import get_policies_legacy
@@ -207,17 +207,16 @@ elif ENTITY.lower() == "allothertraffic":
 ### Alerts & Respond related entities
 elif ENTITY.lower() == "healthrules":
     if options.inFileName:
-        load_health_rules_XML(options.inFileName)
+        convert_health_rules_XML_to_CSV(options.inFileName,options.outFileName)
     elif options.user and options.password and options.hostname and options.application:
         baseUrl = buildBaseURL(options.hostname,options.port,options.SSLEnabled)
         load_applications(baseUrl,options.user,options.password)
         appID=getID(options.application)
         if appID > 0:
             options.application=str(appID)
-        fetch_health_rules(baseUrl+"/controller/",options.user,options.password,options.application)
+        get_health_rules(baseUrl,userName=options.user,password=options.password,app_ID=options.application,fileName=options.outFileName)
     else:
         optParser.error("Missing arguments")
-    write_health_rules_CSV(options.outFileName)
 elif ENTITY.lower() == "schedules":
     if options.inFileName:
         # TODO: Something about it
