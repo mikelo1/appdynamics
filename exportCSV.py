@@ -3,7 +3,7 @@ import sys
 import os.path
 from datetime import datetime, timedelta
 from applications import load_applications, generate_applications_CSV, getID
-from transactiondetection import load_transactiondetection_XML, fetch_transactiondetection, write_transactiondetection_CSV
+from transactiondetection import get_detection_rules, convert_transactiondetection_XML_to_CSV
 from businesstransactions import load_business_transactions_JSON, fetch_business_transactions, write_business_transactions_CSV
 from backends import load_backends_JSON, fetch_backends, write_backends_CSV
 from healthrules import get_health_rules, convert_health_rules_XML_to_CSV
@@ -90,18 +90,16 @@ if ENTITY.lower() == "applications":
         optParser.error("Missing arguments")
 elif ENTITY.lower() == "transactiondetection":
     if options.inFileName:
-        load_transactiondetection_XML(options.inFileName)
+        convert_transactiondetection_XML_to_CSV(options.inFileName)
     elif options.user and options.password and options.hostname and options.application:
         baseUrl = buildBaseURL(options.hostname,options.port,options.SSLEnabled)
         load_applications(baseUrl,options.user,options.password)
         appID=getID(options.application)
-        if appID < 0:
-            print "Application",options.application,"doesn't exist."
-            exit(1)
-        fetch_transactiondetection(baseUrl+"/controller/",options.user,options.password,str(appID))
+        if appID > 0:
+            options.application=str(appID)
+        get_detection_rules(baseUrl,userName=options.user,password=options.password,app_ID=options.application,fileName=options.outFileName)
     else:
         optParser.error("Missing arguments")
-    write_transactiondetection_CSV(options.outFileName)
 elif ENTITY.lower() == "business-transactions":
     if options.inFileName:
         load_business_transactions_JSON(options.inFileName)

@@ -1,11 +1,11 @@
 #!/usr/bin/python
-import requests
 import xml.etree.ElementTree as ET
 import json
 import csv
 import sys
+from appdRESTfulAPI import fetch_RESTful_XML
 
-detectionruleList = []
+detectionruleDict = dict()
 class DetectionRule:
     name         = ""
     matchRuleList= []
@@ -33,104 +33,57 @@ class MatchCriteria:
         else:
             return "({0},{1},{2},{3})".format(self.dataType,self.field,self.criteria,self.strings)
 
+###
+ # Fetch transaction detection rules from a controller then add them to the detectionrule dictionary. Provide either an username/password or an access token.
+ # @param serverURL Full hostname of the Appdynamics controller. i.e.: https://demo1.appdynamics.com:443
+ # @param app_ID the ID number of the detection rules to fetch
+ # @param userName Full username, including account. i.e.: myuser@customer1
+ # @param password password for the specified user and host. i.e.: mypassword
+ # @param token API acccess token
+ # @return the number of fetched transaction detection rules. Zero if no detection rule was found.
+###
+def fetch_transactiondetection(serverURL,app_ID,userName=None,password=None,token=None):
+    if 'DEBUG' in locals(): print ("Fetching Auto Detection Rules for App " + str(app_ID) + "...")
+    # Export Transaction Detection Rules for All Entry Point Types
+    # GET /controller/transactiondetection/application_id/[tier_name/]rule_type  
+    restfulPath = "/controller/transactiondetection/" + str(app_ID) + "/auto"
+    if userName and password:
+        root = fetch_RESTful_XML(restfulPath,userName=userName,password=password)
+    elif token:
+        root = fetch_RESTful_XML(restfulPath)
 
-def fetch_transactiondetection(baseUrl,userName,password,app_ID):
-    print ("Fetching Auto Detection Rules for App " + app_ID + "...")
-    try: ## //${App_ID}/auto -o autodetection-${App_Name}.xml
-        response = requests.get(baseUrl + "transactiondetection/" + app_ID + "/auto", auth=(userName, password))
-    except:
-        print ("Could not get authentication token from " + baseUrl + ".  Do you have the right controller hostname?")
-        print "status:", response.status_code
-        print "single header:", response.headers['content-type']
-        print "Writing content to file: response.txt"
-        file1 = open("response.txt","w") 
-        file1.write(response.content)
-        file1.close() 
-        exit(1)
-
-    try:
-        root = ET.fromstring(response.content)
-    except:
-        print ("Could not process authentication token for user " + userName + ".  Did you mess up your username/password?")
-        print "status:", response.status_code
-        print "single header:", response.headers['content-type']
-        print "Writing content to file: response.txt"
-        file1 = open("response.txt","w") 
-        file1.write(response.content)
-        file1.close() 
-        exit(1)
-
-    print ("Fetching Custom Detection Rules for App " + app_ID + "...")
-    try: ## //${App_ID}/auto -o autodetection-${App_Name}.xml
-        response = requests.get(baseUrl + "transactiondetection/" + app_ID + "/custom", auth=(userName, password))
-    except:
-        print ("Could not get authentication token from " + baseUrl + ".  Do you have the right controller hostname?")
-        print "status:", response.status_code
-        print "single header:", response.headers['content-type']
-        print "Writing content to file: response.txt"
-        file1 = open("response.txt","w") 
-        file1.write(response.content)
-        file1.close() 
-        exit(1)
-
-    try:
-        rootCustom = ET.fromstring(response.content)
-    except:
-        print ("Could not process authentication token for user " + userName + ".  Did you mess up your username/password?")
-        print "status:", response.status_code
-        print "single header:", response.headers['content-type']
-        print "Writing content to file: response.txt"
-        file1 = open("response.txt","w") 
-        file1.write(response.content)
-        file1.close() 
-        exit(1)
- 
-    auto_data_rule_list = root.find("rule-list")
-    custom_data_rule_list = rootCustom.find("rule-list")
-    for custom_data_rule in custom_data_rule_list:
-        auto_data_rule_list.append(custom_data_rule)
-    parse_transactiondetection_XML(root)
-
-def load_transactiondetection_XML(fileName):
-    print "Parsing file " + fileName + "..."
-    tree = ET.parse(fileName)
-    root = tree.getroot()
-    parse_transactiondetection_XML(root)
-
-def parse_transactiondetection_XML(root):
-    ruleList = root.find('rule-list')
-    if ruleList is None:
-        print "No Detection Rules defined"
-        for child in root:
-            print(child.tag, child.attrib, child.text)
-            print ("\n")
+    if root is None:
+        print "fetch_transactiondetection: Failed to retrieve transaction detection rules for application " + str(app_ID)
         return None
-    
-    for detectrule in ruleList.findall('rule'):
 
-    #    for child in detectrule:
-    #       print(child.tag, child.attrib, child.text)
-    #    print ("\n")
+    if 'DEBUG' in locals(): print ("Fetching Custom Detection Rules for App " + str(app_ID) + "...")
+    restfulPath = "/controller/transactiondetection/" + str(app_ID) + "/custom"
+    if userName and password:
+        rootCustom = fetch_RESTful_XML(restfulPath,userName=userName,password=password)
+    elif token:
+        rootCustom = fetch_RESTful_XML(restfulPath)
 
-        ruleName = detectrule.attrib['rule-name'].encode('ASCII', 'ignore')
-        ruleType = detectrule.attrib['rule-type']
+    if rootCustom is None:
+        print "fetch_transactiondetection: Failed to retrieve transaction detection rules for application " + str(app_ID)
+        return None
 
-        if ruleType == "TX_MATCH_RULE":
-            txMatchRule = detectrule.find('tx-match-rule')
-            try:
-                txMatchRuleData = json.loads(txMatchRule.text)
-            except:
-                print ("Could not process JSON content:\n"+txMatchRule.text)
-                return None
-            parse_tx_match_rule(ruleName,txMatchRuleData)
-            
-        else:
-            print ("Uknown rule type: "+ruleType)
-            matchRule = txMatchRule.text
-            return None
-#    print "Number of detection rules:" + str(len(detectionruleList))
-#    for detectionrule in detectionruleList:
-#        print str(detectionrule) 
+    # Merge auto and custom detection rules
+    for custom_data_rule in rootCustom.find("rule-list"):
+        root.find("rule-list").append(custom_data_rule)
+
+    # Add loaded detection rules to the detectrules dictionary
+    detectionruleDict.update({str(app_ID):root})
+
+    if 'DEBUG' in locals():
+        print "fetch_transactiondetection: Loaded " + str(len(root.find("rule-list").getchildren())) + " transaction detection rules."
+
+    return len(root.find("rule-list").getchildren())
+
+def convert_transactiondetection_XML_to_CSV(inFileName,outFilename=None):
+    tree = ET.parse(inFileName)
+    root = tree.getroot()
+    generate_transactiondetection_CSV(app_ID=0,detectionRules=root,fileName=outFilename)    
+
 
 def parse_tx_match_rule(ruleName,txMatchRuleData):
     mRuleList = []
@@ -169,25 +122,25 @@ def parse_tx_match_rule(ruleName,txMatchRuleData):
                         matchCriteria = MatchCriteria(HTTPRequestCriteria,criteria,strings)
 
                     #### TO DO: Parameters | Headers | Cookies
-#                    elif (HTTPRequestCriteria == 'parameters' and httpmatch['parameters']) or (HTTPRequestCriteria == 'headers' and httpmatch['headers']) or (HTTPRequestCriteria == 'cookies' and httpmatch['cookies']):
-#                        if matchRule is not "":
-#                            matchRule = matchRule + "\n"
-#                        matchRule = matchRule + "HTTP_" + HTTPRequestCriteria + ": "
-#                        for parameter in httpmatch[HTTPRequestCriteria]:
-#                            for matchstring in parameter['name']['matchstrings']: 
-#                                matchRule = matchRule + "Name " + parameter['name']['type'] + ": " + matchstring + ", "
-#                            for matchstring in parameter['value']['matchstrings']: 
-#                                matchRule = matchRule + "Value " + parameter['value']['type'] + ": " + matchstring
-#                        matchCriteria = MatchCriteria(HTTPRequestCriteria,criteria,strings,field)
+                    # elif (HTTPRequestCriteria == 'parameters' and httpmatch['parameters']) or (HTTPRequestCriteria == 'headers' and httpmatch['headers']) or (HTTPRequestCriteria == 'cookies' and httpmatch['cookies']):
+                    #    if matchRule is not "":
+                    #        matchRule = matchRule + "\n"
+                    #    matchRule = matchRule + "HTTP_" + HTTPRequestCriteria + ": "
+                    #    for parameter in httpmatch[HTTPRequestCriteria]:
+                    #        for matchstring in parameter['name']['matchstrings']: 
+                    #            matchRule = matchRule + "Name " + parameter['name']['type'] + ": " + matchstring + ", "
+                    #        for matchstring in parameter['value']['matchstrings']: 
+                    #            matchRule = matchRule + "Value " + parameter['value']['type'] + ": " + matchstring
+                    #    matchCriteria = MatchCriteria(HTTPRequestCriteria,criteria,strings,field)
 
                     else:
                         continue
                 mRuleList.append(matchCriteria)
             elif mCondition['type'] == "INSTRUMENTATION_PROBE":
                 #### TO DO: POJO instrumentation parsing
-                print "INSTRUMENTATION_PROBE not supported yet"
+                print ("INSTRUMENTATION_PROBE not supported yet")
             else:
-                print "Match condition "+mCondition['type']+" not implemented yet."
+                print ("Match condition "+mCondition['type']+" not implemented yet.")
         
         actions = txMatchRuleData['txcustomrule']['actions']
         for action in actions:
@@ -211,12 +164,12 @@ def parse_tx_match_rule(ruleName,txMatchRuleData):
                         pass
                 elif 'httpsplitonpayload' in action['httpsplit']:
                     #### TO DO: Actions (Split Using Payload)
-                    print "httpsplitonpayload not supported yet"
+                    print ("httpsplitonpayload not supported yet")
                 else: 
                     print action['httpsplit']
             elif action['type'] == "POJO_SPLIT":
                 #### TO DO: POJO split
-                print "POJO split not supported yet"
+                print ("POJO split not supported yet")
                 pass
             else: 
                 print action['type']
@@ -224,26 +177,23 @@ def parse_tx_match_rule(ruleName,txMatchRuleData):
 
     elif matchRuleType == "AUTOMATIC_DISCOVERY":
         #### TO DO: Automatic discovery rules
-        print "Automatic discovery rules not supported yet"
+        print ("Automatic discovery rules not supported yet")
     else:
         print ("Uknown rule type: "+matchRuleType)
 
-#    print "Number of detection rules:" + str(len(mRuleList))
-#    for mRule in mRuleList:
-#        print str(mRule)
-    detectionruleList.append(DetectionRule(ruleName,mRuleList,httpSplit))
+    return DetectionRule(ruleName,mRuleList,httpSplit)
 
-def get_transactiondetections_matching_URL(URL):
-    pass 
-    TD_List = []
-    if len(detectionruleList) > 0:
-        for detectionrule in detectionruleList:
-            #### TO DO: Automatic discovery rules
-            pass
-    else:
-        return None
+def generate_transactiondetection_CSV(app_ID,detectionRules=None,fileName=None):
+    if detectionRules is None and str(app_ID) not in detectionruleDict:
+        print "Detection Rules for application "+str(app_ID)+" not loaded."
+        return
+    elif detectionRules is None and str(app_ID) in detectionruleDict:
+        detectionRules = detectionruleDict[str(app_ID)]
 
-def write_transactiondetection_CSV(fileName=None):
+    # for child in detectionRules:
+    #     print(child.tag, child.attrib, child.text)
+    #     print ("\n")
+
     if fileName is not None:
         try:
             csvfile = open(fileName, 'w')
@@ -258,27 +208,69 @@ def write_transactiondetection_CSV(fileName=None):
     filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
     filewriter.writeheader()
 
+    for detectrule in detectionRules.find('rule-list').findall('rule'):
+
+        # for child in detectrule:
+        #    print(child.tag, child.attrib, child.text)
+        # print ("\n")
+
+        ruleName = detectrule.attrib['rule-name'].encode('ASCII', 'ignore')
+        ruleType = detectrule.attrib['rule-type']
+
+        if ruleType == "TX_MATCH_RULE":
+            txMatchRule = detectrule.find('tx-match-rule')
+            try:
+                txMatchRuleData = json.loads(txMatchRule.text)
+            except:
+                print ("Could not process JSON content:\n"+txMatchRule.text)
+                continue
+            match_rule = parse_tx_match_rule(ruleName,txMatchRuleData)
+        else:
+            print ("Uknown rule type: "+ruleType)
+            continue
+
+        ruleList_str = ""
+        for matchrule in match_rule.matchRuleList:
+            if ruleList_str != "":
+                ruleList_str = ruleList_str + "\n" + str(matchrule)
+            else:
+                ruleList_str = str(matchrule)
+        splitList_str = ""
+        for httpSplit in match_rule.httpSplitList:
+            if splitList_str != "":
+                splitList_str = splitList_str + "\n" + str(httpSplit)
+            else:
+                splitList_str = str(httpSplit)
+
+        try:
+            filewriter.writerow({'Name': match_rule.name,
+                             'MatchRuleList': ruleList_str,
+                             'HttpSplit': splitList_str})
+        except:
+            print ("Could not write to the output.")
+            if fileName is not None: csvfile.close()
+            exit(1)
+    if fileName is not None: csvfile.close()
+
+def get_detection_rules(serverURL,app_ID,userName=None,password=None,token=None):
+    if serverURL == "dummyserver":
+        build_test_transactiondetections(app_ID)
+    elif userName and password:
+        if fetch_transactiondetection(serverURL,app_ID,userName=userName,password=password) == 0:
+            print "get_detection_rules: Failed to retrieve transaction detection rules for application " + str(app_ID)
+            return None
+    elif token:
+        if fetch_transactiondetection(serverURL,app_ID,token=token) == 0:
+            print "get_detection_rules: Failed to retrieve transaction detection rules for application " + str(app_ID)
+            return None
+    generate_transactiondetection_CSV(app_ID)
+
+def get_transactiondetections_matching_URL(URL):
+    pass 
+    TD_List = []
     if len(detectionruleList) > 0:
         for detectionrule in detectionruleList:
-            ruleList_str = ""
-            for matchrule in detectionrule.matchRuleList:
-                if ruleList_str != "":
-                    ruleList_str = ruleList_str + "\n" + str(matchrule)
-                else:
-                    ruleList_str = str(matchrule)
-            splitList_str = ""
-            for httpSplit in detectionrule.httpSplitList:
-                if splitList_str != "":
-                    splitList_str = splitList_str + "\n" + str(httpSplit)
-                else:
-                    splitList_str = str(httpSplit)
-
-            try:
-                filewriter.writerow({'Name': detectionrule.name,
-                                 'MatchRuleList': ruleList_str,
-                                 'HttpSplit': splitList_str})
-            except:
-                print ("Could not write to the output.")
-                csvfile.close()
-                exit(1)
-        csvfile.close()
+            #### TO DO: Automatic discovery rules
+            pass
+    else:
+        return None

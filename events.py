@@ -12,7 +12,7 @@ eventDict = dict()
 ###
  # Fetch healtrule violations from a controller then add them to the events dictionary. Provide either an username/password or an access token.
  # @param serverURL Full hostname of the Appdynamics controller. i.e.: https://demo1.appdynamics.com:443
- # @param app_ID the ID number of the application policies to fetch
+ # @param app_ID the ID number of the application healtrule violations to fetch
  # @param minutesBeforeNow fetch only events newer than a relative duration in minutes
  # @param userName Full username, including account. i.e.: myuser@customer1
  # @param password password for the specified user and host. i.e.: mypassword
