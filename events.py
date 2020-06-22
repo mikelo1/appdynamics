@@ -56,7 +56,10 @@ def fetch_healthrule_violations(serverURL,app_ID,minutesBeforeNow,userName=None,
             if 'DEBUG' in locals(): print "fetch_healthrule_violations: Added " + str(len(chunked_root.getchildren())) + " events."
 
     # Add loaded events to the event dictionary
-    eventDict.update({str(app_ID):root})
+    if 'root' in locals():
+        eventDict.update({str(app_ID):root})
+    else:
+        return 0
 
     if 'DEBUG' in locals():
         print "fetch_healthrule_violations: Loaded " + str(len(root.getchildren())) + " events."

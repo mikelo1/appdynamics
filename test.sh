@@ -24,5 +24,6 @@ done
 #./appdctl.py get health-rules -a FullOnline,hipoteca-api-aks,hipoteca-portal
 #./appdctl.py get detection-rules -a FullOnline,hipoteca-api-aks,hipoteca-portal
 #./appdctl.py get healthrule-violations -a FullOnline --since=1d12h
+#./appdctl.py get snapshots -a FullOnline --since=1d12h
 #./appdctl.py patch schedules -a sandbox -p '{"timezone":"Europe\/Belgrade"}'
 #./appdctl.py patch schedules -a sandbox -p '{"timezone":"Europe\/Brussels"}'

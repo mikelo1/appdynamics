@@ -11,7 +11,7 @@ from schedules import get_schedules
 from events import get_healthrule_violations, convert_events_XML_to_CSV
 from policies import get_policies_legacy, convert_policies_JSON_to_CSV
 from actions import get_actions_legacy, convert_actions_JSON_to_CSV
-from snapshots import load_snapshots_JSON, fetch_snapshots, write_snapshots_CSV
+from snapshots import get_snapshots, convert_snapshots_JSON_to_CSV
 from allothertraffic import load_allothertraffic_JSON, fetch_allothertraffic, write_allothertraffic_CSV
 from dashboards import load_dashboards_JSON, fetch_dashboards, write_dashboards_CSV
 from optparse import OptionParser, OptionGroup
@@ -130,7 +130,7 @@ elif ENTITY.lower() == "backends":
     write_backends_CSV(options.outFileName)
 elif ENTITY.lower() == "snapshots":
     if options.inFileName:
-        load_snapshots_JSON(options.inFileName)
+        convert_snapshots_JSON_to_CSV(options.inFileName,options.outFileName)
     elif options.user and options.password and options.hostname and options.application:
         baseUrl = buildBaseURL(options.hostname,options.port,options.SSLEnabled)
         load_applications(baseUrl,options.user,options.password)
@@ -138,32 +138,9 @@ elif ENTITY.lower() == "snapshots":
         if appID < 0:
             print "Application",options.application,"doesn't exist."
             exit(1)
-        if options.timerange and options.timerange.endswith("day"):
-            numberOfDays=int(options.timerange[0:options.timerange.find("day")])
-            if numberOfDays > 14:
-                print "Warning: time range [",numberOfDays,"] cannot be longer than 14 days."
-                numberOfDays=14
-        elif options.timerange:
-            print "Time range must be given in days."
-            exit (1)
-        else:
-            optParser.error("Missing arguments")
-            exit (1)
-
-        for i in range(3,numberOfDays*24,3): # loop latest numberOfDays days in chunks of 3 hours
-            for retry in range(1,4):
-                data_chunck = fetch_snapshots(baseUrl+"/controller/",options.user,options.password,str(appID), \
-                                                "AFTER_TIME","180",datetime.today()-timedelta(hours=i)) # fetch 3 hours of data
-                if data_chunck is not None:
-                    break
-                elif retry < 3:
-                    print "Failed to fetch healthrule violations. Retrying (",retry," of 3)..."
-                else:
-                    print "Giving up."
-                    exit (1)
+        get_snapshots(baseUrl,options.application,"1440",userName=options.user,password=options.password)
     else:
         optParser.error("Missing arguments")
-    write_snapshots_CSV(options.outFileName)
 elif ENTITY.lower() == "allothertraffic":
     if options.inFileName:
         load_allothertraffic_JSON(options.inFileName)

@@ -230,3 +230,9 @@ def getName(appID):
     token=get_access_token(server,username)
     if token is None: return -1
     return fetch_application(server,appID,token=token)
+
+def getNodeName(nodeID):
+    return str(nodeID)
+
+def getTierName(tierID):
+    return str(tierID)

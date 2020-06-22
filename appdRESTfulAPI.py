@@ -67,13 +67,17 @@ def get_access_token(serverURL=None,API_Client=None,Client_Secret=None):
  # @param password password for the specified user and host. i.e.: mypassword
  # @return the response JSON data. Null if no JSON data was received.
 ###
-def fetch_RESTful_JSON(RESTfulPath,userName=None,password=None):
+def fetch_RESTful_JSON(RESTfulPath,params=None,userName=None,password=None):
     if 'DEBUG' in locals(): print ("Fetching JSON from RESTful path " + RESTfulPath + "...")
     serverURL = get_current_context_serverURL()
+    if params is None:
+        params = {"output": "JSON"}
+    elif 'output' not in params:
+        params.update({"output": "JSON"})
     if userName and password:
         try:
             response = requests.get(serverURL + RESTfulPath,
-                                    auth=(userName, password), params={"output": "JSON"})
+                                    auth=(userName, password), params=params)
         except requests.exceptions.InvalidURL:
             print ("Invalid URL: " + serverURL + RESTfulPath + ". Do you have the right controller hostname and RESTful path?")
             return None
@@ -82,7 +86,7 @@ def fetch_RESTful_JSON(RESTfulPath,userName=None,password=None):
         if token is None: return None
         try:
         	response = requests.get(serverURL + RESTfulPath,
-                                headers={"Authorization": "Bearer "+token}, params={"output": "JSON"})
+                                headers={"Authorization": "Bearer "+token}, params=params)
         except requests.exceptions.InvalidURL:
             print ("Invalid URL: " + serverURL + RESTfulPath + ". Do you have the right controller hostname and RESTful path?")
             return None

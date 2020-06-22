@@ -1,165 +1,83 @@
 #!/usr/bin/python
-import requests
 import json
 import csv
 import sys
 from datetime import datetime, timedelta
 import time
+from appdRESTfulAPI import fetch_RESTful_JSON, timerange_to_params
+from applications import getTierName, getNodeName
 
-tierList = []
-snapshotList = []
-class Snapshot:
-    time     = 0
-    URL      = ""
-    BT_ID    = 0
-    tier     = ""
-    node     = ""
-    timeTaken= 0
-    def __init__(self,time,URL,BT_ID,tier,node,timeTaken):
-        self.time     = time
-        self.URL      = URL
-        self.BT_ID    = BT_ID
-        self.tier     = tier
-        self.node     = node
-        self.timeTaken= timeTaken
-    def __str__(self):
-        return "({0},{1},{2},{3},{4},{5})".format(self.time,self.URL,self.BT_ID,self.tier,self.node,self.timeTaken)
+snapshotDict = dict()
 
-
-def fetch_tiers_and_nodes():
-    try:
-        print ("Fetching tiers for application " + app_ID + "...")
-        response = requests.get(baseUrl + "rest/applications/" + app_ID + "/tiers", auth=(userName, password), params={"output": "JSON"})
-    except:
-       print ("Could not get the tiers of application " + app_ID + ".")
-
-    try:
-        tiers = json.loads(response.content)
-    except:
-        print ("Could not parse the tiers for application " + app_ID + ".")
-    for tier in tiers:
-        try:
-            print ("Fetching nodes for tier " + tier['name'] + "...")
-            response = requests.get(baseUrl + "rest/applications/" + app_ID + "/tiers/" + str(tier['id']) + "/nodes", auth=(userName, password), params={"output": "JSON"})
-        except:
-            print ("Could not get the nodes of tier " + tier['name'] + ".")
-
-        try:
-            nodes = json.loads(response.content)
-        except:
-            print ("Could not parse the nodes for tier " + tier['name'] + " in application " + app_ID + ".")
-
-        nodeList = []
-        for node in nodes:
-            nodeList.append((node['id'],node['name']))
-        tierList.append((tier['id'],tier['name'],nodeList))
-
-def print_tiers_and_nodes():
-    if len(tierList) > 0:
-        for tier in tierList:
-            print ("Tier ID: " + str(tier[0]) + " Tier Name: " + tier[1])
-            for node in tier[2]:
-                print ("  Node ID: " + str(node[0]) + "Node Name: " + node[1])
-    else:
-        print("Tier list is empty.")
-
-def fetch_snapshots(baseUrl,userName,password,app_ID,time_range_type,range_param1,range_param2):
-   # time_range_type="AFTER_TIME" # {"BEFORE_NOW","BEFORE_TIME","AFTER_TIME","BETWEEN_TIMES"
-   # duration_in_mins: {1day:"1440" 1week:"10080" 1month:"43200"}
-   # range_param1=datetime.today()-timedelta(days=1)
+###
+ # Fetch snapshot from a controller then add them to the snapshot dictionary. Provide either an username/password or an access token.
+ # @param serverURL Full hostname of the Appdynamics controller. i.e.: https://demo1.appdynamics.com:443
+ # @param app_ID the ID number of the application snapshot to fetch
+ # @param minutesBeforeNow fetch only snapshots newer than a relative duration in minutes
+ # @param userName Full username, including account. i.e.: myuser@customer1
+ # @param password password for the specified user and host. i.e.: mypassword
+ # @param token API acccess token
+ # @return the number of fetched snapshots. Zero if no snapshot was found.
+###
+def fetch_snapshots(serverURL,app_ID,minutesBeforeNow,userName=None,password=None,token=None):
     MAX_RESULTS="9999"
+    if 'DEBUG' in locals(): print ("Fetching snapshots for App " + str(app_ID) + ", for the last "+str(minutesBeforeNow)+" minutes...")
+    #Retrieve Transaction Snapshots
+    # GET /controller/rest/applications/application_name/request-snapshots
+    restfulPath = "/controller/rest/applications/" + str(app_ID) + "/request-snapshots"
 
-    if time_range_type == "BEFORE_NOW" and range_param1 > 0:
-        duration_in_mins = range_param1
-        print ("Fetching snapshots for App "+app_ID+", "+time_range_type+", "+range_param1+"...")
-        try:
-            response = requests.get(baseUrl + "rest/applications/" + app_ID + "/request-snapshots", auth=(userName, password),\
-                                    params={"time-range-type": time_range_type,"duration-in-mins": duration_in_mins, "output": "JSON", "maximum-results": MAX_RESULTS})
-        except:
-            #print ("Could not get authentication token from " + baseUrl + ".  Do you have the right controller hostname?")
-            return None
-    elif time_range_type == "BEFORE_TIME" and range_param1 > 0 and range_param2 is not None:
-        duration_in_mins = range_param1
-        end_time = long(time.mktime(range_param2.timetuple())*1000)
-        print ("Fetching snapshots for App "+app_ID+", "+time_range_type+", "+range_param1+", "+str(range_param2)+"...")
-        try:
-            response = requests.get(baseUrl + "rest/applications/" + app_ID + "/request-snapshots", auth=(userName, password),\
-                                params={"time-range-type": time_range_type,"duration-in-mins": duration_in_mins,"end-time": end_time, "output": "JSON", "maximum-results": MAX_RESULTS})
-        except:
-            #print ("Could not get authentication token from " + baseUrl + ".  Do you have the right controller hostname?")
-            return None
-    elif time_range_type == "AFTER_TIME" and range_param1 > 0 and range_param2 is not None:
-        duration_in_mins = range_param1
-        start_time = long(time.mktime(range_param2.timetuple())*1000)
-        print ("Fetching snapshots for App "+app_ID+", "+time_range_type+", "+range_param1+", "+str(range_param2)+"...")
-        try:
-            response = requests.get(baseUrl + "rest/applications/" + app_ID + "/request-snapshots", auth=(userName, password),\
-                                params={"time-range-type": time_range_type,"duration-in-mins": duration_in_mins,"start-time": start_time, "output": "JSON", "maximum-results": MAX_RESULTS})
-        except:
-            #print ("Could not get authentication token from " + baseUrl + ".  Do you have the right controller hostname?")
-            return None
-    elif time_range_type == "BETWEEN_TIMES" and range_param1 is not None and range_param2 is not None:
-        start_time = long(time.mktime(range_param1.timetuple())*1000)
-        end_time = long(time.mktime(range_param2.timetuple())*1000)
-        print ("Fetching snapshots for App "+app_ID+", "+time_range_type+", "+range_param1+", "+range_param2+"...")
-        try:
-            response = requests.get(baseUrl + "rest/applications/" + app_ID + "/request-snapshots", auth=(userName, password),\
-                                params={"time-range-type": time_range_type,"start-time": start_time,"end-time": end_time, "output": "JSON", "maximum-results": MAX_RESULTS})
-        except:
-            #print ("Could not get authentication token from " + baseUrl + ".  Do you have the right controller hostname?")
-            return None
+    for i in range(int(minutesBeforeNow),0,-180): # loop "minutesBeforeNow" minutes in chunks of 180 minutes (3 hours)
+        sinceTime = datetime.today()-timedelta(minutes=i)
+        sinceEpoch= long(time.mktime(sinceTime.timetuple())*1000)
+        params = timerange_to_params("AFTER_TIME",duration="1440",startEpoch=sinceEpoch)
+
+        for retry in range(1,4):
+            if 'DEBUG' in locals(): print ("Fetching snapshots for App " + str(app_ID) + "params "+str(params)+"...")
+            if userName and password:
+                data_chunck = fetch_RESTful_JSON(restfulPath,params=params,userName=userName,password=password)
+            elif token:
+                data_chunck = fetch_RESTful_JSON(restfulPath,params=params)
+
+            if data_chunck is not None:
+                break
+            elif retry < 3:
+                print "Failed to fetch snapshots. Retrying (",retry," of 3)..."
+            else:
+                print "Giving up."
+                return None
+    
+        if 'snapshots' not in locals():
+            snapshots = data_chunck
+            if 'DEBUG' in locals(): print "fetch_snapshots: Added " + str(len(snapshots)) + " snapshots."
+        else:
+            # Append retrieved data to root
+            for new_snapshot in data_chunck:
+                snapshots.append(new_snapshot)
+            if 'DEBUG' in locals(): print "fetch_snapshots: Added " + str(len(snapshots)) + " snapshots."
+
+    # Add loaded events to the event dictionary
+    if 'snapshots' in locals():
+        snapshotDict.update({str(app_ID):snapshots})
     else:
-        print ("Unknown time range or missing arguments. Exiting...")
-        return None
+        return 0
 
-    if response.status_code != 200:
-        print "Something went wrong on HTTP request:"
-        print "   status:", response.status_code
-        print "   header:", response.headers
-        print "Writing content to file: response.txt"
-        file1 = open("response.txt","w") 
-        file1.write(response.content)
-        file1.close() 
-        return None
+    if 'DEBUG' in locals():
+        print "fetch_snapshots: Loaded " + str(len(snapshots)) + " snapshots."
 
-    try:
-        snapshots = json.loads(response.content)
-    except:
-        print ("Could not process authentication token for user " + userName + ".  Did you mess up your username/password?")
-        print "   status:", response.status_code
-        print "   header:", response.headers
-        print "Writing content to file: response.txt"
-        file1 = open("response.txt","w") 
-        file1.write(response.content)
-        file1.close() 
-        return None
-    parse_snapshots(snapshots)
-    return snapshots
+    return len(snapshots)
 
-def load_snapshots_JSON(fileName):
-    print "Parsing file " + fileName + "..."
-    json_file = open(fileName)
+def convert_snapshots_JSON_to_CSV(inFileName,outFilename=None):
+    json_file = open(inFileName)
     snapshots = json.load(json_file)
-    parse_snapshots(snapshots)
+    generate_snapshots_CSV(app_ID=0,snapshots=snapshots,fileName=outFilename)
 
-def parse_snapshots(snapshots):
-    for snapshot in snapshots:
-        Time = datetime.fromtimestamp(float(snapshot['localStartTime'])/1000).strftime('%Y-%m-%d %H:%M:%S')
-        Tier = snapshot['applicationComponentId']
-        Node = snapshot['applicationComponentNodeId']
-        if len(tierList) > 0:
-            for tier in tierList:
-                if tier[0] == snapshot['applicationComponentId']:
-                    Tier = tier[1]
-                    for node in tier[2]:
-                        if node[0] == snapshot['applicationComponentNodeId']:
-                            Node = node[1]
-        snapshotList.append(Snapshot(Time,snapshot['URL'],snapshot['businessTransactionId'],Tier,Node,snapshot['timeTakenInMilliSecs']))
-#    print "Number of snapshots:" + str(len(snapshotList))
-#    for snapshot in snapshotList:
-#        print str(snapshot) 
+def generate_snapshots_CSV(app_ID,snapshots=None,fileName=None):
+    if snapshots is None and str(app_ID) not in snapshotDict:
+        print "Snapshots for application "+str(app_ID)+" not loaded."
+        return
+    elif snapshots is None and str(app_ID) in snapshotDict:
+        snapshots = snapshotDict[str(app_ID)]
 
-def write_snapshots_CSV(fileName=None):
     if fileName is not None:
         try:
             csvfile = open(fileName, 'w')
@@ -173,15 +91,33 @@ def write_snapshots_CSV(fileName=None):
     filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
     filewriter.writeheader()
 
-    for snapshot in snapshotList:
+    for snapshot in snapshots:
+        Time = datetime.fromtimestamp(float(snapshot['localStartTime'])/1000).strftime('%Y-%m-%d %H:%M:%S')
+        Tier = getTierName(snapshot['applicationComponentId'])
+        Node = getNodeName(snapshot['applicationComponentNodeId'])
+
         try:
-            filewriter.writerow({'Time': snapshot.time,
-                                'URL': snapshot.URL,
-                                'BussinessTransaction': snapshot.BT_ID,
-                                'Tier': snapshot.tier,
-                                'Node': snapshot.node,
-                                'ExeTime': snapshot.timeTaken})
+            filewriter.writerow({'Time': Time,
+                                'URL': snapshot['URL'],
+                                'BussinessTransaction': snapshot['businessTransactionId'],
+                                'Tier': Tier,
+                                'Node': Node,
+                                'ExeTime': snapshot['timeTakenInMilliSecs']})
         except:
             print ("Could not write to the output file " + fileName + ".")
-            csvfile.close()
+            if fileName is not None: csvfile.close()
             exit(1)
+    if fileName is not None: csvfile.close()
+
+def get_snapshots(serverURL,app_ID,minutesBeforeNow,userName=None,password=None,token=None):
+    if serverURL == "dummyserver":
+        build_test_events(app_ID)
+    elif userName and password:
+        if fetch_snapshots(serverURL,app_ID,minutesBeforeNow,userName=userName,password=password) == 0:
+            print "get_snapshots: Failed to retrieve snapshots for application " + str(app_ID)
+            return None
+    elif token:
+        if fetch_snapshots(serverURL,app_ID,minutesBeforeNow,token=token) == 0:
+            print "get_snapshots: Failed to retrieve snapshots for application " + str(app_ID)
+            return None
+    generate_snapshots_CSV(app_ID)
