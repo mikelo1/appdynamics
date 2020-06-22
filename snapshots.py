@@ -29,7 +29,7 @@ def fetch_snapshots(serverURL,app_ID,minutesBeforeNow,userName=None,password=Non
     for i in range(int(minutesBeforeNow),0,-180): # loop "minutesBeforeNow" minutes in chunks of 180 minutes (3 hours)
         sinceTime = datetime.today()-timedelta(minutes=i)
         sinceEpoch= long(time.mktime(sinceTime.timetuple())*1000)
-        params = timerange_to_params("AFTER_TIME",duration="1440",startEpoch=sinceEpoch)
+        params = timerange_to_params("AFTER_TIME",duration="180",startEpoch=sinceEpoch)
 
         for retry in range(1,4):
             if 'DEBUG' in locals(): print ("Fetching snapshots for App " + str(app_ID) + "params "+str(params)+"...")

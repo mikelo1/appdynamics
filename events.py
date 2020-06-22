@@ -1,11 +1,11 @@
 #!/usr/bin/python
-import xml.etree.ElementTree as ET
+import json
 import csv
 import sys
 from datetime import datetime, timedelta
 import time
 from applications import getName
-from appdRESTfulAPI import fetch_RESTful_XML, timerange_to_params
+from appdRESTfulAPI import fetch_RESTful_XML, fetch_RESTful_JSON, timerange_to_params
 
 eventDict = dict()
 
@@ -34,11 +34,11 @@ def fetch_healthrule_violations(serverURL,app_ID,minutesBeforeNow,userName=None,
         for retry in range(1,4):
             if 'DEBUG' in locals(): print ("Fetching healthrule violations for App " + str(app_ID) + "params "+str(params)+"...")
             if userName and password:
-                chunked_root = fetch_RESTful_XML(restfulPath,params=params,userName=userName,password=password)
+                data_chunck = fetch_RESTful_JSON(restfulPath,params=params,userName=userName,password=password)
             elif token:
-                chunked_root = fetch_RESTful_XML(restfulPath,params=params)
+                data_chunck = fetch_RESTful_JSON(restfulPath,params=params)
 
-            if chunked_root is not None:
+            if data_chunck is not None:
                 break
             elif retry < 3:
                 print "Failed to fetch healthrule violations. Retrying (",retry," of 3)..."
@@ -46,25 +46,25 @@ def fetch_healthrule_violations(serverURL,app_ID,minutesBeforeNow,userName=None,
                 print "Giving up."
                 return None
     
-        if 'root' not in locals():
-            root = chunked_root
-            if 'DEBUG' in locals(): print "fetch_healthrule_violations: Added " + str(len(root.getchildren())) + " events."
+        if 'events' not in locals():
+            events = data_chunck
+            if 'DEBUG' in locals(): print "fetch_healthrule_violations: Added " + str(len(data_chunck)) + " events."
         else:
             # Append retrieved data to root
-            for element in chunked_root:
-                root.append(element)
-            if 'DEBUG' in locals(): print "fetch_healthrule_violations: Added " + str(len(chunked_root.getchildren())) + " events."
+            for new_event in data_chunck:
+                events.append(new_event)
+            if 'DEBUG' in locals(): print "fetch_healthrule_violations: Added " + str(len(data_chunck)) + " events."
 
     # Add loaded events to the event dictionary
-    if 'root' in locals():
-        eventDict.update({str(app_ID):root})
+    if 'events' in locals():
+        eventDict.update({str(app_ID):events})
     else:
         return 0
 
     if 'DEBUG' in locals():
-        print "fetch_healthrule_violations: Loaded " + str(len(root.getchildren())) + " events."
+        print "fetch_healthrule_violations: Loaded " + str(len(events)) + " events."
 
-    return len(root.getchildren())
+    return len(events)
 
 def convert_events_XML_to_CSV(inFileName,outFilename=None):
     tree = ET.parse(inFileName)
@@ -92,43 +92,35 @@ def generate_events_CSV(app_ID,events=None,fileName=None):
     filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
     filewriter.writeheader()
 
-    for policyviolation in events.findall('policy-violation'):
+    for policyviolation in events:
 
-        Start_Time_Epoch = policyviolation.find('startTimeInMillis').text
+        Start_Time_Epoch = policyviolation['startTimeInMillis']
         Start_Time = datetime.fromtimestamp(float(Start_Time_Epoch)/1000).strftime('%Y-%m-%d %H:%M:%S')
 
-        Status = policyviolation.find('incidentStatus').text
+        Status = policyviolation['incidentStatus']
         if Status != "OPEN":
-            End_Time_Epoch = policyviolation.find('endTimeInMillis').text
+            End_Time_Epoch = policyviolation['endTimeInMillis']
             End_Time = datetime.fromtimestamp(float(End_Time_Epoch)/1000).strftime('%Y-%m-%d %H:%M:%S')
         else:
             End_Time = ""
 
-        sev = policyviolation.find('severity')
-        if sev is not None:
-            Severity = sev.text
-        else:
-            Severity = "Undefined"
+        Severity = policyviolation['severity'] if 'severity' in policyviolation else "Undefined"
 
-        Definition = policyviolation.find('triggeredEntityDefinition')
-        Type = Definition.find('entityType')
-        if Type.text == "POLICY":
-            entity = Definition.find('name')
-            if entity is not None:
-                PolicyName = entity.text
+        triggeredEntitytype = policyviolation['triggeredEntityDefinition']['entityType']
+        if triggeredEntitytype == "POLICY":
+            if 'name' in policyviolation['triggeredEntityDefinition']:
+                PolicyName = policyviolation['triggeredEntityDefinition']['name']
             else:
-                PolicyName = Definition.find('entityId').text
+                PolicyName = policyviolation['triggeredEntityDefinition']['entityId']
         else:
             PolicyName = ""
 
-        Definition = policyviolation.find('affectedEntityDefinition')
-        Type = Definition.find('entityType')
-        if Type.text == "BUSINESS_TRANSACTION" or Type.text == "APPLICATION_DIAGNOSTIC_DATA" or Type.text == "MOBILE_APPLICATION":
-            entity = Definition.find('name')
-            if entity is not None:
-                EntityName = entity.text
+        affectedEntityType = policyviolation['affectedEntityDefinition']['entityType']
+        if affectedEntityType in ["BUSINESS_TRANSACTION","APPLICATION_DIAGNOSTIC_DATA","MOBILE_APPLICATION"]:
+            if 'name' in policyviolation['affectedEntityDefinition']:
+                EntityName = policyviolation['affectedEntityDefinition']['name']
             else:
-                EntityName = Definition.find('entityId').text
+                EntityName = policyviolation['affectedEntityDefinition']['entityId']
         else:
             EntityName = ""
 

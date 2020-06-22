@@ -232,7 +232,9 @@ def getName(appID):
     return fetch_application(server,appID,token=token)
 
 def getNodeName(nodeID):
+    # TODO: search in data for node and return name
     return str(nodeID)
 
 def getTierName(tierID):
+    # TODO: search in data for tier and return name
     return str(tierID)
