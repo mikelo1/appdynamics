@@ -1,101 +1,87 @@
-#!/usr/bin/python
-import requests
+#!/usr/bin/pythons
 import json
 import csv
 import sys
-from businesstransactions import get_business_transaction_ID
+from businesstransactions import get_business_transaction_ID, fetch_business_transactions
+from appdRESTfulAPI import fetch_RESTful_JSON, timerange_to_params
 from datetime import datetime, timedelta
 import time
 
-OverflowBT_List = []
+appdDefaultTX_Dict = dict()
 
 class OverflowBT:
     URL= ""
     count = 0
-    BTtype= None
-    def __init__(self,URL,count,BTtype=None):
+    def __init__(self,URL,count):
         self.URL= URL
         self.count = count
-        self.BTtype= BTtype
     def __str__(self):
-        return "({0},{1},{2})".format(self.URL,self.count,self.BTtype)
+        return "({0},{1})".format(self.URL,self.count)
 
-
-def fetch_allothertraffic(baseUrl,userName,password,app_ID,time_range_type,range_param1,range_param2):
-   # time_range_type="AFTER_TIME" # {"BEFORE_NOW","BEFORE_TIME","AFTER_TIME","BETWEEN_TIMES"
-   # duration_in_mins: {1day:"1440" 1week:"10080" 1month:"43200"}
-   # range_param1=datetime.today()-timedelta(days=1)
+###
+ # Fetch AllOtherTraffic snapshots from a controller then add them to the AllOtherTraffic dictionary. Provide either an username/password or an access token.
+ # @param serverURL Full hostname of the Appdynamics controller. i.e.: https://demo1.appdynamics.com:443
+ # @param app_ID the ID number of the AllOtherTraffic snapshots to fetch
+ # @param minutesBeforeNow fetch only snapshots newer than a relative duration in minutes
+ # @param userName Full username, including account. i.e.: myuser@customer1
+ # @param password password for the specified user and host. i.e.: mypassword
+ # @param token API acccess token
+ # @return the number of fetched snapshots. Zero if no snapshot was found.
+###
+def fetch_allothertraffic(serverURL,app_ID,minutesBeforeNow,userName=None,password=None,token=None):
     MAX_RESULTS="9999"
-    AllOtherTraffic_ID = get_business_transaction_ID("_APPDYNAMICS_DEFAULT_TX_")
+    AllOtherTraffic_ID = get_business_transaction_ID(app_ID,"_APPDYNAMICS_DEFAULT_TX_")
     if AllOtherTraffic_ID is None:
-        return None
+        fetch_business_transactions(serverURL,app_ID,userName=None,password=None,token=None)
+        AllOtherTraffic_ID = get_business_transaction_ID(app_ID,"_APPDYNAMICS_DEFAULT_TX_")
+        if AllOtherTraffic_ID is None:        
+            return None
 
-    if time_range_type == "BEFORE_NOW" and range_param1 > 0:
-        duration_in_mins = range_param1
-        print ("Fetching all other traffic snapshots for App "+app_ID+", "+time_range_type+", "+range_param1+"...")
-        try:
-            response = requests.get(baseUrl + "rest/applications/" + app_ID + "/request-snapshots/", auth=(userName, password),\
-                                    params={"business-transaction-ids": AllOtherTraffic_ID,"time-range-type": time_range_type,"duration-in-mins": duration_in_mins, "output": "JSON", "maximum-results": MAX_RESULTS})
-        except:
-            #print ("Could not get authentication token from " + baseUrl + ".  Do you have the right controller hostname?")
-            return None
-    elif time_range_type == "BEFORE_TIME" and range_param1 > 0 and range_param2 is not None:
-        duration_in_mins = range_param1
-        end_time = long(time.mktime(range_param2.timetuple())*1000)
-        print ("Fetching all other traffic for App "+app_ID+", "+time_range_type+", "+range_param1+", "+str(range_param2)+"...")
-        try:
-            response = requests.get(baseUrl + "rest/applications/" + app_ID + "/request-snapshots", auth=(userName, password),\
-                                params={"business-transaction-ids": AllOtherTraffic_ID,"time-range-type": time_range_type,"duration-in-mins": duration_in_mins,"end-time": end_time, "output": "JSON", "maximum-results": MAX_RESULTS})
-        except:
-            #print ("Could not get authentication token from " + baseUrl + ".  Do you have the right controller hostname?")
-            return None
-    elif time_range_type == "AFTER_TIME" and range_param1 > 0 and range_param2 is not None:
-        duration_in_mins = range_param1
-        start_time = long(time.mktime(range_param2.timetuple())*1000)
-        print ("Fetching all other traffic for App "+app_ID+", "+time_range_type+", "+range_param1+", "+str(range_param2)+"...")
-        try:
-            response = requests.get(baseUrl + "rest/applications/" + app_ID + "/request-snapshots", auth=(userName, password),\
-                                params={"business-transaction-ids": AllOtherTraffic_ID,"time-range-type": time_range_type,"duration-in-mins": duration_in_mins,"start-time": start_time, "output": "JSON", "maximum-results": MAX_RESULTS})
-        except:
-            #print ("Could not get authentication token from " + baseUrl + ".  Do you have the right controller hostname?")
-            return None
-    elif time_range_type == "BETWEEN_TIMES" and range_param1 is not None and range_param2 is not None:
-        start_time = long(time.mktime(range_param1.timetuple())*1000)
-        end_time = long(time.mktime(range_param2.timetuple())*1000)
-        print ("Fetching all other traffic for App "+app_ID+", "+time_range_type+", "+range_param1+", "+range_param2+"...")
-        try:
-            response = requests.get(baseUrl + "rest/applications/" + app_ID + "/request-snapshots", auth=(userName, password),\
-                                params={"business-transaction-ids": AllOtherTraffic_ID,"time-range-type": time_range_type,"start-time": start_time,"end-time": end_time, "output": "JSON", "maximum-results": MAX_RESULTS})
-        except:
-            #print ("Could not get authentication token from " + baseUrl + ".  Do you have the right controller hostname?")
-            return None
+    if 'DEBUG' in locals(): print ("Fetching all other traffic snapshots for App "+str(app_ID)+"...")
+    # Retrieving All Other Traffic Business Transaction Metrics
+    # The All Other Traffic business transaction uses a special identifier in API URI paths, _APPDYNAMICS_DEFAULT_TX_
+    restfulPath = "/controller/rest/applications/" + str(app_ID) + "/request-snapshots"
+
+    for i in range(int(minutesBeforeNow),0,-180): # loop "minutesBeforeNow" minutes in chunks of 180 minutes (3 hours)
+        sinceTime = datetime.today()-timedelta(minutes=i)
+        sinceEpoch= long(time.mktime(sinceTime.timetuple())*1000)
+        params = timerange_to_params("AFTER_TIME",duration="180",startEpoch=sinceEpoch)
+        params.update({"business-transaction-ids": AllOtherTraffic_ID})
+
+        for retry in range(1,4):
+            if 'DEBUG' in locals(): print ("Fetching snapshots for App " + str(app_ID) + "params "+str(params)+"...")
+            if userName and password:
+                data_chunck = fetch_RESTful_JSON(restfulPath,params=params,userName=userName,password=password)
+            elif token:
+                data_chunck = fetch_RESTful_JSON(restfulPath,params=params)
+
+            if data_chunck is not None:
+                break
+            elif retry < 3:
+                print "Failed to fetch snapshots. Retrying (",retry," of 3)..."
+            else:
+                print "Giving up."
+                return None
+    
+        if 'snapshots' not in locals():
+            snapshots = data_chunck
+            if 'DEBUG' in locals(): print "fetch_snapshots: Added " + str(len(snapshots)) + " snapshots."
+        else:
+            # Append retrieved data to root
+            for new_snapshot in data_chunck:
+                snapshots.append(new_snapshot)
+            if 'DEBUG' in locals(): print "fetch_snapshots: Added " + str(len(snapshots)) + " snapshots."
+
+    # Add loaded events to the event dictionary
+    if 'snapshots' in locals():
+        appdDefaultTX_Dict.update({str(app_ID):snapshots})
     else:
-        print ("Unknown time range or missing arguments. Exiting...")
-        return None
+        return 0
 
-    if response.status_code != 200:
-        print "Something went wrong on HTTP request:"
-        print "   status:", response.status_code
-        print "   header:", response.headers
-        print "Writing content to file: response.txt"
-        file1 = open("response.txt","w") 
-        file1.write(response.content)
-        file1.close() 
-        return None
+    if 'DEBUG' in locals():
+        print "fetch_snapshots: Loaded " + str(len(snapshots)) + " snapshots."
 
-    try:
-        snapshots = json.loads(response.content)
-    except:
-        print ("Could not process authentication token for user " + userName + ".  Did you mess up your username/password?")
-        print "   status:", response.status_code
-        print "   header:", response.headers
-        print "Writing content to file: response.txt"
-        file1 = open("response.txt","w") 
-        file1.write(response.content)
-        file1.close() 
-        return None
-    parse_allothertraffic(snapshots)
-    return snapshots
+    return len(snapshots)
 
 def load_allothertraffic_JSON(fileName):
     print "Parsing file " + fileName + "..."
@@ -103,22 +89,14 @@ def load_allothertraffic_JSON(fileName):
     snapshots = json.load(json_file)
     parse_allothertraffic(snapshots)
 
-def parse_allothertraffic(snapshots):
-    URL_List  = []
-    Count_List= []
-    for snapshot in snapshots:
-        url=snapshot['URL']
-        if URL_List.count(url) == 0:
-            URL_List.append(url)
-            OverflowBT_List.append(OverflowBT(url,1))
-        else:
-            OverflowBT_List[URL_List.index(url)].count = OverflowBT_List[URL_List.index(url)].count + 1
 
-  #  print "Number of URLs:" + str(len(OverflowBT_List))
-  #  for ovfBT in OverflowBT_List:
-  #      print ovfBT.URL, ovfBT.count
+def generate_allothertraffic_CSV(app_ID,snapshots=None,fileName=None):
+    if snapshots is None and str(app_ID) not in appdDefaultTX_Dict:
+        print "AllOtherTraffic snapshots for application "+str(app_ID)+" not loaded."
+        return
+    elif snapshots is None and str(app_ID) in appdDefaultTX_Dict:
+        snapshots = appdDefaultTX_Dict[str(app_ID)]
 
-def write_allothertraffic_CSV(fileName=None):
     if fileName is not None:
         try:
             csvfile = open(fileName, 'w')
@@ -128,16 +106,39 @@ def write_allothertraffic_CSV(fileName=None):
     else:
         csvfile = sys.stdout
 
-    fieldnames = ['URL', 'Count', 'Type']
+    fieldnames = ['URL', 'Count']
     filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
     filewriter.writeheader()
 
-    for overflowBT in OverflowBT_List:
+    # Count distinct URLs and store in a dictionary
+    URL_Count = dict()
+    for snapshot in snapshots:
+        if snapshot['URL'] in URL_Count:
+            URL_Count[snapshot['URL']] = URL_Count[snapshot['URL']] + 1
+        else:
+            URL_Count.update({snapshot['URL']:0})
+
+    # Add URLs and counts to CSV
+    for URL in URL_Count:
         try:
-            filewriter.writerow({'URL': overflowBT.URL,
-                                'Count': overflowBT.count,
-                                'Type': overflowBT.BTtype})
+            filewriter.writerow({'URL': URL,
+                                'Count': URL_Count[URL]})
         except:
             print ("Could not write to the output file " + fileName + ".")
-            csvfile.close()
+            if fileName is not None: csvfile.close()
             exit(1)
+    if fileName is not None: csvfile.close()
+
+
+def get_allothertraffic(serverURL,app_ID,minutesBeforeNow,userName=None,password=None,token=None):
+    if serverURL == "dummyserver":
+        build_test_events(app_ID)
+    elif userName and password:
+        if fetch_allothertraffic(serverURL,app_ID,minutesBeforeNow,userName=userName,password=password) == 0:
+            print "get_allothertraffic: Failed to retrieve snapshots for application " + str(app_ID)
+            return None
+    elif token:
+        if fetch_allothertraffic(serverURL,app_ID,minutesBeforeNow,token=token) == 0:
+            print "get_allothertraffic: Failed to retrieve snapshots for application " + str(app_ID)
+            return None
+    generate_allothertraffic_CSV(app_ID)

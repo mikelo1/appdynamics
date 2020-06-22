@@ -4,16 +4,16 @@ import os.path
 from datetime import datetime, timedelta
 from applications import load_applications, generate_applications_CSV, getID
 from transactiondetection import get_detection_rules, convert_transactiondetection_XML_to_CSV
-from businesstransactions import load_business_transactions_JSON, fetch_business_transactions, write_business_transactions_CSV
-from backends import load_backends_JSON, fetch_backends, write_backends_CSV
+from businesstransactions import get_business_transactions, convert_business_transactions_JSON_to_CSV
+from backends import get_backends, convert_backends_JSON_to_CSV
 from healthrules import get_health_rules, convert_health_rules_XML_to_CSV
 from schedules import get_schedules
 from events import get_healthrule_violations, convert_events_XML_to_CSV
 from policies import get_policies_legacy, convert_policies_JSON_to_CSV
 from actions import get_actions_legacy, convert_actions_JSON_to_CSV
 from snapshots import get_snapshots, convert_snapshots_JSON_to_CSV
-from allothertraffic import load_allothertraffic_JSON, fetch_allothertraffic, write_allothertraffic_CSV
-from dashboards import load_dashboards_JSON, fetch_dashboards, write_dashboards_CSV
+from allothertraffic import get_allothertraffic
+from dashboards import get_dashboards
 from optparse import OptionParser, OptionGroup
 
 def buildBaseURL(controller,port=None,SSLenabled=None):
@@ -102,32 +102,28 @@ elif ENTITY.lower() == "transactiondetection":
         optParser.error("Missing arguments")
 elif ENTITY.lower() == "business-transactions":
     if options.inFileName:
-        load_business_transactions_JSON(options.inFileName)
+        convert_business_transactions_JSON_to_CSV(options.inFileName,options.outFileName)
     elif options.user and options.password and options.hostname and options.application:
         baseUrl = buildBaseURL(options.hostname,options.port,options.SSLEnabled)
         load_applications(baseUrl,options.user,options.password)
         appID=getID(options.application)
-        if appID < 0:
-            print "Application",options.application,"doesn't exist."
-            exit(1)
-        fetch_business_transactions(baseUrl+"/controller/",options.user,options.password,str(appID))
+        if appID > 0:
+            options.application=str(appID)
+        get_business_transactions(baseUrl,userName=options.user,password=options.password,app_ID=options.application,fileName=options.outFileName)
     else:
         optParser.error("Missing arguments")
-    write_business_transactions_CSV(options.outFileName)
 elif ENTITY.lower() == "backends":
     if options.inFileName:
-        load_backends_JSON(options.inFileName)
+        convert_backends_JSON_to_CSV(options.inFileName,options.outFileName)
     elif options.user and options.password and options.hostname and options.application:
         baseUrl = buildBaseURL(options.hostname,options.port,options.SSLEnabled)
         load_applications(baseUrl,options.user,options.password)
         appID=getID(options.application)
-        if appID < 0:
-            print "Application",options.application,"doesn't exist."
-            exit(1)
-        fetch_backends(baseUrl+"/controller/",options.user,options.password,str(appID))
+        if appID > 0:
+            options.application=str(appID)
+        get_backends(baseUrl,userName=options.user,password=options.password,app_ID=options.application,fileName=options.outFileName)
     else:
         optParser.error("Missing arguments")
-    write_backends_CSV(options.outFileName)
 elif ENTITY.lower() == "snapshots":
     if options.inFileName:
         convert_snapshots_JSON_to_CSV(options.inFileName,options.outFileName)
@@ -135,49 +131,23 @@ elif ENTITY.lower() == "snapshots":
         baseUrl = buildBaseURL(options.hostname,options.port,options.SSLEnabled)
         load_applications(baseUrl,options.user,options.password)
         appID=getID(options.application)
-        if appID < 0:
-            print "Application",options.application,"doesn't exist."
-            exit(1)
+        if appID > 0:
+            options.application=str(appID)
         get_snapshots(baseUrl,options.application,"1440",userName=options.user,password=options.password)
     else:
         optParser.error("Missing arguments")
 elif ENTITY.lower() == "allothertraffic":
     if options.inFileName:
-        load_allothertraffic_JSON(options.inFileName)
+        convert_allothertraffic_JSON_to_CSV(options.inFileName,options.outFileName)
     elif options.user and options.password and options.hostname and options.application:
         baseUrl = buildBaseURL(options.hostname,options.port,options.SSLEnabled)
         load_applications(baseUrl,options.user,options.password)
         appID=getID(options.application)
-        if appID < 0:
-            print "Application",options.application,"doesn't exist."
-            exit(1)
-        fetch_business_transactions(baseUrl+"/controller/",options.user,options.password,str(appID))
-        if options.timerange and options.timerange.endswith("day"):
-            numberOfDays=int(options.timerange[0:options.timerange.find("day")])
-            if numberOfDays > 14:
-                print "Warning: time range [",numberOfDays,"] cannot be longer than 14 days."
-                numberOfDays=14
-        elif options.timerange:
-            print "Time range must be given in days."
-            exit (1)
-        else:
-            optParser.error("Missing arguments")
-            exit (1)
-
-        for i in range(3,numberOfDays*24,3): # loop latest numberOfDays days in chunks of 3 hours
-            for retry in range(1,4):
-                data_chunck = fetch_allothertraffic(baseUrl,options.user,options.password,options.application, \
-                                                "AFTER_TIME","180",datetime.today()-timedelta(hours=i)) # fetch 3 hours of data
-                if data_chunck is not None:
-                    break
-                elif retry < 3:
-                    print "Failed to fetch healthrule violations. Retrying (",retry," of 3)..."
-                else:
-                    print "Giving up."
-                    exit (1)
+        if appID > 0:
+            options.application=str(appID)
+        get_allothertraffic(baseUrl,options.application,"1440",userName=options.user,password=options.password)
     else:
         optParser.error("Missing arguments")
-    write_allothertraffic_CSV(options.outFileName)
 
 ### Alerts & Respond related entities
 elif ENTITY.lower() == "healthrules":

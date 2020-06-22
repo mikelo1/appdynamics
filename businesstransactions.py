@@ -1,10 +1,11 @@
 #!/usr/bin/python
-import requests
 import json
 import csv
 import sys
+from appdRESTfulAPI import fetch_RESTful_JSON
 
-BTList = []
+BTDict = dict()
+
 class BusinessTransaction:
     name          = ""
     BT_id         = 0
@@ -18,62 +19,52 @@ class BusinessTransaction:
     def __str__(self):
         return "({0},{1},{2})".format(self.name,self.BT_id,self.entryPointType,self.tierName)
 
-def fetch_business_transactions(baseUrl,userName,password,app_ID):
-    print ("Fetching business transactions for App " + app_ID + "...")
-    try:
-        response = requests.get(baseUrl + "rest/applications/" + app_ID + "/business-transactions", auth=(userName, password), params={"output": "JSON"})
-    except:
-        print ("Could not get authentication token from " + baseUrl + ".  Do you have the right controller hostname?")
-        print "status:", response.status_code
-        print "single header:", response.headers['content-type']
-        print "Writing content to file: response.txt"
-        file1 = open("response.txt","w") 
-        file1.write(response.content)
-        file1.close() 
-        return None
+###
+ # Fetch application business transactions from a controller then add them to the business transactions dictionary. Provide either an username/password or an access token.
+ # @param serverURL Full hostname of the Appdynamics controller. i.e.: https://demo1.appdynamics.com:443
+ # @param app_ID the ID number of the application business transactions to fetch
+ # @param userName Full username, including account. i.e.: myuser@customer1
+ # @param password password for the specified user and host. i.e.: mypassword
+ # @param token API acccess token
+ # @return the number of fetched business transactions. Zero if no business transaction was found.
+###
+def fetch_business_transactions(serverURL,app_ID,userName=None,password=None,token=None):
+    if 'DEBUG' in locals(): print ("Fetching business transactions for App " + str(app_ID) + "...")
 
-    try:
-        BTs = json.loads(response.content)
-    except:
-        print ("Could not process authentication token for user " + userName + ".  Did you mess up your username/password?")
-        print "status:", response.status_code
-        print "single header:", response.headers['content-type']
-        print "Writing content to file: response.txt"
-        file1 = open("response.txt","w") 
-        file1.write(response.content)
-        file1.close() 
-        return None
-    parse_business_transactions(BTs)
+    # Retrieve All Business Transactions in a Business Application
+    # GET /controller/rest/applications/application_name/business-transactions
+    restfulPath = "/controller/rest/applications/" + str(app_ID) + "/business-transactions"
+    if userName and password:
+        transactions = fetch_RESTful_JSON(restfulPath,params={"output": "JSON"},userName=userName,password=password)
+    else:
+        transactions = fetch_RESTful_JSON(restfulPath,params={"output": "JSON"})
 
-def load_business_transactions_JSON(fileName):
-    print "Parsing file " + fileName + "..."
-    json_file = open(fileName)
+    if transactions is None:
+        print "fetch_business_transactions: Failed to retrieve business transactions for application " + str(app_ID)
+        return None
+  
+    # Add loaded business transactions to the business transaction dictionary
+    BTDict.update({str(app_ID):transactions})
+
+    if 'DEBUG' in locals():
+        print "fetch_business_transactions: Loaded " + str(len(transactions)) + " transactions."
+        #for appID in BTDict:
+        #    print str(BTDict[appID])
+
+    return len(transactions)
+
+def convert_business_transactions_JSON_to_CSV(inFileName,outFilename=None):
+    json_file = open(inFileName)
     BTs = json.load(json_file)
-    parse_business_transactions(BTs)
+    generate_business_transactions_CSV(app_ID=0,transactions=BTs,fileName=outFilename)
 
-def parse_business_transactions(BTs):
-    for BT in BTs:
-        if 'entryPointType' not in BT:
-            continue
-        name = BT['name'].encode('ASCII', 'ignore')
-        BTList.append(BusinessTransaction(name,BT['id'],BT['entryPointType'],BT['tierName']))
-#    print "Number of business transactions:" + str(len(BTList))
-#    for BT in BTList:
-#        print str(BT)
+def generate_business_transactions_CSV(app_ID,transactions=None,fileName=None):
+    if transactions is None and str(app_ID) not in BTDict:
+        print "Business transaction for application "+str(app_ID)+" not loaded."
+        return
+    elif transactions is None and str(app_ID) in BTDict:
+        transactions = BTDict[str(app_ID)]
 
-def get_business_transaction_ID(name):
-    for BT in BTList:
-        if BT.name == name:
-            return BT.BT_id
-    return None
-
-def get_business_transaction_name(ID):
-    for BT in BTList:
-        if BT.BT_id == ID:
-            return BT.name
-    return None
-
-def write_business_transactions_CSV(fileName=None):
     if fileName is not None:
         try:
             csvfile = open(fileName, 'w')
@@ -88,13 +79,43 @@ def write_business_transactions_CSV(fileName=None):
     filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
     filewriter.writeheader()
 
-    for BT in BTList:
+    for BT in transactions:
+        if 'entryPointType' not in BT:
+            continue
+
         try:
-            filewriter.writerow({'name': BT.name,
-                                 'entryPointType': BT.entryPointType,
-                                 'tierName': BT.tierName})
+            filewriter.writerow({'name': BT['name'].encode('ASCII', 'ignore'),
+                                 'entryPointType': BT['entryPointType'],
+                                 'tierName': BT['tierName']})
         except:
             print ("Could not write to the output file.")
-            csvfile.close()
+            if fileName is not None: csvfile.close()
             exit(1)
-    csvfile.close()
+    if fileName is not None: csvfile.close()
+
+def get_business_transactions(serverURL,app_ID,userName=None,password=None,token=None):
+    if serverURL == "dummyserver":
+        build_test_policies(app_ID)
+    elif userName and password:
+        if fetch_business_transactions(serverURL,app_ID,userName=userName,password=password) == 0:
+            print "get_business_transactions: Failed to retrieve business transactions for application " + str(app_ID)
+            return None
+    elif token:
+        if fetch_business_transactions(serverURL,app_ID,token=token) == 0:
+            print "get_business_transactions: Failed to retrieve business transactions for application " + str(app_ID)
+            return None
+    generate_business_transactions_CSV(app_ID)
+
+def get_business_transaction_ID(appID,transactionName):
+    if str(appID) in BTDict:
+        for transaction in BTDict[str(appID)]:
+            if transaction['name'] == transactionName:
+                return transaction['id']
+    return None
+
+def get_business_transaction_name(appID,transactionID):
+    if str(appID) in BTDict:
+        for transaction in BTDict[str(appID)]:
+            if transaction['id'] == transactionID:
+                return transaction['name']
+    return None

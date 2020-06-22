@@ -18,12 +18,17 @@ for JSON_ENTITY in business-transactions backends actions policies; do
 done
 
 #./appdctl.py get applications
+#./appdctl.py get dashboards
 #./appdctl.py get policies -a hipoteca-portal
 #./appdctl.py get policies -a FullOnline,hipoteca-api-aks,hipoteca-portal
 #./appdctl.py get schedules -a FullOnline,hipoteca-api-aks,hipoteca-portal
 #./appdctl.py get health-rules -a FullOnline,hipoteca-api-aks,hipoteca-portal
+#./appdctl.py get actions -a FullOnline,hipoteca-api-aks,hipoteca-portal
 #./appdctl.py get detection-rules -a FullOnline,hipoteca-api-aks,hipoteca-portal
+#./appdctl.py get businesstransactions -a FullOnline
+#./appdctl.py get backends -a FullOnline
 #./appdctl.py get healthrule-violations -a FullOnline --since=1d12h
 #./appdctl.py get snapshots -a FullOnline --since=1d12h
+#./appdctl.py get allothertraffic -a FullOnline --since=1d12h
 #./appdctl.py patch schedules -a sandbox -p '{"timezone":"Europe\/Belgrade"}'
 #./appdctl.py patch schedules -a sandbox -p '{"timezone":"Europe\/Brussels"}'
