@@ -159,7 +159,10 @@ def update_RESTful_JSON(RESTfulPath,JSONdata,userName=None,password=None):
 def fetch_RESTful_XML(RESTfulPath,params=None,userName=None,password=None):
     if 'DEBUG' in locals(): print ("Fetching XML from RESTful path " + RESTfulPath + "...")
     serverURL = get_current_context_serverURL()
-    if params is None: params={"output": "XML"}
+    if params is None:
+        params = {"output": "XML"}
+    elif 'output' not in params:
+        params.update({"output": "XML"})
     if userName and password:
         try:
             response = requests.get(serverURL + RESTfulPath,

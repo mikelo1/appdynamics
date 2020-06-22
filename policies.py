@@ -292,10 +292,10 @@ def generate_policies_CSV_legacy(app_ID,policies=None,fileName=None):
                                  'Actions': Action_String})
         except:
             print ("Could not write to the output.")
-            csvfile.close()
+            if fileName is not None: csvfile.close()
             return (-1)
     if 'DEBUG' in locals(): print "INFO: Number of policies:" + str(len(policies))
-    csvfile.close()
+    if fileName is not None: csvfile.close()
 
 def get_policies(serverURL,app_ID,userName=None,password=None,token=None):
     if serverURL == "dummyserver":
