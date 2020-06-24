@@ -51,7 +51,7 @@
   },
   {
     "applicationName" : "FullOnline",
-    "name" : "POLICY_ HR_EVOB_FOL_LOGIN_API_FEDERADO_AVG",
+    "name" : "POLICY_HR_EVOB_FOL_LOGIN_API_FEDERADO_AVG",
     "reactorType" : "IMMEDIATE",
     "enabled" : true,
     "batchActionsPerMinute" : true,

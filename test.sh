@@ -18,7 +18,7 @@ for JSON_ENTITY in business-transactions backends actions policies; do
 done
 
 #./appdctl.py get applications
-#./appdctl.py get dashboards
+# unzip -p tests.zip dashboards.json | ./appdctl.py get dashboards -f -
 #./appdctl.py get policies -a hipoteca-portal
 #./appdctl.py get policies -a FullOnline,hipoteca-api-aks,hipoteca-portal
 #./appdctl.py get schedules -a FullOnline,hipoteca-api-aks,hipoteca-portal
@@ -32,3 +32,6 @@ done
 #./appdctl.py get allothertraffic -a FullOnline --since=1d12h
 #./appdctl.py patch schedules -a sandbox -p '{"timezone":"Europe\/Belgrade"}'
 #./appdctl.py patch schedules -a sandbox -p '{"timezone":"Europe\/Brussels"}'
+
+#./appdctl.py get -f EVO.SaaS.UAT/sandbox/policies.json
+#./appdctl.py get -f EVO.SaaS.UAT/FullOnline/policies.json

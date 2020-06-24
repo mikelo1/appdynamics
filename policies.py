@@ -5,18 +5,23 @@ import sys
 from appdRESTfulAPI import fetch_RESTful_JSON
 
 policyDict = dict()
+
 class Policy:
-    id   = 0
-    name = ""
-    appID= 0
-    data = None
-    def __init__(self,id,name,appID,data):
-        self.id   = id
-        self.name = name
-        self.appID= appID
-        self.data = data
+    id      = 0
+    name    = ""
+    appID   = 0
+    events  =[]
+    entities=[]
+    actions =[]
+    def __init__(self,id,name,events,entities,actions,appID=0):
+        self.id      = id
+        self.name    = name
+        self.events  = events
+        self.entities= entities
+        self.actions = actions
+        self.appID   = appID
     def __str__(self):
-        return "({0},{1},{2},{3})".format(self.id,self.name,self.appID,self.data)
+        return "({0},{1},{2},{3},{4},{5})".format(self.id,self.name,self.events,self.entities,self.actions,self.appID)
 
 
 def to_entityName(entityType):
@@ -44,20 +49,20 @@ def build_test_policies(app_ID):
 
 ###
  # Fetch application policies from a controller then add them to the policies dictionary. Provide either an username/password or an access token.
- # @param serverURL Full hostname of the Appdynamics controller. i.e.: https://demo1.appdynamics.com:443
  # @param app_ID the ID number of the application policies to fetch
+ # @param serverURL Full hostname of the Appdynamics controller. i.e.: https://demo1.appdynamics.com:443
  # @param userName Full username, including account. i.e.: myuser@customer1
  # @param password password for the specified user and host. i.e.: mypassword
  # @param token API acccess token
  # @return the number of fetched policies. Zero if no policy was found.
 ###
-def fetch_policies(serverURL,app_ID,userName=None,password=None,token=None,loadData=False):
+def fetch_policies(app_ID,serverURL=None,userName=None,password=None,token=None,loadData=False):
     if 'DEBUG' in locals(): print ("Fetching policies for App " + str(app_ID) + "...")
     # Retrieve a list of Policies associated with an Application
     # GET <controller_url>/controller/alerting/rest/v1/applications/<application_id>/policies
     restfulPath = "/controller/alerting/rest/v1/applications/" + str(app_ID) + "/policies"
-    if userName and password:
-        policies = fetch_RESTful_JSON(restfulPath,userName=userName,password=password)
+    if serverURL and userName and password:
+        policies = fetch_RESTful_JSON(restfulPath,serverURL=serverURL,userName=userName,password=password)
     else:
         policies = fetch_RESTful_JSON(restfulPath)
 
@@ -92,14 +97,14 @@ def fetch_policies(serverURL,app_ID,userName=None,password=None,token=None,loadD
 
     return len(policies)
 
-def fetch_policies_legacy(serverURL,app_ID,userName=None,password=None,token=None):
+def fetch_policies_legacy(app_ID,serverURL=None,userName=None,password=None,token=None):
     if 'DEBUG' in locals(): print ("Fetching policies for App " + str(app_ID) + "...")
     # https://docs.appdynamics.com/display/PRO44/Configuration+Import+and+Export+API#ConfigurationImportandExportAPI-ExportPolicies
     # export policies to a JSON file.
     # GET /controller/policies/application_id
     restfulPath = "/controller/policies/" + str(app_ID)
-    if userName and password:
-        policies = fetch_RESTful_JSON(restfulPath,userName=userName,password=password)
+    if serverURL and userName and password:
+        policies = fetch_RESTful_JSON(restfulPath,serverURL=serverURL,userName=userName,password=password)
     else:
         policies = fetch_RESTful_JSON(restfulPath)
 
@@ -117,10 +122,76 @@ def fetch_policies_legacy(serverURL,app_ID,userName=None,password=None,token=Non
 
     return len(policies)
 
-def convert_policies_JSON_to_CSV(inFileName,outFilename=None):
-    json_file = open(inFileName)
-    policies = json.load(json_file)
-    generate_policies_CSV_legacy(app_ID=0,policies=policies,fileName=outFilename)
+def parse_policy_JSON(policy):
+    Events = []
+    if len(policy['events']['healthRuleEvents']) > 0:
+        Events.append(policy['events']['healthRuleEvents']['healthRuleScopeType'])
+    # TODO elif len(policy['events']['customEvents']) > 0:
+    # TODO elif len(policy['events']['anomalyEvents']) > 0:
+    # TODO elif len(policy['events']['otherEvents']) > 0:
+    Entities = []
+    Actions = []
+    for action in policy['actions']:
+        Actions.append(action['actionName'])
+
+    return Policy(policy['id'],policy['name'],Events,Entities,Actions)
+
+def parse_policy_JSON_legacy(policy):
+    Name = policy['name']
+    AppName = policy['applicationName']
+    HealthRules = []
+    evTemplate = policy['eventFilterTemplate']
+    if evTemplate['healthRuleNames'] is not None:
+        for healthRule in evTemplate['healthRuleNames']:
+            HealthRules.append(healthRule['entityName'])
+    else:
+        HealthRules = "ANY"
+
+    Entities = []
+    entityTemplates = policy['entityFilterTemplates']
+    if entityTemplates is None:
+        Entities = ["ANY"]
+    else:
+        for entTemplate in entityTemplates:
+            if entTemplate['matchCriteriaType'] == "AllEntities":
+                EntityDescription = "ALL "+to_entityName(entTemplate['entityType'])
+            elif entTemplate['matchCriteriaType'] == "RelatedEntities":
+                EntityDescription = to_entityName(entTemplate['entityType'])+" within the Tiers: "
+                for tier in entTemplate['relatedEntityNames']:
+                    EntityDescription = EntityDescription + tier['entityName'] + ", "
+            elif entTemplate['matchCriteriaType'] == "SpecificEntities":
+                EntityDescription = "These specific "+ to_entityName(entTemplate['entityType'])+": "
+                for entityName in entTemplate['entityNames']:
+                    EntityDescription = EntityDescription + entityName['entityName'] + ", "
+            elif entTemplate['matchCriteriaType'] == "CustomEntities":
+                EntityDescription = to_entityName(entTemplate['entityType'])+" matching the following criteria: "
+                EntityDescription = EntityDescription + " " + entTemplate['stringMatchType'] + " " + entTemplate['stringMatchExpression']
+            elif entTemplate['entityType'] == "JMX_INSTANCE_NAME":
+                nodeEntCriteria = entTemplate['nodeEntityMatchCriteria']
+                if nodeEntCriteria['matchCriteriaType'] == "AllEntities":
+                    EntityDescription = "JMX Objects from ALL"+to_entityName(nodeEntCriteria['entityType'])
+                elif nodeEntCriteria['matchCriteriaType'] == "RelatedEntities":
+                    EntityDescription = to_entityName(nodeEntCriteria['entityType'])+" within the Tiers: "
+                    for tier in entTemplate['relatedEntityNames']:
+                        EntityDescription = EntityDescription + tier['entityName'] + ", "
+                elif nodeEntCriteria['matchCriteriaType'] == "SpecificEntities":
+                    EntityDescription = "These specific "+ to_entityName(nodeEntCriteria['entityType'])+": "
+                    for entityName in entTemplate['entityNames']:
+                        EntityDescription = EntityDescription + entityName['entityName'] + ", "
+                elif nodeEntCriteria['matchCriteriaType'] == "CustomEntities":
+                    EntityDescription = to_entityName(nodeEntCriteria['entityType'])+" matching the following criteria: "
+                    EntityDescription = EntityDescription + " " + nodeEntCriteria['stringMatchType'] + " " + nodeEntCriteria['stringMatchExpression']
+            Entities.append(EntityDescription)
+
+    Actions = []
+    actTemplate = policy['actionWrapperTemplates']
+    if actTemplate is not None:
+        for action in actTemplate:
+            Actions.append(action['actionTag'])
+    else:
+        Actions = ["ANY"]
+
+    return Policy(id=0,name=policy['name'],events=HealthRules,entities=Entities,actions=Actions)
 
 def generate_policies_CSV(app_ID,policies=None,fileName=None):
     if policies is None and str(app_ID) not in policyDict:
@@ -139,31 +210,26 @@ def generate_policies_CSV(app_ID,policies=None,fileName=None):
         csvfile = sys.stdout
 
     # create the csv writer object
-    fieldnames = ['Policy', 'Application', 'Events', 'Actions']
+    fieldnames = ['Policy', 'Application', 'Events', 'Entities', 'Actions']
     filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
     filewriter.writeheader()
 
     for policy in policies:
-        if len(policy['events']['healthRuleEvents']) > 0:
-            events = policy['events']['healthRuleEvents']['healthRuleScopeType']
-        # TODO elif len(policy['events']['customEvents']) > 0:
-        # TODO elif len(policy['events']['anomalyEvents']) > 0:
-        # TODO elif len(policy['events']['otherEvents']) > 0:
+        if 'reactorType' in policy:
+            if 'DEBUG' in locals(): print "Policy found in legacy JSON format."
+            policyData = parse_policy_JSON_legacy(policy)
+        elif 'selectedEntityType' in policy:
+            if 'DEBUG' in locals(): print "Policy found in JSON format."
+            policyData = parse_policy_JSON(policy)
         else:
-            events = "None"
-        if len(policy['actions']) > 0:
-            Action_String = ""
-            for action in policy['actions']:
-                if Action_String is not "":
-                    Action_String = Action_String + "\n"
-                Action_String = Action_String + action['actionName']
-        else:
-            Action_String = ""
+            continue
+        
         try:
-            filewriter.writerow({'Policy': policy['name'],
+            filewriter.writerow({'Policy': policyData.name,
                                  'Application': app_ID,
-                                 'Events': events,
-                                 'Actions': Action_String})
+                                 'Events': str(policyData.events),
+                                 'Entities': str(policyData.entities),
+                                 'Actions': str(policyData.actions)})
         except:
             print ("Could not write to the output.")
             if fileName is not None: csvfile.close()
@@ -190,136 +256,37 @@ def generate_policies_JSON(app_ID,policies=None,fileName=None):
     data=json.dump(policies,JSONfile)
     JSONfile.close()
 
-def generate_policies_CSV_legacy(app_ID,policies=None,fileName=None):
-    if policies is None and str(app_ID) not in policyDict:
-        print "Policies for application "+str(app_ID)+" not loaded."
-        return
-    elif policies is None and str(app_ID) in policyDict:
-        policies = policyDict[str(app_ID)]
 
-    if fileName is not None:
-        try:
-            csvfile = open(fileName, 'w')
-        except:
-            print ("Could not open output file " + fileName + ".")
-            return (-1)
-    else:
-        csvfile = sys.stdout
+###### FROM HERE PUBLIC FUNCTIONS ######
 
-    # create the csv writer object
-    fieldnames = ['Policy', 'Application', 'HealthRules', 'Entities', 'Actions']
-    filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
-    filewriter.writeheader()
+def get_policies_from_server(inFileName,outFilename=None):
+    json_file = open(inFileName)
+    policies = json.load(json_file)
+    generate_policies_CSV(app_ID=0,policies=policies,fileName=outFilename)
 
-    for policy in policies:
-        if 'reactorType' not in policy:
-            continue        
-        Name = policy['name']
-        AppName = policy['applicationName']
-        HealthRules = []
-        evTemplate = policy['eventFilterTemplate']
-        if evTemplate['healthRuleNames'] is not None:
-            for healthRule in evTemplate['healthRuleNames']:
-                HealthRules.append(healthRule['entityName'])
-        else:
-            HealthRules = "ANY"
-
-        Entities = []
-        entityTemplates = policy['entityFilterTemplates']
-        if entityTemplates is None:
-            Entities = ["ANY"]
-        else:
-            for entTemplate in entityTemplates:
-                if entTemplate['matchCriteriaType'] == "AllEntities":
-                    EntityDescription = "ALL "+to_entityName(entTemplate['entityType'])
-                elif entTemplate['matchCriteriaType'] == "RelatedEntities":
-                    EntityDescription = to_entityName(entTemplate['entityType'])+" within the Tiers: "
-                    for tier in entTemplate['relatedEntityNames']:
-                        EntityDescription = EntityDescription + tier['entityName'] + ", "
-                elif entTemplate['matchCriteriaType'] == "SpecificEntities":
-                    EntityDescription = "These specific "+ to_entityName(entTemplate['entityType'])+": "
-                    for entityName in entTemplate['entityNames']:
-                        EntityDescription = EntityDescription + entityName['entityName'] + ", "
-                elif entTemplate['matchCriteriaType'] == "CustomEntities":
-                    EntityDescription = to_entityName(entTemplate['entityType'])+" matching the following criteria: "
-                    EntityDescription = EntityDescription + " " + entTemplate['stringMatchType'] + " " + entTemplate['stringMatchExpression']
-                elif entTemplate['entityType'] == "JMX_INSTANCE_NAME":
-                    nodeEntCriteria = entTemplate['nodeEntityMatchCriteria']
-                    if nodeEntCriteria['matchCriteriaType'] == "AllEntities":
-                        EntityDescription = "JMX Objects from ALL"+to_entityName(nodeEntCriteria['entityType'])
-                    elif nodeEntCriteria['matchCriteriaType'] == "RelatedEntities":
-                        EntityDescription = to_entityName(nodeEntCriteria['entityType'])+" within the Tiers: "
-                        for tier in entTemplate['relatedEntityNames']:
-                            EntityDescription = EntityDescription + tier['entityName'] + ", "
-                    elif nodeEntCriteria['matchCriteriaType'] == "SpecificEntities":
-                        EntityDescription = "These specific "+ to_entityName(nodeEntCriteria['entityType'])+": "
-                        for entityName in entTemplate['entityNames']:
-                            EntityDescription = EntityDescription + entityName['entityName'] + ", "
-                    elif nodeEntCriteria['matchCriteriaType'] == "CustomEntities":
-                        EntityDescription = to_entityName(nodeEntCriteria['entityType'])+" matching the following criteria: "
-                        EntityDescription = EntityDescription + " " + nodeEntCriteria['stringMatchType'] + " " + nodeEntCriteria['stringMatchExpression']
-                Entities.append(EntityDescription)
-
-        Actions = []
-        actTemplate = policy['actionWrapperTemplates']
-        if actTemplate is not None:
-            for action in actTemplate:
-                Actions.append(action['actionTag'])
-        else:
-            Actions = ["ANY"]
-
-        HR_String = ""
-        for healthrule in HealthRules:
-            if HR_String is not "":
-                HR_String = HR_String + "\n"
-            HR_String = HR_String + healthrule
-        Action_String = ""
-        for action in Actions:
-            if Action_String is not "":
-                Action_String = Action_String + "\n"
-            Action_String = Action_String + action
-        Entity_String = ""
-        for entity in Entities:
-            if Entity_String is not "":
-                Entity_String = Entity_String + "\n"
-            Entity_String = Entity_String + entity
-
-        try:
-            filewriter.writerow({'Policy': policy['name'],
-                                 'Application': app_ID,
-                                 'HealthRules': HR_String,
-                                 'Entities': Entity_String,
-                                 'Actions': Action_String})
-        except:
-            print ("Could not write to the output.")
-            if fileName is not None: csvfile.close()
-            return (-1)
-    if 'DEBUG' in locals(): print "INFO: Number of policies:" + str(len(policies))
-    if fileName is not None: csvfile.close()
-
-def get_policies(serverURL,app_ID,userName=None,password=None,token=None):
+def get_policies(app_ID,serverURL,userName=None,password=None,token=None):
     if serverURL == "dummyserver":
         build_test_policies(app_ID)
     elif userName and password:
-        if fetch_policies(serverURL,app_ID,userName=userName,password=password) == 0:
+        if fetch_policies(app_ID,serverURL=serverURL,userName=userName,password=password) == 0:
             print "get_policies: Failed to retrieve policies for application " + str(app_ID)
             return None
-    elif token:
-        if fetch_policies(serverURL,app_ID,token=token) == 0:
+    else:
+        if fetch_policies(app_ID,token=token) == 0:
             print "get_policies: Failed to retrieve policies for application " + str(app_ID)
             return None
     generate_policies_CSV(app_ID)
 
-def get_policies_legacy(serverURL,app_ID,userName=None,password=None,token=None,fileName=None):
+def get_policies_legacy(app_ID,serverURL,userName=None,password=None,token=None,fileName=None):
     if userName and password:
-        if fetch_policies_legacy(serverURL,app_ID,userName,password) == 0:
+        if fetch_policies_legacy(app_ID,serverURL=serverURL,userName=userName,password=password) == 0:
             print "get_policies: Failed to retrieve policies for application " + str(app_ID)
             return None
-    elif token:
-        if fetch_policies_legacy(serverURL,app_ID,token=token) == 0:
+    else:
+        if fetch_policies_legacy(app_ID,token=token) == 0:
             print "get_policies: Failed to retrieve policies for application " + str(app_ID)
             return None
-    generate_policies_CSV_legacy(app_ID,fileName=fileName)
+    generate_policies_CSV(app_ID,fileName=fileName)
 
 def get_policies_matching_action(app_ID,name):
     MatchList = []
