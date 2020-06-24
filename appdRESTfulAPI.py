@@ -63,13 +63,15 @@ def get_access_token(serverURL=None,API_Client=None,Client_Secret=None):
 ###
  # Fetch RESTful Path from a controller. Either provide an username/password or let it get an access token automatically.
  # @param RESTfulPath RESTful path to retrieve data
+ # @param params additional HTTP parameters (if any)
+ # @param serverURL Full hostname of the Appdynamics controller. i.e.: https://demo1.appdynamics.com:443
  # @param userName Full username, including account. i.e.: myuser@customer1
  # @param password password for the specified user and host. i.e.: mypassword
  # @return the response JSON data. Null if no JSON data was received.
 ###
-def fetch_RESTful_JSON(RESTfulPath,params=None,userName=None,password=None):
+def fetch_RESTful_JSON(RESTfulPath,params=None,serverURL=None,userName=None,password=None):
     if 'DEBUG' in locals(): print ("Fetching JSON from RESTful path " + RESTfulPath + "...")
-    serverURL = get_current_context_serverURL()
+    if serverURL is None: serverURL = get_current_context_serverURL()
     if params is None:
         params = {"output": "JSON"}
     elif 'output' not in params:
@@ -112,13 +114,14 @@ def fetch_RESTful_JSON(RESTfulPath,params=None,userName=None,password=None):
  # Update data from a controller. Either provide an username/password or let it get an access token automatically.
  # @param RESTfulPath RESTful path to upload data
  # @param JSONdata the data to be updated in JSON format
+ # @param serverURL Full hostname of the Appdynamics controller. i.e.: https://demo1.appdynamics.com:443
  # @param userName Full username, including account. i.e.: myuser@customer1
  # @param password password for the specified user and host. i.e.: mypassword
  # @return True if the update was successful. False if no schedule was updated.
 ###
-def update_RESTful_JSON(RESTfulPath,JSONdata,userName=None,password=None):
+def update_RESTful_JSON(RESTfulPath,JSONdata,serverURL=None,userName=None,password=None):
     if 'DEBUG' in locals(): print ("Updating RESTful path " + RESTfulPath + " with provided JSON data...")
-    serverURL = get_current_context_serverURL()
+    if serverURL is None: serverURL = get_current_context_serverURL()
     if userName and password:
         try:
             response = requests.put(serverURL + RESTfulPath,
@@ -152,13 +155,15 @@ def update_RESTful_JSON(RESTfulPath,JSONdata,userName=None,password=None):
 ###
  # Fetch RESTful Path from a controller. Either provide an username/password or let it get an access token automatically.
  # @param RESTfulPath RESTful path to retrieve data
+ # @param params additional HTTP parameters (if any)
+ # @param serverURL Full hostname of the Appdynamics controller. i.e.: https://demo1.appdynamics.com:443
  # @param userName Full username, including account. i.e.: myuser@customer1
  # @param password password for the specified user and host. i.e.: mypassword
  # @return the response XML data root. Null if no XML data was received.
 ###
-def fetch_RESTful_XML(RESTfulPath,params=None,userName=None,password=None):
+def fetch_RESTful_XML(RESTfulPath,params=None,serverURL=None,userName=None,password=None):
     if 'DEBUG' in locals(): print ("Fetching XML from RESTful path " + RESTfulPath + "...")
-    serverURL = get_current_context_serverURL()
+    if serverURL is None: serverURL = get_current_context_serverURL()
     if params is None:
         params = {"output": "XML"}
     elif 'output' not in params:

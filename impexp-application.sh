@@ -125,6 +125,26 @@ run_ImpExp() {
         if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; else echo .; fi
     fi
   done
+  if [ $OPERATION == "retrieve" ]; then
+    for ENTITY in business-transactions backends; do
+      echo -ne "$OPERATION $ENTITY for application $APP_NAME($APP_ID)... "
+      curl -s -X GET --user "${USER}:${PASS}" -o ${FILEPATH}/${ENTITY}.json \
+                      https://$HOST/controller/rest/applications/$APP_ID/$ENTITY
+      if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; else echo "OK"; fi
+    done
+    ENTITY="healthrule-violations"
+    echo -ne "$OPERATION $ENTITY for application $APP_NAME($APP_ID)... "
+    curl -sG -X GET --user "${USER}:${PASS}" -o ${FILEPATH}/${ENTITY}.json \
+                    -d 'time-range-type=BEFORE_NOW' -d 'duration-in-mins=1440' \
+                      https://$HOST/controller/rest/applications/$APP_ID/problems/$ENTITY
+    if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; else echo "OK"; fi
+    ENTITY="request-snapshots"
+    echo -ne "$OPERATION $ENTITY for application $APP_NAME($APP_ID)... "
+    curl -sG -X GET --user "${USER}:${PASS}" -o ${FILEPATH}/${ENTITY}.json \
+                    -d 'time-range-type=BEFORE_NOW' -d 'duration-in-mins=1440' \
+                      https://$HOST/controller/rest/applications/$APP_ID/$ENTITY
+    if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; else echo "OK"; fi
+  fi
 }
 
 ###
@@ -179,6 +199,26 @@ run_ImpExp_legacy() {
         if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; else echo .; fi
     fi
   done
+  if [ $OPERATION == "retrieve" ]; then
+    for ENTITY in business-transactions backends; do
+      echo -ne "$OPERATION $ENTITY for application $APP_NAME($APP_ID)... "
+      curl -s -X GET --user "${USER}:${PASS}" -o ${FILEPATH}/${ENTITY}.json \
+                      https://$HOST/controller/rest/applications/$APP_ID/$ENTITY
+      if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; else echo "OK"; fi
+    done
+    ENTITY="healthrule-violations"
+    echo -ne "$OPERATION $ENTITY for application $APP_NAME($APP_ID)... "
+    curl -sG -X GET --user "${USER}:${PASS}" -o ${FILEPATH}/${ENTITY}.json \
+                    -d 'time-range-type=BEFORE_NOW' -d 'duration-in-mins=1440' \
+                      https://$HOST/controller/rest/applications/$APP_ID/problems/$ENTITY
+    if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; else echo "OK"; fi
+    ENTITY="request-snapshots"
+    echo -ne "$OPERATION $ENTITY for application $APP_NAME($APP_ID)... "
+    curl -sG -X GET --user "${USER}:${PASS}" -o ${FILEPATH}/${ENTITY}.json \
+                    -d 'time-range-type=BEFORE_NOW' -d 'duration-in-mins=1440' \
+                      https://$HOST/controller/rest/applications/$APP_ID/$ENTITY
+    if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; else echo "OK"; fi
+  fi
 }
 
 USER=`grep $ENVIRONMENT -A6 $CRED_FILE | grep username | awk -F"[:@]" '{print $2}' | sed 's/\s//g'`
