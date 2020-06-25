@@ -152,7 +152,7 @@ elif ENTITY.lower() == "allothertraffic":
 ### Alerts & Respond related entities
 elif ENTITY.lower() == "healthrules":
     if options.inFileName:
-        convert_health_rules_XML_to_CSV(options.inFileName,options.outFileName)
+        get_health_rules_from_server(options.inFileName,options.outFileName)
     elif options.user and options.password and options.hostname and options.application:
         baseUrl = buildBaseURL(options.hostname,options.port,options.SSLEnabled)
         load_applications(baseUrl,options.user,options.password)

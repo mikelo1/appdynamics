@@ -37,3 +37,4 @@ done
 #./appdctl.py get -f EVO.SaaS.UAT/FullOnline/policies.json
 #./appdctl.py get -f EVO.SaaS.UAT/sandbox/actions.json
 #./appdctl.py get -f EVO.SaaS.UAT/FullOnline/actions.json
+#./appdctl.py get -f EVO.SaaS.UAT/FullOnline/schedules.json
