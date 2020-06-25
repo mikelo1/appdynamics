@@ -37,14 +37,14 @@ class HealthRule:
  # @param token API acccess token
  # @return the number of fetched health rules. Zero if no health rule was found.
 ###
-def fetch_health_rules(serverURL,app_ID,userName=None,password=None,token=None):
+def fetch_health_rules(app_ID,serverURL=None,userName=None,password=None,token=None):
     if 'DEBUG' in locals(): print ("Fetching Health Rules for application " + str(app_ID) + "...")
 
     # Export Health Rules from an Application
     # GET /controller/healthrules/application_id?name=health_rule_name
     restfulPath = "/controller/healthrules/" + str(app_ID)
-    if userName and password:
-        root = fetch_RESTful_XML(restfulPath,userName=userName,password=password)
+    if serverURL and userName and password:
+        root = fetch_RESTful_XML(restfulPath,serverURL=serverURL,userName=userName,password=password)
     elif token:
         root = fetch_RESTful_XML(restfulPath)
 
@@ -293,18 +293,23 @@ def generate_health_rules_CSV(app_ID,healthrules=None,fileName=None):
 
 
 def get_health_rules_from_server(inFileName,outFilename=None):
-    tree = ET.parse(inFileName)
-    root = tree.getroot()
+    if 'DEBUG' in locals(): print "Processing file " + inFileName + "..."
+    try:
+        tree = ET.parse(inFileName)
+        root = tree.getroot()
+    except:
+        if 'DEBUG' in locals(): print ("Could not process XML file " + inFileName)
+        return 0
     generate_health_rules_CSV(app_ID=0,healthrules=root,fileName=outFilename)
 
-def get_health_rules(serverURL,app_ID,userName=None,password=None,token=None):
-    if serverURL == "dummyserver":
+def get_health_rules(app_ID,serverURL=None,userName=None,password=None,token=None):
+    if serverURL and serverURL == "dummyserver":
         build_test_health_rules(app_ID)
-    elif userName and password:
+    elif serverURL and userName and password:
         if fetch_health_rules(serverURL,app_ID,userName=userName,password=password) == 0:
             print "get_health_rules: Failed to retrieve health rules for application " + str(app_ID)
             return None
-    elif token:
+    else:
         if fetch_health_rules(serverURL,app_ID,token=token) == 0:
             print "get_health_rules: Failed to retrieve health rules for application " + str(app_ID)
             return None

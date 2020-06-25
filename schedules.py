@@ -254,7 +254,7 @@ def get_schedules_from_server(inFileName,outFilename=None):
         json_file = open(inFileName)
         schedules = json.load(json_file)
     except:
-        print ("Could not process JSON file " + inFileName)
+        if 'DEBUG' in locals(): print ("Could not process JSON file " + inFileName)
         return 0
 
     if 'loadData' in locals():
