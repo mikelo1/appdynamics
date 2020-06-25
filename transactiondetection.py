@@ -250,7 +250,7 @@ def generate_transactiondetection_CSV(app_ID,detectionRules=None,fileName=None):
 ###### FROM HERE PUBLIC FUNCTIONS ######
 
 
-def get_transactiondetection_from_server(inFileName,outFilename=None):
+def get_detection_rules_from_server(inFileName,outFilename=None):
     if 'DEBUG' in locals(): print "Processing file " + inFileName + "..."
     try:
         tree = ET.parse(inFileName)

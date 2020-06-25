@@ -3,7 +3,7 @@ import sys
 import os.path
 from datetime import datetime, timedelta
 from applications import load_applications, generate_applications_CSV, getID
-from transactiondetection import get_detection_rules, get_transactiondetection_from_server
+from transactiondetection import get_detection_rules, get_detection_rules_from_server
 from businesstransactions import get_business_transactions, convert_business_transactions_JSON_to_CSV
 from backends import get_backends, convert_backends_JSON_to_CSV
 from healthrules import get_health_rules, get_health_rules_from_server
@@ -90,7 +90,7 @@ if ENTITY.lower() == "applications":
         optParser.error("Missing arguments")
 elif ENTITY.lower() == "transactiondetection":
     if options.inFileName:
-        get_transactiondetection_from_server(options.inFileName)
+        get_detection_rules_from_server(options.inFileName)
     elif options.user and options.password and options.hostname and options.application:
         baseUrl = buildBaseURL(options.hostname,options.port,options.SSLEnabled)
         load_applications(baseUrl,options.user,options.password)
