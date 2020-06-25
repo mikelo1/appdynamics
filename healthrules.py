@@ -30,8 +30,8 @@ class HealthRule:
 
 ###
  # Fetch health rules from a controller then add them to the healthrule dictionary. Provide either an username/password or an access token.
- # @param serverURL Full hostname of the Appdynamics controller. i.e.: https://demo1.appdynamics.com:443
  # @param app_ID the ID number of the health rules to fetch
+ # @param serverURL Full hostname of the Appdynamics controller. i.e.: https://demo1.appdynamics.com:443
  # @param userName Full username, including account. i.e.: myuser@customer1
  # @param password password for the specified user and host. i.e.: mypassword
  # @param token API acccess token
@@ -45,7 +45,7 @@ def fetch_health_rules(app_ID,serverURL=None,userName=None,password=None,token=N
     restfulPath = "/controller/healthrules/" + str(app_ID)
     if serverURL and userName and password:
         root = fetch_RESTful_XML(restfulPath,serverURL=serverURL,userName=userName,password=password)
-    elif token:
+    else:
         root = fetch_RESTful_XML(restfulPath)
 
     if root is None:

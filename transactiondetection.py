@@ -35,21 +35,21 @@ class MatchCriteria:
 
 ###
  # Fetch transaction detection rules from a controller then add them to the detectionrule dictionary. Provide either an username/password or an access token.
- # @param serverURL Full hostname of the Appdynamics controller. i.e.: https://demo1.appdynamics.com:443
  # @param app_ID the ID number of the detection rules to fetch
+ # @param serverURL Full hostname of the Appdynamics controller. i.e.: https://demo1.appdynamics.com:443
  # @param userName Full username, including account. i.e.: myuser@customer1
  # @param password password for the specified user and host. i.e.: mypassword
  # @param token API acccess token
  # @return the number of fetched transaction detection rules. Zero if no detection rule was found.
 ###
-def fetch_transactiondetection(serverURL,app_ID,userName=None,password=None,token=None):
+def fetch_transactiondetection(app_ID,serverURL=None,userName=None,password=None,token=None):
     if 'DEBUG' in locals(): print ("Fetching Auto Detection Rules for App " + str(app_ID) + "...")
     # Export Transaction Detection Rules for All Entry Point Types
     # GET /controller/transactiondetection/application_id/[tier_name/]rule_type  
     restfulPath = "/controller/transactiondetection/" + str(app_ID) + "/auto"
-    if userName and password:
-        root = fetch_RESTful_XML(restfulPath,userName=userName,password=password)
-    elif token:
+    if serverURL and userName and password:
+        root = fetch_RESTful_XML(restfulPath,serverURL=serverURL,userName=userName,password=password)
+    else:
         root = fetch_RESTful_XML(restfulPath)
 
     if root is None:
@@ -58,9 +58,9 @@ def fetch_transactiondetection(serverURL,app_ID,userName=None,password=None,toke
 
     if 'DEBUG' in locals(): print ("Fetching Custom Detection Rules for App " + str(app_ID) + "...")
     restfulPath = "/controller/transactiondetection/" + str(app_ID) + "/custom"
-    if userName and password:
-        rootCustom = fetch_RESTful_XML(restfulPath,userName=userName,password=password)
-    elif token:
+    if serverURL and userName and password:
+        rootCustom = fetch_RESTful_XML(restfulPath,serverURL=serverURL,userName=userName,password=password)
+    else:
         rootCustom = fetch_RESTful_XML(restfulPath)
 
     if rootCustom is None:
@@ -78,12 +78,6 @@ def fetch_transactiondetection(serverURL,app_ID,userName=None,password=None,toke
         print "fetch_transactiondetection: Loaded " + str(len(root.find("rule-list").getchildren())) + " transaction detection rules."
 
     return len(root.find("rule-list").getchildren())
-
-def convert_transactiondetection_XML_to_CSV(inFileName,outFilename=None):
-    tree = ET.parse(inFileName)
-    root = tree.getroot()
-    generate_transactiondetection_CSV(app_ID=0,detectionRules=root,fileName=outFilename)    
-
 
 def parse_tx_match_rule(ruleName,txMatchRuleData):
     mRuleList = []
@@ -252,15 +246,29 @@ def generate_transactiondetection_CSV(app_ID,detectionRules=None,fileName=None):
             exit(1)
     if fileName is not None: csvfile.close()
 
-def get_detection_rules(serverURL,app_ID,userName=None,password=None,token=None):
-    if serverURL == "dummyserver":
+
+###### FROM HERE PUBLIC FUNCTIONS ######
+
+
+def get_transactiondetection_from_server(inFileName,outFilename=None):
+    if 'DEBUG' in locals(): print "Processing file " + inFileName + "..."
+    try:
+        tree = ET.parse(inFileName)
+        root = tree.getroot()
+    except:
+        if 'DEBUG' in locals(): print ("Could not process XML file " + inFileName)
+        return 0
+    generate_transactiondetection_CSV(app_ID=0,detectionRules=root,fileName=outFilename)
+
+def get_detection_rules(app_ID,serverURL=None,userName=None,password=None,token=None):
+    if serverURL and serverURL == "dummyserver":
         build_test_transactiondetections(app_ID)
-    elif userName and password:
-        if fetch_transactiondetection(serverURL,app_ID,userName=userName,password=password) == 0:
+    elif serverURL and userName and password:
+        if fetch_transactiondetection(app_ID,serverURL=serverURL,userName=userName,password=password) == 0:
             print "get_detection_rules: Failed to retrieve transaction detection rules for application " + str(app_ID)
             return None
-    elif token:
-        if fetch_transactiondetection(serverURL,app_ID,token=token) == 0:
+    else:
+        if fetch_transactiondetection(app_ID,token=token) == 0:
             print "get_detection_rules: Failed to retrieve transaction detection rules for application " + str(app_ID)
             return None
     generate_transactiondetection_CSV(app_ID)
