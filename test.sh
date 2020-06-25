@@ -35,3 +35,5 @@ done
 
 #./appdctl.py get -f EVO.SaaS.UAT/sandbox/policies.json
 #./appdctl.py get -f EVO.SaaS.UAT/FullOnline/policies.json
+#./appdctl.py get -f EVO.SaaS.UAT/sandbox/actions.json
+#./appdctl.py get -f EVO.SaaS.UAT/FullOnline/actions.json

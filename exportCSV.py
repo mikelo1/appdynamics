@@ -10,7 +10,7 @@ from healthrules import get_health_rules, convert_health_rules_XML_to_CSV
 from schedules import get_schedules
 from events import get_healthrule_violations, convert_events_XML_to_CSV
 from policies import get_policies_legacy, get_policies_from_server
-from actions import get_actions_legacy, convert_actions_JSON_to_CSV
+from actions import get_actions_legacy, get_actions_from_server
 from snapshots import get_snapshots, convert_snapshots_JSON_to_CSV
 from allothertraffic import get_allothertraffic
 from dashboards import get_dashboards
@@ -201,7 +201,7 @@ elif ENTITY.lower() == "policies":
         optParser.error("Missing arguments")
 elif ENTITY.lower() == "actions":
     if options.inFileName:
-        convert_actions_JSON_to_CSV(options.inFileName,options.outFileName)
+        get_actions_from_server(options.inFileName,options.outFileName)
     elif options.user and options.password and options.hostname and options.application:
         baseUrl = buildBaseURL(options.hostname,options.port,options.SSLEnabled)
         load_applications(baseUrl,options.user,options.password)

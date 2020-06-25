@@ -9,18 +9,16 @@ actionDict = dict()
 
 class Action:
     name      = ""
-    emails    = []
-    policies  = []
-    actionPlan= ""
+    type      = ""
+    recipients= []
     properties= []
-    def __init__(self,name,emails,policies,actionPlan,customProperties):
+    def __init__(self,name,actiontype,recipients,customProperties):
         self.name      = name
-        self.emails    = emails
-        self.policies  = policies
-        self.actionPlan= actionPlan
+        self.type      = actiontype
+        self.recipients= recipients
         self.properties= customProperties
     def __str__(self):
-        return "({0},{1},{2},{3},{4})".format(self.name,self.emails,self.policies,self.actionPlan,self.properties)
+        return "({0},{1},{2},{3})".format(self.name,self.type,self.recipients,self.properties)
 
 def build_test_actions(app_ID):
     actions1=json.loads('[{"id":2183,"actionType":"EMAIL","emails":["gogs@acme.com"]},{"id":2184,"actionType":"EMAIL","emails":["gogs@acme.com"]}]')
@@ -35,14 +33,14 @@ def build_test_actions(app_ID):
 
 ###
  # Fetch application actions from a controller then add them to the actions dictionary. Provide either an username/password or an access token.
- # @param serverURL Full hostname of the Appdynamics controller. i.e.: https://demo1.appdynamics.com:443
  # @param app_ID the ID number of the application actions to fetch
+ # @param serverURL Full hostname of the Appdynamics controller. i.e.: https://demo1.appdynamics.com:443
  # @param userName Full username, including account. i.e.: myuser@customer1
  # @param password password for the specified user and host. i.e.: mypassword
  # @param token API acccess token
  # @return the number of fetched actions. Zero if no action was found.
 ###
-def fetch_actions(serverURL,app_ID,userName=None,password=None,token=None,loadData=False):
+def fetch_actions(app_ID,serverURL=None,userName=None,password=None,token=None,loadData=False):
     if 'DEBUG' in locals(): print ("Fetching actions for App " + str(app_ID) + "...")
     # Retrieve a List of Actions for a Given Application
     # GET <controller_url>/controller/alerting/rest/v1/applications/<application_id>/actions
@@ -83,7 +81,7 @@ def fetch_actions(serverURL,app_ID,userName=None,password=None,token=None,loadDa
 
     return len(actions)
 
-def fetch_actions_legacy(serverURL,app_ID,userName=None,password=None,token=None):
+def fetch_actions_legacy(app_ID,serverURL=None,userName=None,password=None,token=None):
     if 'DEBUG' in locals(): print ("Fetching actions for App " + str(app_ID) + "...")
     # https://docs.appdynamics.com/display/PRO44/Configuration+Import+and+Export+API#ConfigurationImportandExportAPI-ExportActionsfromanApplication
     # Exports all actions in the specified application to a JSON file.
@@ -108,14 +106,56 @@ def fetch_actions_legacy(serverURL,app_ID,userName=None,password=None,token=None
 
     return len(actions)
 
-def convert_actions_JSON_to_CSV(inFileName,outFilename=None):
-    json_file = open(inFileName)
-    actions = json.load(json_file)
-    generate_actions_CSV_legacy(app_ID=0,actions=actions,fileName=outFilename)
+def parse_action_legacy(action):
+    if action['actionType'] == "EmailAction":
+        CustomProperties = []
+        Emails = [action['toAddress']]
+        ActionPlan = ""
+    elif action['actionType'] == "CustomEmailAction":
+        CustomProperties = []
+        custProp = action['customProperties']
+        for prop in custProp:
+            CustomProperties.append(prop + " : " + custProp[prop].encode('ASCII', 'ignore'))
+        Emails = []
+        emailList = action['to']
+        for email in emailList:
+             Emails.append(email['emailAddress'])
+        ActionPlan = action['customEmailActionPlanName'].encode('ASCII', 'ignore')
+    elif action['actionType'] == "SMSAction":
+        ActionPlan=action['actionType']
+        CustomProperties = []
+        Emails = [action['toNumber']]
+    elif action['actionType'] == "DiagnosticSessionAction":
+        ActionPlan=action['actionType']+": "+str(action['businessTransactionTemplates'])
+        CustomProperties = [ 'Number of snapshots per minute: '+str(action['numberOfSnapshotsPerMinute']), 'Duration in minutes: '+str(action['durationInMinutes'])  ]
+        Emails = []
+    elif action['actionType'] == "ThreadDumpAction":
+        ActionPlan=action['actionType']
+        CustomProperties = [ 'Number of thread dumps: '+str(action['numberOfSamples']), 'Interval: '+str(action['samplingIntervalMills']) ]
+        Emails = []
+    elif action['actionType'] == "RunLocalScriptAction":
+        ActionPlan=action['actionType']
+        CustomProperties = [ 'Script path: '+str(action['scriptPath']), 'timeout(minutes): '+str(action['timeoutMinutes']) ]
+        Emails = []
+    elif action['actionType'] == "HttpRequestAction":
+        ActionPlan=action['httpRequestActionPlanName']
+        CustomProperties = action['customProperties']
+        Emails = []
+    elif action['actionType'] == "CustomAction":
+        ActionPlan=action['actionType']
+        CustomProperties = [ 'Custom action: '+str(['customType'])]
+        Emails = []
+    else:
+        print("parse_action_legacy: [Warn] Unknown action type ",action['actionType'])
+
+    return Action(name=action['name'],actiontype=action['actionType'],recipients=Emails,customProperties=CustomProperties)
+
+def parse_action(action):
+    return Action(name=action['name'],actiontype=action['actionType'],recipients="",customProperties="")
 
 def generate_actions_CSV(app_ID,actions=None,fileName=None):
     if actions is None and str(app_ID) not in actionDict:
-        print "Actions for application "+str(app_ID)+" not loaded."
+        print "generate_actions_CSV: [Warn] Actions for application "+str(app_ID)+" not loaded."
         return
     elif actions is None and str(app_ID) in actionDict:
         actions = actionDict[str(app_ID)]
@@ -129,137 +169,56 @@ def generate_actions_CSV(app_ID,actions=None,fileName=None):
     else:
         csvfile = sys.stdout
 
-    fieldnames = ['ActionName', 'ActionType', 'Destination', 'Policies', 'CustomProperties']
+    fieldnames = ['ActionName', 'ActionType', 'Recipients', 'Policies', 'CustomProperties']
     filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
     filewriter.writeheader()
 
     for action in actions:
+        if 'actionType' in action:
+            actionData = parse_action(action) if 'id' in action else parse_action_legacy(action)
+            Policies = get_policies_matching_action(app_ID,action['name'])
+        else: # Data does not belong to an action
+            continue
         try:
-            filewriter.writerow({'ActionName': action['name'],
-                                'ActionType': action['actionType'],
-                                'Destination': "",
-                                'Policies': "",
-                                'CustomProperties': ""})
+            filewriter.writerow({'ActionName': actionData.name,
+                                'ActionType': actionData.type,
+                                'Recipients': actionData.recipients,
+                                'Policies': Policies,
+                                'CustomProperties': actionData.properties})
         except:
             print ("Could not write action "+action['name']+" to the output.")
             if fileName is not None: csvfile.close()
             exit(1)
     if fileName is not None: csvfile.close()
 
-def generate_actions_CSV_legacy(app_ID,actions=None,fileName=None):
-    if actions is None and str(app_ID) not in actionDict:
-        print "Actions for application "+str(app_ID)+" not loaded."
-        return
-    elif actions is None and str(app_ID) in actionDict:
-        actions = actionDict[str(app_ID)]
 
-    if fileName is not None:
-        try:
-            csvfile = open(fileName, 'w')
-        except:
-            print ("Could not open output file " + fileName + ".")
-            return (-1)
-    else:
-        csvfile = sys.stdout
+###### FROM HERE PUBLIC FUNCTIONS ######
 
-    fieldnames = ['ActionName', 'Emails', 'Policies', 'ActionPlan', 'CustomProperties']
-    filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
-    filewriter.writeheader()
+def get_actions_from_server(inFileName,outFilename=None):
+    json_file = open(inFileName)
+    actions = json.load(json_file)
+    generate_actions_CSV(app_ID=0,actions=actions,fileName=outFilename)
 
-    for action in actions:
-
-        if 'actionType' not in action:
-            print "Warn: ActionType not recognized: " + str(action)
-            continue
-        if action['actionType'] == "EmailAction":
-            CustomProperties = []
-            Emails = [action['toAddress']]
-            ActionPlan = ""
-        elif action['actionType'] == "CustomEmailAction":
-            CustomProperties = []
-            custProp = action['customProperties']
-            for prop in custProp:
-                CustomProperties.append(prop + " : " + custProp[prop].encode('ASCII', 'ignore'))
-            Emails = []
-            emailList = action['to']
-            for email in emailList:
-                 Emails.append(email['emailAddress'])
-            ActionPlan = action['customEmailActionPlanName'].encode('ASCII', 'ignore')
-        elif action['actionType'] == "SMSAction":
-            ActionPlan=action['actionType']
-            CustomProperties = []
-            Emails = [action['toNumber']]
-        elif action['actionType'] == "DiagnosticSessionAction":
-            ActionPlan=action['actionType']+": "+str(action['businessTransactionTemplates'])
-            CustomProperties = [ 'Number of snapshots per minute: '+str(action['numberOfSnapshotsPerMinute']), 'Duration in minutes: '+str(action['durationInMinutes'])  ]
-            Emails = []
-        elif action['actionType'] == "ThreadDumpAction":
-            ActionPlan=action['actionType']
-            CustomProperties = [ 'Number of thread dumps: '+str(action['numberOfSamples']), 'Interval: '+str(action['samplingIntervalMills']) ]
-            Emails = []
-        elif action['actionType'] == "RunLocalScriptAction":
-            ActionPlan=action['actionType']
-            CustomProperties = [ 'Script path: '+str(action['scriptPath']), 'timeout(minutes): '+str(action['timeoutMinutes']) ]
-            Emails = []
-        elif action['actionType'] == "HttpRequestAction":
-            ActionPlan=action['httpRequestActionPlanName']
-            CustomProperties = action['customProperties']
-            Emails = []
-        elif action['actionType'] == "CustomAction":
-            ActionPlan=action['actionType']
-            CustomProperties = [ 'Custom action: '+str(['customType'])]
-            Emails = []
-        else:
-            print("Warning: Unknown action type ",action['actionType'])
-            continue
-
-        Policies = get_policies_matching_action(app_ID,action['name'])
-
-        emails_str    = ""
-        for email in Emails:
-            if emails_str != "": emails_str = emails_str + "\n"
-            emails_str = emails_str + email
-        policies_str  = ""
-        for policy in Policies:
-            if policies_str != "": policies_str = policies_str + "\n"
-            policies_str = policies_str + policy
-        properties_str= ""
-        for property in CustomProperties:
-            if properties_str != "": properties_str = properties_str + "\n"
-            properties_str = properties_str + property
-
-        try:
-            filewriter.writerow({'ActionName': action['name'],
-                                'Emails': emails_str,
-                                'Policies': policies_str,
-                                'ActionPlan': ActionPlan,
-                                'CustomProperties': properties_str})
-        except:
-            print ("Could not write action "+action['name']+" to the output.")
-            csvfile.close()
-            exit(1)
-    csvfile.close()
-
-def get_actions(serverURL,app_ID,userName=None,password=None,token=None):
-    if serverURL == "dummyserver":
+def get_actions(app_ID,serverURL=None,userName=None,password=None,token=None):
+    if serverURL and serverURL == "dummyserver":
         build_test_actions(app_ID)
-    elif userName and password:
-        if fetch_actions(serverURL,app_ID,userName=userName,password=password) == 0:
+    elif serverURL and userName and password:
+        if fetch_actions(app_ID,serverURL=serverURL,userName=userName,password=password) == 0:
             print "get_actions: Failed to retrieve actions for application " + str(app_ID)
             return None
-    elif token:
-        if fetch_actions(serverURL,app_ID,token=token) == 0:
+    else:
+        if fetch_actions(app_ID,token=token) == 0:
             print "get_actions: Failed to retrieve actions for application " + str(app_ID)
             return None
     generate_actions_CSV(app_ID)
 
-def get_actions_legacy(serverURL,app_ID,userName=None,password=None,token=None,fileName=None):
-    if userName and password:
-        if fetch_actions_legacy(serverURL,app_ID,userName,password) == 0:
+def get_actions_legacy(app_ID,serverURL=None,userName=None,password=None,token=None,fileName=None):
+    if serverURL and userName and password:
+        if fetch_actions_legacy(app_ID,serverURL=serverURL,userName=userName,password=password) == 0:
             print "get_actions: Failed to retrieve actions for application " + str(app_ID)
             return None    
-    elif token:
-        if fetch_actions_legacy(serverURL,app_ID,token=token) == 0:
+    else:
+        if fetch_actions_legacy(app_ID,token=token) == 0:
             print "get_actions: Failed to retrieve actions for application " + str(app_ID)
             return None
-    generate_actions_CSV_legacy(app_ID,fileName=fileName)
+    generate_actions_CSV(app_ID,fileName=fileName)

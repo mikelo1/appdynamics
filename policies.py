@@ -221,7 +221,7 @@ def generate_policies_CSV(app_ID,policies=None,fileName=None):
         elif 'selectedEntityType' in policy:
             if 'DEBUG' in locals(): print "Policy found in JSON format."
             policyData = parse_policy_JSON(policy)
-        else:
+        else: # Data does not belong to a policy
             continue
         
         try:
@@ -264,10 +264,10 @@ def get_policies_from_server(inFileName,outFilename=None):
     policies = json.load(json_file)
     generate_policies_CSV(app_ID=0,policies=policies,fileName=outFilename)
 
-def get_policies(app_ID,serverURL,userName=None,password=None,token=None):
+def get_policies(app_ID,serverURL=None,userName=None,password=None,token=None):
     if serverURL == "dummyserver":
         build_test_policies(app_ID)
-    elif userName and password:
+    elif serverURL and userName and password:
         if fetch_policies(app_ID,serverURL=serverURL,userName=userName,password=password) == 0:
             print "get_policies: Failed to retrieve policies for application " + str(app_ID)
             return None
@@ -277,8 +277,8 @@ def get_policies(app_ID,serverURL,userName=None,password=None,token=None):
             return None
     generate_policies_CSV(app_ID)
 
-def get_policies_legacy(app_ID,serverURL,userName=None,password=None,token=None,fileName=None):
-    if userName and password:
+def get_policies_legacy(app_ID,serverURL=None,userName=None,password=None,token=None,fileName=None):
+    if serverURL and userName and password:
         if fetch_policies_legacy(app_ID,serverURL=serverURL,userName=userName,password=password) == 0:
             print "get_policies: Failed to retrieve policies for application " + str(app_ID)
             return None
