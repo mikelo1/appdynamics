@@ -21,21 +21,21 @@ class BusinessTransaction:
 
 ###
  # Fetch application business transactions from a controller then add them to the business transactions dictionary. Provide either an username/password or an access token.
- # @param serverURL Full hostname of the Appdynamics controller. i.e.: https://demo1.appdynamics.com:443
  # @param app_ID the ID number of the application business transactions to fetch
+ # @param serverURL Full hostname of the Appdynamics controller. i.e.: https://demo1.appdynamics.com:443
  # @param userName Full username, including account. i.e.: myuser@customer1
  # @param password password for the specified user and host. i.e.: mypassword
  # @param token API acccess token
  # @return the number of fetched business transactions. Zero if no business transaction was found.
 ###
-def fetch_business_transactions(serverURL,app_ID,userName=None,password=None,token=None):
+def fetch_business_transactions(app_ID,serverURL=None,userName=None,password=None,token=None):
     if 'DEBUG' in locals(): print ("Fetching business transactions for App " + str(app_ID) + "...")
 
     # Retrieve All Business Transactions in a Business Application
     # GET /controller/rest/applications/application_name/business-transactions
     restfulPath = "/controller/rest/applications/" + str(app_ID) + "/business-transactions"
-    if userName and password:
-        transactions = fetch_RESTful_JSON(restfulPath,params={"output": "JSON"},userName=userName,password=password)
+    if serverURL and userName and password:
+        transactions = fetch_RESTful_JSON(restfulPath,params={"output": "JSON"},serverURL=serverURL,userName=userName,password=password)
     else:
         transactions = fetch_RESTful_JSON(restfulPath,params={"output": "JSON"})
 
@@ -52,11 +52,6 @@ def fetch_business_transactions(serverURL,app_ID,userName=None,password=None,tok
         #    print str(BTDict[appID])
 
     return len(transactions)
-
-def convert_business_transactions_JSON_to_CSV(inFileName,outFilename=None):
-    json_file = open(inFileName)
-    BTs = json.load(json_file)
-    generate_business_transactions_CSV(app_ID=0,transactions=BTs,fileName=outFilename)
 
 def generate_business_transactions_CSV(app_ID,transactions=None,fileName=None):
     if transactions is None and str(app_ID) not in BTDict:
@@ -93,15 +88,29 @@ def generate_business_transactions_CSV(app_ID,transactions=None,fileName=None):
             exit(1)
     if fileName is not None: csvfile.close()
 
-def get_business_transactions(serverURL,app_ID,userName=None,password=None,token=None):
-    if serverURL == "dummyserver":
+
+###### FROM HERE PUBLIC FUNCTIONS ######
+
+
+def get_business_transactions_from_server(inFileName,outFilename=None):
+    if 'DEBUG' in locals(): print "Processing file " + inFileName + "..."
+    try:
+        json_file = open(inFileName)
+        BTs = json.load(json_file)
+    except:
+        if 'DEBUG' in locals(): print ("Could not process JSON file " + inFileName)
+        return 0
+    generate_business_transactions_CSV(app_ID=0,transactions=BTs,fileName=outFilename)
+
+def get_business_transactions(app_ID,serverURL=None,userName=None,password=None,token=None):
+    if serverURL and serverURL == "dummyserver":
         build_test_policies(app_ID)
-    elif userName and password:
-        if fetch_business_transactions(serverURL,app_ID,userName=userName,password=password) == 0:
+    elif serverURL and userName and password:
+        if fetch_business_transactions(app_ID,serverURL=serverURL,userName=userName,password=password) == 0:
             print "get_business_transactions: Failed to retrieve business transactions for application " + str(app_ID)
             return None
-    elif token:
-        if fetch_business_transactions(serverURL,app_ID,token=token) == 0:
+    else:
+        if fetch_business_transactions(app_ID,token=token) == 0:
             print "get_business_transactions: Failed to retrieve business transactions for application " + str(app_ID)
             return None
     generate_business_transactions_CSV(app_ID)

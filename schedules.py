@@ -209,6 +209,7 @@ def generate_schedules_CSV(app_ID,schedules=None,fileName=None):
     filewriter.writeheader()
 
     for schedule in schedules:
+        if 'timezone' not in schedule: continue
         if 'scheduleConfiguration' in schedule:
             scheduleConfig = schedule['scheduleConfiguration']
 

@@ -4,8 +4,8 @@ import os.path
 from datetime import datetime, timedelta
 from applications import load_applications, generate_applications_CSV, getID
 from transactiondetection import get_detection_rules, get_detection_rules_from_server
-from businesstransactions import get_business_transactions, convert_business_transactions_JSON_to_CSV
-from backends import get_backends, convert_backends_JSON_to_CSV
+from businesstransactions import get_business_transactions, get_business_transactions_from_server
+from backends import get_backends, get_backends_from_server
 from healthrules import get_health_rules, get_health_rules_from_server
 from schedules import get_schedules, get_schedules_from_server
 from events import get_healthrule_violations, convert_events_XML_to_CSV
@@ -102,7 +102,7 @@ elif ENTITY.lower() == "transactiondetection":
         optParser.error("Missing arguments")
 elif ENTITY.lower() == "business-transactions":
     if options.inFileName:
-        convert_business_transactions_JSON_to_CSV(options.inFileName,options.outFileName)
+        get_business_transactions_from_server(options.inFileName,options.outFileName)
     elif options.user and options.password and options.hostname and options.application:
         baseUrl = buildBaseURL(options.hostname,options.port,options.SSLEnabled)
         load_applications(baseUrl,options.user,options.password)
@@ -114,7 +114,7 @@ elif ENTITY.lower() == "business-transactions":
         optParser.error("Missing arguments")
 elif ENTITY.lower() == "backends":
     if options.inFileName:
-        convert_backends_JSON_to_CSV(options.inFileName,options.outFileName)
+        get_backends_from_server(options.inFileName,options.outFileName)
     elif options.user and options.password and options.hostname and options.application:
         baseUrl = buildBaseURL(options.hostname,options.port,options.SSLEnabled)
         load_applications(baseUrl,options.user,options.password)

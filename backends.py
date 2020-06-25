@@ -24,14 +24,14 @@ class Backend:
  # @param token API acccess token
  # @return the number of fetched backends. Zero if no backend was found.
 ###
-def fetch_backends(serverURL,app_ID,userName=None,password=None,token=None):
+def fetch_backends(app_ID,serverURL=None,userName=None,password=None,token=None):
     if 'DEBUG' in locals(): print ("Fetching business transactions for App " + str(app_ID) + "...")
 
     # Retrieve All Registered Backends in a Business Application With Their Properties
     # GET /controller/rest/applications/application_name/backends
     restfulPath = "/controller/rest/applications/" + str(app_ID) + "/backends"
-    if userName and password:
-        backends = fetch_RESTful_JSON(restfulPath,params={"output": "JSON"},userName=userName,password=password)
+    if serverURL and userName and password:
+        backends = fetch_RESTful_JSON(restfulPath,params={"output": "JSON"},serverURL=serverURL,userName=userName,password=password)
     else:
         backends = fetch_RESTful_JSON(restfulPath,params={"output": "JSON"})
 
@@ -48,11 +48,6 @@ def fetch_backends(serverURL,app_ID,userName=None,password=None,token=None):
             print str(backendDict[appID])
 
     return len(backends)
-
-def convert_backends_JSON_to_CSV(inFileName,outFilename=None):
-    json_file = open(inFileName)
-    BEs = json.load(json_file)
-    generate_backends_CSV(app_ID=0,backends=BEs,fileName=outFilename)
 
 def generate_backends_CSV(app_ID,backends=None,fileName=None):
     if backends is None and str(app_ID) not in backendDict:
@@ -85,15 +80,29 @@ def generate_backends_CSV(app_ID,backends=None,fileName=None):
             exit(1)
     if fileName is not None: csvfile.close()
 
-def get_backends(serverURL,app_ID,userName=None,password=None,token=None):
-    if serverURL == "dummyserver":
+
+###### FROM HERE PUBLIC FUNCTIONS ######
+
+
+def get_backends_from_server(inFileName,outFilename=None):
+    if 'DEBUG' in locals(): print "Processing file " + inFileName + "..."
+    try:
+        json_file = open(inFileName)
+        BEs = json.load(json_file)
+    except:
+        if 'DEBUG' in locals(): print ("Could not process JSON file " + inFileName)
+        return 0
+    generate_backends_CSV(app_ID=0,backends=BEs,fileName=outFilename)
+
+def get_backends(app_ID,serverURL=None,userName=None,password=None,token=None):
+    if serverURL and serverURL == "dummyserver":
         build_test_policies(app_ID)
-    elif userName and password:
-        if fetch_backends(serverURL,app_ID,userName=userName,password=password) == 0:
+    elif serverURL and userName and password:
+        if fetch_backends(app_ID,serverURL=serverURL,userName=userName,password=password) == 0:
             print "get_backends: Failed to retrieve backends for application " + str(app_ID)
             return None
-    elif token:
-        if fetch_backends(serverURL,app_ID,token=token) == 0:
+    else:
+        if fetch_backends(app_ID,token=token) == 0:
             print "get_backends: Failed to retrieve backends for application " + str(app_ID)
             return None
     generate_backends_CSV(app_ID)
