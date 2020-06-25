@@ -60,11 +60,6 @@ def fetch_health_rules(serverURL,app_ID,userName=None,password=None,token=None):
 
     return len(root.getchildren())
 
-def convert_health_rules_XML_to_CSV(inFileName,outFilename=None):
-    tree = ET.parse(inFileName)
-    root = tree.getroot()
-    generate_health_rules_CSV(app_ID=0,healthrules=root,fileName=outFilename)
-
 def generate_health_rules_CSV(app_ID,healthrules=None,fileName=None):
     if healthrules is None and str(app_ID) not in healthruleDict:
         print "Health Rules for application "+str(app_ID)+" not loaded."
@@ -292,6 +287,15 @@ def generate_health_rules_CSV(app_ID,healthrules=None,fileName=None):
                 if fileName is not None: csvfile.close()
                 return (-1)
         if fileName is not None: csvfile.close()
+
+
+###### FROM HERE PUBLIC FUNCTIONS ######
+
+
+def get_health_rules_from_server(inFileName,outFilename=None):
+    tree = ET.parse(inFileName)
+    root = tree.getroot()
+    generate_health_rules_CSV(app_ID=0,healthrules=root,fileName=outFilename)
 
 def get_health_rules(serverURL,app_ID,userName=None,password=None,token=None):
     if serverURL == "dummyserver":
