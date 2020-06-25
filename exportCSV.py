@@ -12,7 +12,7 @@ from events import get_healthrule_violations, get_healthrule_violations_from_ser
 from policies import get_policies_legacy, get_policies_from_server
 from actions import get_actions_legacy, get_actions_from_server
 from snapshots import get_snapshots, get_snapshots_from_server
-from allothertraffic import get_allothertraffic
+from allothertraffic import get_allothertraffic, get_allothertraffic_from_server
 from dashboards import get_dashboards
 from optparse import OptionParser, OptionGroup
 
@@ -138,7 +138,7 @@ elif ENTITY.lower() == "snapshots":
         optParser.error("Missing arguments")
 elif ENTITY.lower() == "allothertraffic":
     if options.inFileName:
-        convert_allothertraffic_JSON_to_CSV(options.inFileName,options.outFileName)
+        get_allothertraffic_from_server(options.inFileName,options.outFileName)
     elif options.user and options.password and options.hostname and options.application:
         baseUrl = buildBaseURL(options.hostname,options.port,options.SSLEnabled)
         load_applications(baseUrl,options.user,options.password)

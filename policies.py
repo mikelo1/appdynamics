@@ -246,15 +246,14 @@ def generate_policies_JSON(app_ID,policies=None,fileName=None):
 
     if fileName is not None:
         try:
-            JSONfile = open(fileName, 'w')
+            with open(fileName, 'w') as outfile:
+                json.dump(policies, outfile)
+            outfile.close()
         except:
             print ("Could not open output file " + fileName + ".")
             return (-1)
     else:
-        JSONfile = sys.stdout
-
-    data=json.dump(policies,JSONfile)
-    JSONfile.close()
+        json.dump(policies,sys.stdout)
 
 
 ###### FROM HERE PUBLIC FUNCTIONS ######

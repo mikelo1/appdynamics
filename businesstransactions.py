@@ -116,15 +116,23 @@ def get_business_transactions(app_ID,serverURL=None,userName=None,password=None,
     generate_business_transactions_CSV(app_ID)
 
 def get_business_transaction_ID(appID,transactionName):
-    if str(appID) in BTDict:
-        for transaction in BTDict[str(appID)]:
-            if transaction['name'] == transactionName:
-                return transaction['id']
-    return None
+    if appID <= 0: return 0
+    if str(appID) not in BTDict:
+        if fetch_business_transactions(appID) == 0:
+            print "get_business_transaction_ID: Failed to retrieve business transactions for application " + str(app_ID)
+            return 0
+    for transaction in BTDict[str(appID)]:
+        if transaction['name'] == transactionName:
+            return transaction['id']
+    return 0
 
 def get_business_transaction_name(appID,transactionID):
-    if str(appID) in BTDict:
-        for transaction in BTDict[str(appID)]:
-            if transaction['id'] == transactionID:
-                return transaction['name']
+    if appID <= 0 or transactionID <= 0: return None
+    if str(appID) not in BTDict:
+        if fetch_business_transactions(appID) == 0:
+            print "get_business_transaction_name: Failed to retrieve business transactions for application " + str(app_ID)
+            return None
+    for transaction in BTDict[str(appID)]:
+        if transaction['id'] == transactionID:
+            return transaction['name']
     return None
