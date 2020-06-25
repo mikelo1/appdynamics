@@ -45,8 +45,8 @@ def fetch_actions(app_ID,serverURL=None,userName=None,password=None,token=None,l
     # Retrieve a List of Actions for a Given Application
     # GET <controller_url>/controller/alerting/rest/v1/applications/<application_id>/actions
     restfulPath = "/controller/alerting/rest/v1/applications/" + str(app_ID) + "/actions"
-    if userName and password:
-        actions = fetch_RESTful_JSON(restfulPath,userName=userName,password=password)
+    if serverURL and userName and password:
+        actions = fetch_RESTful_JSON(restfulPath,serverURL=serverURL,userName=userName,password=password)
     else:
         actions = fetch_RESTful_JSON(restfulPath)
 

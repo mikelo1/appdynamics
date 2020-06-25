@@ -73,20 +73,20 @@ def build_test_schedules(app_ID):
 
 ###
  # Fetch application schedules from a controller then add them to the policies dictionary. Provide either an username/password or an access token.
- # @param serverURL Full hostname of the Appdynamics controller. i.e.: https://demo1.appdynamics.com:443
  # @param app_ID the ID number of the application schedules to fetch
+ # @param serverURL Full hostname of the Appdynamics controller. i.e.: https://demo1.appdynamics.com:443
  # @param userName Full username, including account. i.e.: myuser@customer1
  # @param password password for the specified user and host. i.e.: mypassword
  # @param token API acccess token
  # @return the number of fetched schedules. Zero if no schedule was found.
 ###
-def fetch_schedules(serverURL,app_ID,userName=None,password=None,token=None,loadData=False):
+def fetch_schedules(app_ID,serverURL=None,userName=None,password=None,token=None,loadData=False):
     if 'DEBUG' in locals(): print ("Fetching schedules for App " + str(app_ID) + "...")
     # Retrieve a List of Schedules for a Given Application
     # GET <controller_url>/controller/alerting/rest/v1/applications/<application_id>/schedules
     restfulPath = "/controller/alerting/rest/v1/applications/" + str(app_ID) + "/schedules"
-    if userName and password:
-        schedules = fetch_RESTful_JSON(restfulPath,userName=userName,password=password)
+    if serverURL and userName and password:
+        schedules = fetch_RESTful_JSON(restfulPath,serverURL=serverURL,userName=userName,password=password)
     else:
         schedules = fetch_RESTful_JSON(restfulPath)
 
@@ -132,7 +132,7 @@ def fetch_schedules(serverURL,app_ID,userName=None,password=None,token=None,load
  # @param token API acccess token
  # @return True if the update was successful. False if no schedule was updated.
 ###
-def update_schedule(serverURL,app_ID,sched_ID,userName=None,password=None,token=None):
+def update_schedule(app_ID,sched_ID,serverURL=None,userName=None,password=None,token=None):
     for schedule in scheduleDict[str(app_ID)]:
         if schedule['id'] == sched_ID: break
     if schedule['id'] != sched_ID:
@@ -142,35 +142,10 @@ def update_schedule(serverURL,app_ID,sched_ID,userName=None,password=None,token=
     # Updates an existing schedule with a specified JSON payload
     # PUT <controller_url>/controller/alerting/rest/v1/applications/<application_id>/schedules/{schedule-id}
     restfulPath = "/controller/alerting/rest/v1/applications/" + str(app_ID) + "/schedules/" + str(sched_ID)
-    if userName and password:
-        return update_RESTful_JSON(restfulPath,schedule,userName=userName,password=password)
+    if serverURL and userName and password:
+        return update_RESTful_JSON(restfulPath,schedule,serverURL=serverURL,userName=userName,password=password)
     else:
         return update_RESTful_JSON(restfulPath,schedule)
-
-def load_schedule_JSON(fileName,app_ID):
-    if 'DEBUG' in locals(): print "Processing file " + fileName + "..."
-    try:
-        json_file = open(fileName)
-        scheduleJSON = json.load(json_file)
-    except:
-        print ("Could not process JSON file " + fileName)
-        return 0
-
-    for schedule in scheduleDict[app_ID]:
-        #if 'DEBUG' in locals(): print ("Fetching schedule "+str(schedule['id'])+" for App " + app_ID + "...")
-        #schedFileName=fileName[:fileName.find('.json')]+"/"+str(schedule['id'])+".json"
-        #try:
-        #    sched_json_file = open(schedFileName)
-        #    scheduleJSON = json.load(sched_json_file)
-        #except:
-        #    print ("Could not process JSON file " + schedFileName)
-        #    continue
-        #appScheduleList.append(ScheduleElement(appID=app_ID,schedID=scheduleJSON['id'],data=scheduleJSON))
-        if schedule['id'] == scheduleJSON['id']:
-            schedule = scheduleJSON
-            return schedule['id']
-
-    return 0
 
 def schedules_JSON_to_structure(app_ID=None):
     for schedule in scheduleList:
@@ -269,20 +244,53 @@ def generate_schedules_CSV(app_ID,schedules=None,fileName=None):
             return (-1)
     if fileName is not None: csvfile.close()
 
-def get_schedules(serverURL,app_ID,userName=None,password=None,token=None):
-    if serverURL == "dummyserver":
+
+###### FROM HERE PUBLIC FUNCTIONS ######
+
+
+def get_schedules_from_server(inFileName,outFilename=None):
+    if 'DEBUG' in locals(): print "Processing file " + inFileName + "..."
+    try:
+        json_file = open(inFileName)
+        schedules = json.load(json_file)
+    except:
+        print ("Could not process JSON file " + inFileName)
+        return 0
+
+    if 'loadData' in locals():
+        index = 0
+        for schedule in schedules:
+            if 'DEBUG' in locals(): print ("Fetching schedule "+str(schedule['id'])+" for App " + app_ID + "...")
+            schedFileName=inFileName[:inFileName.find('.json')]+"/"+str(schedule['id'])+".json"
+            try:
+                sched_json_file = open(schedFileName)
+                scheduleJSON = json.load(sched_json_file)
+            except:
+                print ("Could not process JSON file " + schedFileName)
+                continue
+
+            if scheduleJSON is None:
+                "get_schedules_from_server: Failed to retrieve schedule " + str(schedule['id']) + " for application " + str(app_ID)
+                continue
+            schedules[index] = scheduleJSON
+            index = index + 1
+    generate_schedules_CSV(app_ID=0,schedules=schedules,fileName=outFilename)
+
+
+def get_schedules(app_ID,serverURL=None,userName=None,password=None,token=None):
+    if serverURL and serverURL == "dummyserver":
         build_test_schedules(app_ID)
-    elif userName and password:
-        if fetch_schedules(serverURL,app_ID,userName=userName,password=password) == 0:
+    elif serverURL and userName and password:
+        if fetch_schedules(app_ID,serverURL=serverURL,userName=userName,password=password) == 0:
             print "get_schedules: Failed to retrieve schedules for application " + str(app_ID)
             return None
-    elif token:
-        if fetch_schedules(serverURL,app_ID,token=token) == 0:
+    else:
+        if fetch_schedules(app_ID,token=token) == 0:
             print "get_schedules: Failed to retrieve schedules for application " + str(app_ID)
             return None
     generate_schedules_CSV(app_ID)
 
-def patch_schedules(serverURL,app_ID,source,userName=None,password=None,token=None):
+def patch_schedules(app_ID,source,serverURL=None,userName=None,password=None,token=None):
     # Verify if the source is a file or stream JSON data
     try:
         # Load data from stream

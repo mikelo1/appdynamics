@@ -6,8 +6,8 @@ from applications import load_applications, generate_applications_CSV, getID
 from transactiondetection import get_detection_rules, convert_transactiondetection_XML_to_CSV
 from businesstransactions import get_business_transactions, convert_business_transactions_JSON_to_CSV
 from backends import get_backends, convert_backends_JSON_to_CSV
-from healthrules import get_health_rules, convert_health_rules_XML_to_CSV
-from schedules import get_schedules
+from healthrules import get_health_rules, get_health_rules_from_server
+from schedules import get_schedules, get_schedules_from_server
 from events import get_healthrule_violations, convert_events_XML_to_CSV
 from policies import get_policies_legacy, get_policies_from_server
 from actions import get_actions_legacy, get_actions_from_server
@@ -164,8 +164,7 @@ elif ENTITY.lower() == "healthrules":
         optParser.error("Missing arguments")
 elif ENTITY.lower() == "schedules":
     if options.inFileName:
-        # TODO: Something about it
-        print "Feaure not implemented yet"
+        get_schedules_from_server(options.inFileName,options.outFileName)
     elif options.user and options.password and options.hostname and options.application:
         baseUrl = buildBaseURL(options.hostname,options.port,options.SSLEnabled)
         load_applications(baseUrl,options.user,options.password)
