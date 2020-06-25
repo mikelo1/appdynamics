@@ -121,8 +121,8 @@ def generate_events_CSV(app_ID,events=None,fileName=None):
         else:
             EntityName = ""
 
-        appName = str(app_ID)
-        #appName = getName(app_ID)
+        #appName = str(app_ID)
+        appName = getName(app_ID)
 
         try:
             filewriter.writerow({'PolicyName': PolicyName,
@@ -143,7 +143,6 @@ def generate_events_CSV(app_ID,events=None,fileName=None):
 
 
 def get_healthrule_violations_from_server(inFileName,outFilename=None):
-    DEBUG=True
     if 'DEBUG' in locals(): print "Processing file " + inFileName + "..."
     try:
         json_file = open(inFileName)

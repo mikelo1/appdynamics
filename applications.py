@@ -222,6 +222,7 @@ def getID(appName):
     return fetch_application(server,appName,token=token)
 
 def getName(appID):
+    if appID <= 0: return 0
     if appID in applicationDict:
         return applicationDict[appID]['name']
     # Request for provided application, although is not in the loaded application list

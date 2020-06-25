@@ -11,15 +11,15 @@ snapshotDict = dict()
 
 ###
  # Fetch snapshot from a controller then add them to the snapshot dictionary. Provide either an username/password or an access token.
- # @param serverURL Full hostname of the Appdynamics controller. i.e.: https://demo1.appdynamics.com:443
  # @param app_ID the ID number of the application snapshot to fetch
  # @param minutesBeforeNow fetch only snapshots newer than a relative duration in minutes
+ # @param serverURL Full hostname of the Appdynamics controller. i.e.: https://demo1.appdynamics.com:443
  # @param userName Full username, including account. i.e.: myuser@customer1
  # @param password password for the specified user and host. i.e.: mypassword
  # @param token API acccess token
  # @return the number of fetched snapshots. Zero if no snapshot was found.
 ###
-def fetch_snapshots(serverURL,app_ID,minutesBeforeNow,userName=None,password=None,token=None):
+def fetch_snapshots(app_ID,minutesBeforeNow,serverURL=None,userName=None,password=None,token=None):
     MAX_RESULTS="9999"
     if 'DEBUG' in locals(): print ("Fetching snapshots for App " + str(app_ID) + ", for the last "+str(minutesBeforeNow)+" minutes...")
     #Retrieve Transaction Snapshots
@@ -33,9 +33,9 @@ def fetch_snapshots(serverURL,app_ID,minutesBeforeNow,userName=None,password=Non
 
         for retry in range(1,4):
             if 'DEBUG' in locals(): print ("Fetching snapshots for App " + str(app_ID) + "params "+str(params)+"...")
-            if userName and password:
-                data_chunck = fetch_RESTful_JSON(restfulPath,params=params,userName=userName,password=password)
-            elif token:
+            if serverURL and userName and password:
+                data_chunck = fetch_RESTful_JSON(restfulPath,params=params,serverURL=serverURL,userName=userName,password=password)
+            else:
                 data_chunck = fetch_RESTful_JSON(restfulPath,params=params)
 
             if data_chunck is not None:
@@ -66,11 +66,6 @@ def fetch_snapshots(serverURL,app_ID,minutesBeforeNow,userName=None,password=Non
 
     return len(snapshots)
 
-def convert_snapshots_JSON_to_CSV(inFileName,outFilename=None):
-    json_file = open(inFileName)
-    snapshots = json.load(json_file)
-    generate_snapshots_CSV(app_ID=0,snapshots=snapshots,fileName=outFilename)
-
 def generate_snapshots_CSV(app_ID,snapshots=None,fileName=None):
     if snapshots is None and str(app_ID) not in snapshotDict:
         print "Snapshots for application "+str(app_ID)+" not loaded."
@@ -92,6 +87,7 @@ def generate_snapshots_CSV(app_ID,snapshots=None,fileName=None):
     filewriter.writeheader()
 
     for snapshot in snapshots:
+        if 'snapshotExitCalls' not in snapshot: continue
         Time = datetime.fromtimestamp(float(snapshot['localStartTime'])/1000).strftime('%Y-%m-%d %H:%M:%S')
         Tier = getTierName(snapshot['applicationComponentId'])
         Node = getNodeName(snapshot['applicationComponentNodeId'])
@@ -109,15 +105,29 @@ def generate_snapshots_CSV(app_ID,snapshots=None,fileName=None):
             exit(1)
     if fileName is not None: csvfile.close()
 
-def get_snapshots(serverURL,app_ID,minutesBeforeNow,userName=None,password=None,token=None):
-    if serverURL == "dummyserver":
+
+###### FROM HERE PUBLIC FUNCTIONS ######
+
+
+def get_snapshots_from_server(inFileName,outFilename=None):
+    if 'DEBUG' in locals(): print "Processing file " + inFileName + "..."
+    try:
+        json_file = open(inFileName)
+        snapshots = json.load(json_file)
+    except:
+        if 'DEBUG' in locals(): print ("Could not process JSON file " + inFileName)
+        return 0
+    generate_snapshots_CSV(app_ID=0,snapshots=snapshots,fileName=outFilename)
+
+def get_snapshots(app_ID,minutesBeforeNow,serverURL=None,userName=None,password=None,token=None):
+    if serverURL and serverURL == "dummyserver":
         build_test_events(app_ID)
-    elif userName and password:
-        if fetch_snapshots(serverURL,app_ID,minutesBeforeNow,userName=userName,password=password) == 0:
+    elif serverURL and userName and password:
+        if fetch_snapshots(app_ID,minutesBeforeNow,serverURL=serverURL,userName=userName,password=password) == 0:
             print "get_snapshots: Failed to retrieve snapshots for application " + str(app_ID)
             return None
-    elif token:
-        if fetch_snapshots(serverURL,app_ID,minutesBeforeNow,token=token) == 0:
+    else:
+        if fetch_snapshots(app_ID,minutesBeforeNow,token=token) == 0:
             print "get_snapshots: Failed to retrieve snapshots for application " + str(app_ID)
             return None
     generate_snapshots_CSV(app_ID)
