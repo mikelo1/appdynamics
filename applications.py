@@ -2,8 +2,7 @@
 import json
 import csv
 import sys
-from appdconfig import get_current_context_serverURL, get_current_context_username
-from appdRESTfulAPI import get_access_token, fetch_RESTful_JSON
+from appdRESTfulAPI import fetch_RESTful_JSON
 
 applicationDict = dict()
 
@@ -21,33 +20,33 @@ def test_applications_with_tiers_and_nodes():
 
 ###
  # Fetch applications from a controller then add it to the application dictionary. Provide either an username/password or an access token.
- # @param serverURL Full hostname of the Appdynamics controller. i.e.: https://demo1.appdynamics.com:443
  # @param key name or ID number of the application to fetch
+ # @param serverURL Full hostname of the Appdynamics controller. i.e.: https://demo1.appdynamics.com:443
  # @param userName Full username, including account. i.e.: myuser@customer1
  # @param password password for the specified user and host. i.e.: mypassword
  # @param token API acccess token
  # @return the id of the fetched application. Zero if no application was found.
 ###
-def fetch_application(serverURL,key,userName=None,password=None,token=None,includeNodes=False):
+def fetch_application(key,serverURL=None,userName=None,password=None,token=None,includeNodes=False):
     if 'DEBUG' in locals(): print ("Fetching applications for controller " + serverURL + "...")
     # Retrieve a specific Business Application
     # GET /controller/rest/applications/application_name
     restfulPath = "/controller/rest/applications/" + str(key)
-    if userName and password:
-        application = fetch_RESTful_JSON(restfulPath,userName=userName,password=password)
+    if serverURL and userName and password:
+        application = fetch_RESTful_JSON(restfulPath,serverURL=serverURL,userName=userName,password=password)
     else:
         application = fetch_RESTful_JSON(restfulPath)
 
     if application is None:
-        print "fetch_application: Failed to retrieve applications for controller " + serverURL
+        print "fetch_application: Failed to retrieve application " + str(key) + " for controller " + serverURL
         return 0
 
     if includeNodes:
         # Add tiers and nodes to the application data
-        tiers = fetch_tiers(serverURL,application['name'],userName,password,token)
+        tiers = fetch_tiers(application['name'],serverURL,userName,password,token)
         if tiers is not None:
             for tier in tiers:
-                nodes = fetch_nodes(serverURL,applicationJSON['name'],tier['name'],userName,password,token)
+                nodes = fetch_nodes(applicationJSON['name'],tier['name'],serverURL,userName,password,token)
                 if nodes is None: continue
                 tier.append(nodes)
             application.append(tiers)
@@ -70,13 +69,13 @@ def fetch_application(serverURL,key,userName=None,password=None,token=None,inclu
  # @param includeNodes flag to determine if nodes and tiers need to be loaded as well
  # @return the number of fetched applications. Zero if no application was found.
 ###
-def fetch_applications(serverURL,userName=None,password=None,token=None,includeNodes=False):
+def fetch_applications(serverURL=None,userName=None,password=None,token=None,includeNodes=False):
     if 'DEBUG' in locals(): print ("Fetching applications for controller " + serverURL + "...")
     # Retrieve All Business Applications
     # GET /controller/rest/applications
     restfulPath = "/controller/rest/applications/"
-    if userName and password:
-        applications = fetch_RESTful_JSON(restfulPath,userName=userName,password=password)
+    if serverURL and userName and password:
+        applications = fetch_RESTful_JSON(restfulPath,serverURL=serverURL,userName=userName,password=password)
     else:
         applications = fetch_RESTful_JSON(restfulPath)
 
@@ -87,10 +86,10 @@ def fetch_applications(serverURL,userName=None,password=None,token=None,includeN
     for application in applications:
         if includeNodes:
             # Add tiers and nodes to the application data
-            tiers = fetch_tiers(serverURL,application['name'],userName,password,token)
+            tiers = fetch_tiers(application['name'],serverURL,userName,password,token)
             if tiers is not None:
                 for tier in tiers:
-                    nodes = fetch_nodes(serverURL,application['name'],tier['name'],userName,password,token)
+                    nodes = fetch_nodes(application['name'],tier['name'],serverURL,userName,password,token)
                     if nodes is None: continue
                     tier.update({'nodes':nodes})
                 application.update({'tiers':tiers})
@@ -105,13 +104,13 @@ def fetch_applications(serverURL,userName=None,password=None,token=None,includeN
 
     return len(applications)
 
-def fetch_tiers(serverURL,appName,userName=None,password=None,token=None):
+def fetch_tiers(appName,serverURL=None,userName=None,password=None,token=None):
     if 'DEBUG' in locals(): print ("Fetching tiers for application " + appName + "...")
     # Retrieve All Tiers in a Business Application
     # GET /controller/rest/applications/application_name/tiers
     restfulPath = "/controller/rest/applications/" + appName + "/tiers"
-    if userName and password:
-        tiers = fetch_RESTful_JSON(restfulPath,userName=userName,password=password)
+    if serverURL and userName and password:
+        tiers = fetch_RESTful_JSON(restfulPath,serverURL=serverURL,userName=userName,password=password)
     else:
         tiers = fetch_RESTful_JSON(restfulPath)
 
@@ -120,13 +119,13 @@ def fetch_tiers(serverURL,appName,userName=None,password=None,token=None):
         return None
     return tiers
 
-def fetch_nodes(serverURL,appName,tierName,userName=None,password=None,token=None):
+def fetch_nodes(appName,tierName,serverURL=None,userName=None,password=None,token=None):
     if 'DEBUG' in locals(): print ("Fetching nodes for tier " + tierName + ", application " + appName)
     # Retrieve Node Information for All Nodes in a Tier
     # GET /controller/rest/applications/application_name/tiers/tier_name/nodes
     restfulPath = "/controller/rest/applications/" + appName + "/tiers/" + tierName + "/nodes"
-    if userName and password:
-        nodes = fetch_RESTful_JSON(restfulPath,userName=userName,password=password)
+    if serverURL and userName and password:
+        nodes = fetch_RESTful_JSON(restfulPath,serverURL=serverURL,userName=userName,password=password)
     else:
         nodes = fetch_RESTful_JSON(restfulPath)
 
@@ -135,13 +134,9 @@ def fetch_nodes(serverURL,appName,tierName,userName=None,password=None,token=Non
         return None
     return nodes
 
-def load_applications_JSON(fileName):
-    print "Parsing file " + fileName + "..."
-    json_file = open(fileName)
-    applications = json.load(json_file)
-    return applications
+def generate_applications_CSV(appDict=None,fileName=None):
+    if appDict is None: appDict = applicationDict
 
-def generate_applications_CSV(fileName=None):
     if fileName is not None:
         try:
             csvfile = open(fileName, 'w')
@@ -155,8 +150,8 @@ def generate_applications_CSV(fileName=None):
     filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
     filewriter.writeheader()
 
-    for appID in applicationDict:
-        application = applicationDict[appID]
+    for appID in appDict:
+        application = appDict[appID]
         Tiers_str = ""
         Nodes_str = ""
         if 'tiers' in application:
@@ -177,34 +172,39 @@ def generate_applications_CSV(fileName=None):
             exit(1)
     if fileName is not None: csvfile.close()
 
-def get_applications(serverURL,appList=None,userName=None,password=None,token=None,includeNodes=False):
-    if userName and password:
-        if fetch_applications(serverURL,userName=userName,password=password,includeNodes=includeNodes) > 0:
-            generate_applications_CSV()
-    elif token:
-        if fetch_applications(serverURL,token=token,includeNodes=includeNodes) > 0:
-            generate_applications_CSV()
 
-def load_applications(serverURL,userName=None,password=None,token=None,includeNodes=False):
-#    applicationDict.clear()
-    if userName and password:
-        val = fetch_applications(serverURL,userName=userName,password=password)
-    elif token:
-        val = fetch_applications(serverURL,token=token)
-    else:
-        print "load_applications: Incorrect parameters."
+###### FROM HERE PUBLIC FUNCTIONS ######
+
+
+def get_applications_from_server(inFileName,outFilename=None):
+    if 'DEBUG' in locals(): print "Processing file " + inFileName + "..."
+    try:
+        json_file = open(inFileName)
+        applications = json.load(json_file)
+    except:
+        if 'DEBUG' in locals(): print ("Could not process JSON file " + inFileName)
         return 0
-    if 'DEBUG' in locals(): print "Loaded applications: "+str(val)
-    return val
+
+    appDict = dict()
+    for application in applications:
+        # Add loaded application to the application dictionary
+        app_ID = application['id']
+        appDict.update({str(app_ID):application})
+
+    generate_applications_CSV(appDict=appDict)
+
+def get_applications(serverURL=None,appList=None,userName=None,password=None,token=None,includeNodes=False):
+    if serverURL and userName and password:
+        if fetch_applications(serverURL=serverURL,userName=userName,password=password,includeNodes=includeNodes) > 0:
+            generate_applications_CSV()
+    else:
+        if fetch_applications(token=token,includeNodes=includeNodes) > 0:
+            generate_applications_CSV()
 
 def get_application_list():
     if len(applicationDict) == 0:
         # Request for applications data
-        server = get_current_context_serverURL()
-        username = get_current_context_username()
-        token=get_access_token(server,username)
-        if token is None: return -1
-        if fetch_applications(server,token=token) == 0: return -1
+        if fetch_applications() == 0: return -1
     appList = []
     for appID in applicationDict:
         appList.append(applicationDict[appID]['name'])
@@ -215,22 +215,14 @@ def getID(appName):
         if applicationDict[appID]['name'] == appName:
             return applicationDict[appID]['id']
     # Request for provided application, although is not in the loaded application list
-    server = get_current_context_serverURL()
-    username = get_current_context_username()
-    token=get_access_token(server,username)
-    if token is None: return -1
-    return fetch_application(server,appName,token=token)
+    return fetch_application(appName)
 
 def getName(appID):
     if appID <= 0: return 0
     if appID in applicationDict:
         return applicationDict[appID]['name']
     # Request for provided application, although is not in the loaded application list
-    server = get_current_context_serverURL()
-    username = get_current_context_username()
-    token=get_access_token(server,username)
-    if token is None: return -1
-    return fetch_application(server,appID,token=token)
+    return fetch_application(appID)
 
 def getNodeName(nodeID):
     # TODO: search in data for node and return name

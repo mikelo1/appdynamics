@@ -2,7 +2,7 @@
 import sys
 import os.path
 from datetime import datetime, timedelta
-from applications import load_applications, generate_applications_CSV, getID
+from applications import generate_applications_CSV, getID
 from transactiondetection import get_detection_rules, get_detection_rules_from_server
 from businesstransactions import get_business_transactions, get_business_transactions_from_server
 from backends import get_backends, get_backends_from_server
@@ -82,10 +82,10 @@ ENTITY = args[0]
 ### Application performance related entities
 if ENTITY.lower() == "applications":
     if options.inFileName:
-        export_applications(options.inFileName,options.outFileName)
+        get_applications_from_server(options.inFileName,options.outFileName)
     elif options.user and options.password and options.hostname:
         baseUrl = buildBaseURL(options.hostname,options.port,options.SSLEnabled)
-        export_applications_CSV(baseUrl,options.user,options.password)
+        get_applications(baseUrl,userName=options.user,password=options.password)
     else:
         optParser.error("Missing arguments")
 elif ENTITY.lower() == "transactiondetection":
@@ -93,7 +93,6 @@ elif ENTITY.lower() == "transactiondetection":
         get_detection_rules_from_server(options.inFileName)
     elif options.user and options.password and options.hostname and options.application:
         baseUrl = buildBaseURL(options.hostname,options.port,options.SSLEnabled)
-        load_applications(baseUrl,options.user,options.password)
         appID=getID(options.application)
         if appID > 0:
             options.application=str(appID)
@@ -105,7 +104,6 @@ elif ENTITY.lower() == "business-transactions":
         get_business_transactions_from_server(options.inFileName,options.outFileName)
     elif options.user and options.password and options.hostname and options.application:
         baseUrl = buildBaseURL(options.hostname,options.port,options.SSLEnabled)
-        load_applications(baseUrl,options.user,options.password)
         appID=getID(options.application)
         if appID > 0:
             options.application=str(appID)
@@ -117,7 +115,6 @@ elif ENTITY.lower() == "backends":
         get_backends_from_server(options.inFileName,options.outFileName)
     elif options.user and options.password and options.hostname and options.application:
         baseUrl = buildBaseURL(options.hostname,options.port,options.SSLEnabled)
-        load_applications(baseUrl,options.user,options.password)
         appID=getID(options.application)
         if appID > 0:
             options.application=str(appID)
@@ -129,7 +126,6 @@ elif ENTITY.lower() == "snapshots":
         get_snapshots_from_server(options.inFileName,options.outFileName)
     elif options.user and options.password and options.hostname and options.application:
         baseUrl = buildBaseURL(options.hostname,options.port,options.SSLEnabled)
-        load_applications(baseUrl,options.user,options.password)
         appID=getID(options.application)
         if appID > 0:
             options.application=str(appID)
@@ -141,7 +137,6 @@ elif ENTITY.lower() == "allothertraffic":
         get_allothertraffic_from_server(options.inFileName,options.outFileName)
     elif options.user and options.password and options.hostname and options.application:
         baseUrl = buildBaseURL(options.hostname,options.port,options.SSLEnabled)
-        load_applications(baseUrl,options.user,options.password)
         appID=getID(options.application)
         if appID > 0:
             options.application=str(appID)
@@ -155,7 +150,6 @@ elif ENTITY.lower() == "healthrules":
         get_health_rules_from_server(options.inFileName,options.outFileName)
     elif options.user and options.password and options.hostname and options.application:
         baseUrl = buildBaseURL(options.hostname,options.port,options.SSLEnabled)
-        load_applications(baseUrl,options.user,options.password)
         appID=getID(options.application)
         if appID > 0:
             options.application=str(appID)
@@ -167,7 +161,6 @@ elif ENTITY.lower() == "schedules":
         get_schedules_from_server(options.inFileName,options.outFileName)
     elif options.user and options.password and options.hostname and options.application:
         baseUrl = buildBaseURL(options.hostname,options.port,options.SSLEnabled)
-        load_applications(baseUrl,options.user,options.password)
         appID=getID(options.application)
         if appID > 0:
             options.application=str(appID)
@@ -179,7 +172,6 @@ elif ENTITY.lower() == "events":
         get_healthrule_violations_from_server(options.inFileName,options.outFileName)
     elif options.user and options.password and options.hostname and options.application:
         baseUrl = buildBaseURL(options.hostname,options.port,options.SSLEnabled)
-        load_applications(baseUrl,options.user,options.password)
         appID=getID(options.application)
         if appID < 0:
             options.application=str(appID)
@@ -191,7 +183,6 @@ elif ENTITY.lower() == "policies":
         get_policies_from_server(options.inFileName,options.outFileName)
     elif options.user and options.password and options.hostname and options.application:
         baseUrl = buildBaseURL(options.hostname,options.port,options.SSLEnabled)
-        load_applications(baseUrl,options.user,options.password)
         appID=getID(options.application)
         if appID > 0:
             options.application=str(appID)
@@ -203,7 +194,6 @@ elif ENTITY.lower() == "actions":
         get_actions_from_server(options.inFileName,options.outFileName)
     elif options.user and options.password and options.hostname and options.application:
         baseUrl = buildBaseURL(options.hostname,options.port,options.SSLEnabled)
-        load_applications(baseUrl,options.user,options.password)
         appID=getID(options.application)
         if appID > 0:
             options.application=str(appID)
