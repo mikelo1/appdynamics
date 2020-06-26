@@ -184,6 +184,9 @@ def generate_transactiondetection_CSV(app_ID,detectionRules=None,fileName=None):
     elif detectionRules is None and str(app_ID) in detectionruleDict:
         detectionRules = detectionruleDict[str(app_ID)]
 
+    # Verify this ElementTree contains transaction detection rule data
+    if detectionRules.find('rule-list') is None: return 0
+
     # for child in detectionRules:
     #     print(child.tag, child.attrib, child.text)
     #     print ("\n")

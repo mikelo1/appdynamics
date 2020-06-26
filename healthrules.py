@@ -67,6 +67,9 @@ def generate_health_rules_CSV(app_ID,healthrules=None,fileName=None):
     elif healthrules is None and str(app_ID) in healthruleDict:
         healthrules = healthruleDict[str(app_ID)]
 
+    # Verify this ElementTree contains health rules data
+    if healthrules.find('health-rule') is None: return 0
+    
     if fileName is not None:
         try:
             csvfile = open(fileName, 'w')
@@ -80,13 +83,6 @@ def generate_health_rules_CSV(app_ID,healthrules=None,fileName=None):
     fieldnames = ['HealthRule', 'Duration', 'Schedule', 'Enabled', 'Entity_Criteria', 'Critical_Condition']
     filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
     filewriter.writeheader()
-
-    if healthrules.find('health-rule') is None:
-        print "No Health rules defined"
-        for child in healthrules:
-            print(child.tag, child.attrib, child.text)
-            print ("\n")
-        return None
 
     for healthrule in healthrules.findall('health-rule'):
 

@@ -89,7 +89,7 @@ def generate_dashboards_CSV(dashboards=None,fileName=None):
     filewriter.writeheader()
          
     for dashboardID in dashboards:
-        dashboard = dashboardDict[dashboardID]
+        dashboard = dashboards[dashboardID]
         if 'success' in dashboard and dashboard['success']==False: continue
         try:
             filewriter.writerow({'Name': dashboard['name'],
@@ -115,14 +115,14 @@ def get_dashboards_from_stream(streamdata,outFilename=None):
         if 'DEBUG' in locals(): print ("Could not process JSON file " + inFileName)
         return 0
 
-    dashboardID = 0
+    dashbDict = dict()
     for dashboard in dashboards:
         # Add loaded dashboard to the dashboard dictionary
         if 'canvasType' not in dashboard: continue
-        dashboardID = dashboardID +1
-        dashboardDict.update({str(dashboardID):dashboard})
+        dashboardID = dashboard['id']
+        dashbDict.update({str(dashboardID):dashboard})
 
-    generate_dashboards_CSV(fileName=outFilename)
+    generate_dashboards_CSV(dashboards=dashbDict)
 
 
 def get_dashboards(serverURL=None,userName=None,password=None,token=None):

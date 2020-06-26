@@ -7,18 +7,34 @@ SCRIPTPATH=$(dirname "$SCRIPT")
 
 ### Required packages: python python-requests python-libxml2
 
-for XML_ENTITY in healthrules transactiondetection; do
-	echo "### ExportCSV $XML_ENTITY"
-	$SCRIPTPATH/exportCSV.py $XML_ENTITY -i test.xml
+for XML_ENTITY in 	healthrules \
+					transactiondetection-custom; do
+	echo "### Get $XML_ENTITY ###"
+	unzip -p tests.zip $XML_ENTITY.xml | $SCRIPTPATH/exportCSV.py get -f -
+#	read -p "Press any key" input
+#	clear
 done
 
-for JSON_ENTITY in business-transactions backends actions policies; do
-	echo "### ExportCSV $JSON_ENTITY"
-	$SCRIPTPATH/exportCSV.py $JSON_ENTITY -i test.json
+for JSON_ENTITY in 	actions \
+					actions-legacy  \
+					allothertraffic \
+					applications \
+					backends \
+					business-transactions \
+					dashboards \
+					health-rules \
+					healthrule-violations \
+					policies \
+					policies-legacy \
+					request-snapshots \
+					schedules ; do
+	echo "### Get $JSON_ENTITY ###"
+	unzip -p tests.zip $JSON_ENTITY.json | $SCRIPTPATH/exportCSV.py get -f -
+#	read -p "Press any key" input
+#	clear
 done
 
 #./appdctl.py get applications
-# unzip -p tests.zip dashboards.json | ./appdctl.py get dashboards -f -
 #./appdctl.py get policies -a hipoteca-portal
 #./appdctl.py get policies -a FullOnline,hipoteca-api-aks,hipoteca-portal
 #./appdctl.py get schedules -a FullOnline,hipoteca-api-aks,hipoteca-portal
@@ -32,9 +48,3 @@ done
 #./appdctl.py get allothertraffic -a FullOnline --since=1d12h
 #./appdctl.py patch schedules -a sandbox -p '{"timezone":"Europe\/Belgrade"}'
 #./appdctl.py patch schedules -a sandbox -p '{"timezone":"Europe\/Brussels"}'
-
-#./appdctl.py get -f EVO.SaaS.UAT/sandbox/policies.json
-#./appdctl.py get -f EVO.SaaS.UAT/FullOnline/policies.json
-#./appdctl.py get -f EVO.SaaS.UAT/sandbox/actions.json
-#./appdctl.py get -f EVO.SaaS.UAT/FullOnline/actions.json
-#./appdctl.py get -f EVO.SaaS.UAT/FullOnline/schedules.json
