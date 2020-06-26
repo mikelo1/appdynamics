@@ -14,7 +14,7 @@ dashboardDict = dict()
  # @param token API acccess token
  # @return the number of fetched dashboards. Zero if no dashboard was found.
 ###
-def fetch_dashboards(serverURL,userName=None,password=None,token=None,loadData=False):
+def fetch_dashboards(serverURL=None,userName=None,password=None,token=None,loadData=False):
     if 'DEBUG' in locals(): print ("Fetching dashboards list...")    
     # Export the list of all Custom Dashboards
     # https://community.appdynamics.com/t5/Dashboards/How-to-export-the-list-of-all-Custom-Dashboards-in-the/td-p/30083
@@ -44,18 +44,6 @@ def fetch_dashboards(serverURL,userName=None,password=None,token=None,loadData=F
 
     return len(dashboards)
 
-def convert_dashboards_JSON_to_CSV(inFileName,outFilename=None):
-    json_file = open(inFileName)
-    dashboards = json.load(json_file)
-
-    dashboardID = 0
-    for dashboard in dashboards:
-        # Add loaded dashboard to the dashboard dictionary
-        dashboardID = dashboardID +1
-        dashboardDict.update({str(dashboardID):dashboard})
-
-    generate_dashboards_CSV(fileName=outFilename)
-
 def generate_dashboards_JSON(dashboards=None,outFileName=None):
     if dashboards is None and len(dashboardDict) == 0:
         print "generate_dashboards_CSV: Dahsboards not loaded."
@@ -63,19 +51,21 @@ def generate_dashboards_JSON(dashboards=None,outFileName=None):
     elif dashboards is None:
         dashboards = dashboardDict
 
+    data = []
+    for dashboardID in dashboards:
+        data.append(dashboardDict[dashboardID])
+
     if outFileName is not None:
         try:
-            JSONfile = open(outFileName, 'w')
+            with open(outFileName, 'w') as outfile:
+                json.dump(data, outfile)
+            outfile.close()
         except:
             print ("Could not open output file " + outFileName + ".")
             return (-1)
     else:
-        JSONfile = sys.stdout
+        json.dump(data,sys.stdout)
 
-    data = []
-    for dashboardID in dashboards:
-        data.append(dashboardDict[dashboardID])
-    json.dump(data,JSONfile)
 
 def generate_dashboards_CSV(dashboards=None,fileName=None):
     if dashboards is None and len(dashboardDict) == 0:
@@ -113,10 +103,33 @@ def generate_dashboards_CSV(dashboards=None,fileName=None):
             return (-1)
     if fileName is not None: csvfile.close()
 
-def get_dashboards(serverURL,userName=None,password=None,token=None):
-    if userName and password:
-        if fetch_dashboards(serverURL,userName=userName,password=password) > 0:
+
+###### FROM HERE PUBLIC FUNCTIONS ######
+
+
+def get_dashboards_from_server(inFileName,outFilename=None):
+    if 'DEBUG' in locals(): print "Processing file " + inFileName + "..."
+    try:
+        json_file = open(inFileName)
+        dashboards = json.load(json_file)
+    except:
+        if 'DEBUG' in locals(): print ("Could not process JSON file " + inFileName)
+        return 0
+
+    dashboardID = 0
+    for dashboard in dashboards:
+        # Add loaded dashboard to the dashboard dictionary
+        if 'canvasType' not in dashboard: continue
+        dashboardID = dashboardID +1
+        dashboardDict.update({str(dashboardID):dashboard})
+
+    generate_dashboards_CSV(fileName=outFilename)
+
+
+def get_dashboards(serverURL=None,userName=None,password=None,token=None):
+    if serverURL and userName and password:
+        if fetch_dashboards(serverURL=serverURL,userName=userName,password=password) > 0:
             generate_dashboards_CSV()
-    elif token:
-        if fetch_dashboards(serverURL,token=token) > 0:
+    else:
+        if fetch_dashboards(token=token) > 0:
             generate_dashboards_CSV()

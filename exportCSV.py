@@ -13,7 +13,7 @@ from policies import get_policies_legacy, get_policies_from_server
 from actions import get_actions_legacy, get_actions_from_server
 from snapshots import get_snapshots, get_snapshots_from_server
 from allothertraffic import get_allothertraffic, get_allothertraffic_from_server
-from dashboards import get_dashboards
+from dashboards import get_dashboards, get_dashboards_from_server
 from optparse import OptionParser, OptionGroup
 
 def buildBaseURL(controller,port=None,SSLenabled=None):
@@ -204,12 +204,11 @@ elif ENTITY.lower() == "actions":
 ### Dashboards & Reports related entities
 elif ENTITY.lower() == "dashboards":
     if options.inFileName:
-        load_dashboards_JSON(options.inFileName)
+        get_dashboards_from_server(options.inFileName)
     elif options.user and options.password and options.hostname and options.apiClientName and options.apiClientSecret :
         baseUrl = buildBaseURL(options.hostname,options.port,options.SSLEnabled)
-        fetch_dashboards(baseUrl+"/controller/",options.user,options.password,options.apiClientName,options.apiClientSecret)
+        get_dashboards(baseUrl,userName=options.user,password=options.password)
     else:
         optParser.error("Missing arguments")
-    write_dashboards_CSV(options.outFileName)
 else:
     optParser.error("Incorrect operand ["+ENTITY+"]")

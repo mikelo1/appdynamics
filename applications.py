@@ -188,6 +188,7 @@ def get_applications_from_server(inFileName,outFilename=None):
     appDict = dict()
     for application in applications:
         # Add loaded application to the application dictionary
+        if 'accountGuid' not in application: continue
         app_ID = application['id']
         appDict.update({str(app_ID):application})
 
