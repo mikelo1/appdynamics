@@ -142,11 +142,10 @@ def generate_events_CSV(app_ID,events=None,fileName=None):
 ###### FROM HERE PUBLIC FUNCTIONS ######
 
 
-def get_healthrule_violations_from_server(inFileName,outFilename=None):
+def get_healthrule_violations_from_stream(streamdata,outFilename=None):
     if 'DEBUG' in locals(): print "Processing file " + inFileName + "..."
     try:
-        json_file = open(inFileName)
-        events = json.load(json_file)
+        events = json.loads(streamdata)
     except:
         if 'DEBUG' in locals(): print ("Could not process JSON file " + inFileName)
         return 0

@@ -109,11 +109,10 @@ def generate_snapshots_CSV(app_ID,snapshots=None,fileName=None):
 ###### FROM HERE PUBLIC FUNCTIONS ######
 
 
-def get_snapshots_from_server(inFileName,outFilename=None):
+def get_snapshots_from_stream(streamdata,outFilename=None):
     if 'DEBUG' in locals(): print "Processing file " + inFileName + "..."
     try:
-        json_file = open(inFileName)
-        snapshots = json.load(json_file)
+        snapshots = json.loads(streamdata)
     except:
         if 'DEBUG' in locals(): print ("Could not process JSON file " + inFileName)
         return 0

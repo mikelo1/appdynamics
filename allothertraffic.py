@@ -122,16 +122,6 @@ def generate_allothertraffic_CSV(app_ID,snapshots=None,fileName=None):
 ###### FROM HERE PUBLIC FUNCTIONS ######
 
 
-def get_allothertraffic_from_server(inFileName,outFilename=None):
-    if 'DEBUG' in locals(): print "Processing file " + inFileName + "..."
-    try:
-        json_file = open(fileName)
-        snapshots = json.load(json_file)
-    except:
-        if 'DEBUG' in locals(): print ("Could not process JSON file " + inFileName)
-        return 0
-    generate_allothertraffic_CSV(app_ID=0,snapshots=snapshots,fileName=outFilename)
-
 def get_allothertraffic(app_ID,minutesBeforeNow,serverURL=None,userName=None,password=None,token=None):
     if serverURL and serverURL == "dummyserver":
         build_test_events(app_ID)

@@ -3,17 +3,17 @@ import sys
 import os.path
 from datetime import datetime, timedelta
 from applications import generate_applications_CSV, getID
-from transactiondetection import get_detection_rules, get_detection_rules_from_server
-from businesstransactions import get_business_transactions, get_business_transactions_from_server
-from backends import get_backends, get_backends_from_server
-from healthrules import get_health_rules, get_health_rules_from_server
-from schedules import get_schedules, get_schedules_from_server
-from events import get_healthrule_violations, get_healthrule_violations_from_server
-from policies import get_policies_legacy, get_policies_from_server
-from actions import get_actions_legacy, get_actions_from_server
-from snapshots import get_snapshots, get_snapshots_from_server
-from allothertraffic import get_allothertraffic, get_allothertraffic_from_server
-from dashboards import get_dashboards, get_dashboards_from_server
+from transactiondetection import get_detection_rules, get_detection_rules_from_stream
+from businesstransactions import get_business_transactions, get_business_transactions_from_stream
+from backends import get_backends, get_backends_from_stream
+from healthrules import get_health_rules, get_health_rules_from_stream
+from schedules import get_schedules, get_schedules_from_stream
+from events import get_healthrule_violations, get_healthrule_violations_from_stream
+from policies import get_policies_legacy, get_policies_from_stream
+from actions import get_actions_legacy, get_actions_from_stream
+from snapshots import get_snapshots, get_snapshots_from_stream
+from allothertraffic import get_allothertraffic
+from dashboards import get_dashboards, get_dashboards_from_stream
 from optparse import OptionParser, OptionGroup
 
 def buildBaseURL(controller,port=None,SSLenabled=None):
@@ -82,7 +82,8 @@ ENTITY = args[0]
 ### Application performance related entities
 if ENTITY.lower() == "applications":
     if options.inFileName:
-        get_applications_from_server(options.inFileName,options.outFileName)
+        data = open(options.inFileName).read()
+        get_applications_from_stream(data,options.outFileName)
     elif options.user and options.password and options.hostname:
         baseUrl = buildBaseURL(options.hostname,options.port,options.SSLEnabled)
         get_applications(baseUrl,userName=options.user,password=options.password)
@@ -90,7 +91,8 @@ if ENTITY.lower() == "applications":
         optParser.error("Missing arguments")
 elif ENTITY.lower() == "transactiondetection":
     if options.inFileName:
-        get_detection_rules_from_server(options.inFileName)
+        data = open(options.inFileName).read()
+        get_detection_rules_from_stream(data)
     elif options.user and options.password and options.hostname and options.application:
         baseUrl = buildBaseURL(options.hostname,options.port,options.SSLEnabled)
         appID=getID(options.application)
@@ -101,7 +103,8 @@ elif ENTITY.lower() == "transactiondetection":
         optParser.error("Missing arguments")
 elif ENTITY.lower() == "business-transactions":
     if options.inFileName:
-        get_business_transactions_from_server(options.inFileName,options.outFileName)
+        data = open(options.inFileName).read()
+        get_business_transactions_from_stream(data,options.outFileName)
     elif options.user and options.password and options.hostname and options.application:
         baseUrl = buildBaseURL(options.hostname,options.port,options.SSLEnabled)
         appID=getID(options.application)
@@ -112,7 +115,8 @@ elif ENTITY.lower() == "business-transactions":
         optParser.error("Missing arguments")
 elif ENTITY.lower() == "backends":
     if options.inFileName:
-        get_backends_from_server(options.inFileName,options.outFileName)
+        data = open(options.inFileName).read()
+        get_backends_from_stream(data,options.outFileName)
     elif options.user and options.password and options.hostname and options.application:
         baseUrl = buildBaseURL(options.hostname,options.port,options.SSLEnabled)
         appID=getID(options.application)
@@ -123,7 +127,8 @@ elif ENTITY.lower() == "backends":
         optParser.error("Missing arguments")
 elif ENTITY.lower() == "snapshots":
     if options.inFileName:
-        get_snapshots_from_server(options.inFileName,options.outFileName)
+        data = open(options.inFileName).read()
+        get_snapshots_from_stream(data,options.outFileName)
     elif options.user and options.password and options.hostname and options.application:
         baseUrl = buildBaseURL(options.hostname,options.port,options.SSLEnabled)
         appID=getID(options.application)
@@ -134,7 +139,8 @@ elif ENTITY.lower() == "snapshots":
         optParser.error("Missing arguments")
 elif ENTITY.lower() == "allothertraffic":
     if options.inFileName:
-        get_allothertraffic_from_server(options.inFileName,options.outFileName)
+        data = open(options.inFileName).read()
+        get_snapshots_from_stream(data,options.outFileName)
     elif options.user and options.password and options.hostname and options.application:
         baseUrl = buildBaseURL(options.hostname,options.port,options.SSLEnabled)
         appID=getID(options.application)
@@ -147,7 +153,8 @@ elif ENTITY.lower() == "allothertraffic":
 ### Alerts & Respond related entities
 elif ENTITY.lower() == "healthrules":
     if options.inFileName:
-        get_health_rules_from_server(options.inFileName,options.outFileName)
+        data = open(options.inFileName).read()
+        get_health_rules_from_stream(data,options.outFileName)
     elif options.user and options.password and options.hostname and options.application:
         baseUrl = buildBaseURL(options.hostname,options.port,options.SSLEnabled)
         appID=getID(options.application)
@@ -158,7 +165,8 @@ elif ENTITY.lower() == "healthrules":
         optParser.error("Missing arguments")
 elif ENTITY.lower() == "schedules":
     if options.inFileName:
-        get_schedules_from_server(options.inFileName,options.outFileName)
+        data = open(options.inFileName).read()
+        get_schedules_from_stream(data,options.outFileName)
     elif options.user and options.password and options.hostname and options.application:
         baseUrl = buildBaseURL(options.hostname,options.port,options.SSLEnabled)
         appID=getID(options.application)
@@ -169,7 +177,8 @@ elif ENTITY.lower() == "schedules":
         optParser.error("Missing arguments")
 elif ENTITY.lower() == "events":
     if options.inFileName:
-        get_healthrule_violations_from_server(options.inFileName,options.outFileName)
+        data = open(options.inFileName).read()
+        get_healthrule_violations_from_stream(data,options.outFileName)
     elif options.user and options.password and options.hostname and options.application:
         baseUrl = buildBaseURL(options.hostname,options.port,options.SSLEnabled)
         appID=getID(options.application)
@@ -180,7 +189,8 @@ elif ENTITY.lower() == "events":
         optParser.error("Missing arguments")
 elif ENTITY.lower() == "policies":
     if options.inFileName:
-        get_policies_from_server(options.inFileName,options.outFileName)
+        data = open(options.inFileName).read()
+        get_policies_from_stream(data,options.outFileName)
     elif options.user and options.password and options.hostname and options.application:
         baseUrl = buildBaseURL(options.hostname,options.port,options.SSLEnabled)
         appID=getID(options.application)
@@ -191,7 +201,8 @@ elif ENTITY.lower() == "policies":
         optParser.error("Missing arguments")
 elif ENTITY.lower() == "actions":
     if options.inFileName:
-        get_actions_from_server(options.inFileName,options.outFileName)
+        data = open(options.inFileName).read()
+        get_actions_from_stream(data,options.outFileName)
     elif options.user and options.password and options.hostname and options.application:
         baseUrl = buildBaseURL(options.hostname,options.port,options.SSLEnabled)
         appID=getID(options.application)
@@ -204,7 +215,8 @@ elif ENTITY.lower() == "actions":
 ### Dashboards & Reports related entities
 elif ENTITY.lower() == "dashboards":
     if options.inFileName:
-        get_dashboards_from_server(options.inFileName)
+        data = open(options.inFileName).read()
+        get_dashboards_from_stream(data)
     elif options.user and options.password and options.hostname and options.apiClientName and options.apiClientSecret :
         baseUrl = buildBaseURL(options.hostname,options.port,options.SSLEnabled)
         get_dashboards(baseUrl,userName=options.user,password=options.password)

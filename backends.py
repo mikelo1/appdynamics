@@ -84,11 +84,10 @@ def generate_backends_CSV(app_ID,backends=None,fileName=None):
 ###### FROM HERE PUBLIC FUNCTIONS ######
 
 
-def get_backends_from_server(inFileName,outFilename=None):
+def get_backends_from_stream(streamdata,outFilename=None):
     if 'DEBUG' in locals(): print "Processing file " + inFileName + "..."
     try:
-        json_file = open(inFileName)
-        BEs = json.load(json_file)
+        BEs = json.loads(streamdata)
     except:
         if 'DEBUG' in locals(): print ("Could not process JSON file " + inFileName)
         return 0

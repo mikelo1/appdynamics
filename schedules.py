@@ -249,11 +249,10 @@ def generate_schedules_CSV(app_ID,schedules=None,fileName=None):
 ###### FROM HERE PUBLIC FUNCTIONS ######
 
 
-def get_schedules_from_server(inFileName,outFilename=None):
+def get_schedules_from_stream(streamData,outFilename=None):
     if 'DEBUG' in locals(): print "Processing file " + inFileName + "..."
     try:
-        json_file = open(inFileName)
-        schedules = json.load(json_file)
+        schedules = json.loads(streamData)
     except:
         if 'DEBUG' in locals(): print ("Could not process JSON file " + inFileName)
         return 0

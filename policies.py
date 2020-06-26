@@ -258,11 +258,10 @@ def generate_policies_JSON(app_ID,policies=None,fileName=None):
 
 ###### FROM HERE PUBLIC FUNCTIONS ######
 
-def get_policies_from_server(inFileName,outFilename=None):
+def get_policies_from_stream(streamdata,outFilename=None):
     if 'DEBUG' in locals(): print "Processing file " + inFileName + "..."
     try:
-        json_file = open(inFileName)
-        policies = json.load(json_file)
+        policies = json.loads(streamdata)
     except:
         if 'DEBUG' in locals(): print ("Could not process JSON file " + inFileName)
         return 0

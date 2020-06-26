@@ -176,11 +176,10 @@ def generate_applications_CSV(appDict=None,fileName=None):
 ###### FROM HERE PUBLIC FUNCTIONS ######
 
 
-def get_applications_from_server(inFileName,outFilename=None):
+def get_applications_from_stream(streamdata,outFilename=None):
     if 'DEBUG' in locals(): print "Processing file " + inFileName + "..."
     try:
-        json_file = open(inFileName)
-        applications = json.load(json_file)
+        applications = json.loads(streamdata)
     except:
         if 'DEBUG' in locals(): print ("Could not process JSON file " + inFileName)
         return 0

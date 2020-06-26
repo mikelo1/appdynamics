@@ -250,11 +250,10 @@ def generate_transactiondetection_CSV(app_ID,detectionRules=None,fileName=None):
 ###### FROM HERE PUBLIC FUNCTIONS ######
 
 
-def get_detection_rules_from_server(inFileName,outFilename=None):
+def get_detection_rules_from_stream(streamdata,outFilename=None):
     if 'DEBUG' in locals(): print "Processing file " + inFileName + "..."
     try:
-        tree = ET.parse(inFileName)
-        root = tree.getroot()
+        root = ET.fromstring(streamdata)
     except:
         if 'DEBUG' in locals(): print ("Could not process XML file " + inFileName)
         return 0

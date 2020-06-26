@@ -107,11 +107,10 @@ def generate_dashboards_CSV(dashboards=None,fileName=None):
 ###### FROM HERE PUBLIC FUNCTIONS ######
 
 
-def get_dashboards_from_server(inFileName,outFilename=None):
+def get_dashboards_from_stream(streamdata,outFilename=None):
     if 'DEBUG' in locals(): print "Processing file " + inFileName + "..."
     try:
-        json_file = open(inFileName)
-        dashboards = json.load(json_file)
+        dashboards = json.loads(streamdata)
     except:
         if 'DEBUG' in locals(): print ("Could not process JSON file " + inFileName)
         return 0

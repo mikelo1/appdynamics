@@ -92,11 +92,10 @@ def generate_business_transactions_CSV(app_ID,transactions=None,fileName=None):
 ###### FROM HERE PUBLIC FUNCTIONS ######
 
 
-def get_business_transactions_from_server(inFileName,outFilename=None):
+def get_business_transactions_from_stream(streamdata,outFilename=None):
     if 'DEBUG' in locals(): print "Processing file " + inFileName + "..."
     try:
-        json_file = open(inFileName)
-        BTs = json.load(json_file)
+        BTs = json.loads(streamdata)
     except:
         if 'DEBUG' in locals(): print ("Could not process JSON file " + inFileName)
         return 0
