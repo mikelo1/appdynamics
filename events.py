@@ -13,13 +13,14 @@ eventDict = dict()
  # Fetch healtrule violations from a controller then add them to the events dictionary. Provide either an username/password or an access token.
  # @param app_ID the ID number of the application healtrule violations to fetch
  # @param minutesBeforeNow fetch only events newer than a relative duration in minutes
+ # @param selectors fetch only events filtered by specified selectors
  # @param serverURL Full hostname of the Appdynamics controller. i.e.: https://demo1.appdynamics.com:443
  # @param userName Full username, including account. i.e.: myuser@customer1
  # @param password password for the specified user and host. i.e.: mypassword
  # @param token API acccess token
  # @return the number of fetched events. Zero if no event was found.
 ###
-def fetch_healthrule_violations(app_ID,minutesBeforeNow,serverURL=None,userName=None,password=None,token=None):
+def fetch_healthrule_violations(app_ID,minutesBeforeNow,selectors=None,serverURL=None,userName=None,password=None,token=None):
     if 'DEBUG' in locals(): print ("Fetching healthrule violations for App " + str(app_ID) + ", for the last "+str(minutesBeforeNow)+" minutes...")
     # https://docs.appdynamics.com/display/PRO45/Events+and+Action+Suppression+API
     # Retrieve All Health Rule Violations that have occurred in an application within a specified time frame. 
@@ -30,6 +31,7 @@ def fetch_healthrule_violations(app_ID,minutesBeforeNow,serverURL=None,userName=
         sinceTime = datetime.today()-timedelta(minutes=i)
         sinceEpoch= long(time.mktime(sinceTime.timetuple())*1000)
         params = timerange_to_params("AFTER_TIME",duration="1440",startEpoch=sinceEpoch)
+        if selectors: params.update(selectors)
 
         for retry in range(1,4):
             if 'DEBUG' in locals(): print ("Fetching healthrule violations for App " + str(app_ID) + "params "+str(params)+"...")
@@ -151,15 +153,15 @@ def get_healthrule_violations_from_stream(streamdata,outFilename=None):
         return 0
     generate_events_CSV(app_ID=0,events=events,fileName=outFilename)
 
-def get_healthrule_violations(app_ID,minutesBeforeNow,serverURL=None,userName=None,password=None,token=None):
+def get_healthrule_violations(app_ID,minutesBeforeNow,selectors=None,serverURL=None,userName=None,password=None,token=None):
     if serverURL and serverURL == "dummyserver":
         build_test_events(app_ID)
     elif serverURL and userName and password:
-        if fetch_healthrule_violations(app_ID,minutesBeforeNow,serverURL=serverURL,userName=userName,password=password) == 0:
+        if fetch_healthrule_violations(app_ID,minutesBeforeNow,selectors=selectors,serverURL=serverURL,userName=userName,password=password) == 0:
             print "get_healthrule_violations: Failed to retrieve events for application " + str(app_ID)
             return None
     else:
-        if fetch_healthrule_violations(app_ID,minutesBeforeNow,token=token) == 0:
+        if fetch_healthrule_violations(app_ID,minutesBeforeNow,selectors=selectors,token=token) == 0:
             print "get_healthrule_violations: Failed to retrieve events for application " + str(app_ID)
             return None
     generate_events_CSV(app_ID)

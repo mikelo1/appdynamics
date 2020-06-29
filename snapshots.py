@@ -13,13 +13,14 @@ snapshotDict = dict()
  # Fetch snapshot from a controller then add them to the snapshot dictionary. Provide either an username/password or an access token.
  # @param app_ID the ID number of the application snapshot to fetch
  # @param minutesBeforeNow fetch only snapshots newer than a relative duration in minutes
+ # @param selectors fetch only snapshots filtered by specified selectors
  # @param serverURL Full hostname of the Appdynamics controller. i.e.: https://demo1.appdynamics.com:443
  # @param userName Full username, including account. i.e.: myuser@customer1
  # @param password password for the specified user and host. i.e.: mypassword
  # @param token API acccess token
  # @return the number of fetched snapshots. Zero if no snapshot was found.
 ###
-def fetch_snapshots(app_ID,minutesBeforeNow,serverURL=None,userName=None,password=None,token=None):
+def fetch_snapshots(app_ID,minutesBeforeNow,selectors=None,serverURL=None,userName=None,password=None,token=None):
     MAX_RESULTS="9999"
     if 'DEBUG' in locals(): print ("Fetching snapshots for App " + str(app_ID) + ", for the last "+str(minutesBeforeNow)+" minutes...")
     #Retrieve Transaction Snapshots
@@ -30,6 +31,7 @@ def fetch_snapshots(app_ID,minutesBeforeNow,serverURL=None,userName=None,passwor
         sinceTime = datetime.today()-timedelta(minutes=i)
         sinceEpoch= long(time.mktime(sinceTime.timetuple())*1000)
         params = timerange_to_params("AFTER_TIME",duration="180",startEpoch=sinceEpoch)
+        if selectors: params.update(selectors)
 
         for retry in range(1,4):
             if 'DEBUG' in locals(): print ("Fetching snapshots for App " + str(app_ID) + "params "+str(params)+"...")
@@ -82,7 +84,7 @@ def generate_snapshots_CSV(app_ID,snapshots=None,fileName=None):
     else:
         csvfile = sys.stdout
 
-    fieldnames = ['Time', 'URL', 'BussinessTransaction', 'Tier', 'Node', 'ExeTime']
+    fieldnames = ['Time', 'UserExperience', 'URL', 'BussinessTransaction', 'Tier', 'Node', 'ExeTime']
     filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
     filewriter.writeheader()
 
@@ -94,6 +96,7 @@ def generate_snapshots_CSV(app_ID,snapshots=None,fileName=None):
 
         try:
             filewriter.writerow({'Time': Time,
+                                'UserExperience': snapshot['userExperience'],
                                 'URL': snapshot['URL'],
                                 'BussinessTransaction': snapshot['businessTransactionId'],
                                 'Tier': Tier,
@@ -118,15 +121,15 @@ def get_snapshots_from_stream(streamdata,outFilename=None):
         return 0
     generate_snapshots_CSV(app_ID=0,snapshots=snapshots,fileName=outFilename)
 
-def get_snapshots(app_ID,minutesBeforeNow,serverURL=None,userName=None,password=None,token=None):
+def get_snapshots(app_ID,minutesBeforeNow,selectors=None,serverURL=None,userName=None,password=None,token=None):
     if serverURL and serverURL == "dummyserver":
         build_test_events(app_ID)
     elif serverURL and userName and password:
-        if fetch_snapshots(app_ID,minutesBeforeNow,serverURL=serverURL,userName=userName,password=password) == 0:
+        if fetch_snapshots(app_ID,minutesBeforeNow,selectors=selectors,serverURL=serverURL,userName=userName,password=password) == 0:
             print "get_snapshots: Failed to retrieve snapshots for application " + str(app_ID)
             return None
     else:
-        if fetch_snapshots(app_ID,minutesBeforeNow,token=token) == 0:
+        if fetch_snapshots(app_ID,minutesBeforeNow,selectors=selectors,token=token) == 0:
             print "get_snapshots: Failed to retrieve snapshots for application " + str(app_ID)
             return None
     generate_snapshots_CSV(app_ID)

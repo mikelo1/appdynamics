@@ -16,7 +16,6 @@ from schedules import get_schedules, get_schedules_from_stream, patch_schedules
 from actions import get_actions, get_actions_legacy, get_actions_from_stream
 from events import get_healthrule_violations, get_healthrule_violations_from_stream
 from snapshots import get_snapshots, get_snapshots_from_stream
-from allothertraffic import get_allothertraffic
 from optparse import OptionParser, OptionGroup
 
 
@@ -57,6 +56,9 @@ groupQuery.add_option("-a", "--applications",
 groupQuery.add_option("-A", "--all-applications",
                   action="store_true", default=False, dest="allApplications",
                   help="Aply to all applications in the controller")
+groupQuery.add_option("-l", "--selector",
+                  action="store", dest="selector",
+                  help="Selector to filter on, supports '=', '==', and '!='.(e.g. -l key1=value1,key2=value2)")
 groupQuery.add_option("--since",
                   action="store", dest="since",
                   help="Only returns newer than a relative duration like 5s, 2m, or 3h (max 14d)")
@@ -133,7 +135,7 @@ elif COMMAND.lower() == "get":
 
   ENTITY = args[1]
   if ENTITY not in ['policies','schedules','actions','health-rules','healthrule-violations',
-                    'detection-rules','businesstransactions','applications','snapshots','allothertraffic','backends',
+                    'detection-rules','businesstransactions','applications','snapshots','backends',
                     'dashboards']:
     optParser.error("incorrect entity "+ENTITY)
     exit()
@@ -143,6 +145,7 @@ elif COMMAND.lower() == "get":
   token=get_access_token(server,username)
   if token is None: exit()
 
+  # make the application list, if applies
   if ENTITY == "applications":
     get_applications(server,token=token,includeNodes=False)
     exit()
@@ -157,6 +160,12 @@ elif COMMAND.lower() == "get":
     if len(applicationList) > 1: get_application_list()
   else: # if options.allApplications:
     applicationList = get_application_list()
+
+  # make the filters list, if applies
+  if options.selector:
+    selectors = {}
+    for selector in options.selector.split(','):
+      selectors.update({selector.split('=')[0]:selector.split('=')[1]})
 
   functions = { 'get_policies':get_policies_legacy,
                 'get_actions':get_actions_legacy,
@@ -176,7 +185,7 @@ elif COMMAND.lower() == "get":
     if appID > 0:
       if ENTITY in ['policies','actions','schedules','health-rules','detection-rules','businesstransactions','backends']:
         functions["get_"+ENTITY](appID,server)
-      elif ENTITY in ['healthrule-violations','snapshots','allothertraffic']:
+      elif ENTITY in ['healthrule-violations','snapshots']:
         if options.since is None:
           optParser.error("No duration was specified. (use --since=0 for all events)")
           exit()
@@ -186,7 +195,7 @@ elif COMMAND.lower() == "get":
         if minutes == 0:
           optParser.error("Specified duration not correctly formatted. (use --since=<days>d<hours>h<minutes>m format)")
           exit()
-        functions["get_"+ENTITY](appID,minutes,server)
+        functions["get_"+ENTITY](appID,minutes,selectors)
     else:
       print "WARN: Application " + application + " does not exist."
   if 'application' not in locals(): print "No application was selected."
