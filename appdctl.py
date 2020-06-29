@@ -175,8 +175,7 @@ elif COMMAND.lower() == "get":
                 'get_businesstransactions':get_business_transactions,
                 'get_backends':get_backends,
                 'get_healthrule-violations':get_healthrule_violations,
-                'get_snapshots':get_snapshots,
-                'get_allothertraffic':get_allothertraffic
+                'get_snapshots':get_snapshots
           }
 
   for application in applicationList:
@@ -199,8 +198,6 @@ elif COMMAND.lower() == "get":
     else:
       print "WARN: Application " + application + " does not exist."
   if 'application' not in locals(): print "No application was selected."
-  
-
 
 
 
