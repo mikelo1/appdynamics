@@ -93,20 +93,20 @@ def generate_snapshots_CSV(app_ID,snapshots=None,fileName=None):
         Time = datetime.fromtimestamp(float(snapshot['localStartTime'])/1000).strftime('%Y-%m-%d %H:%M:%S')
         Tier = getTierName(snapshot['applicationComponentId'])
         Node = getNodeName(snapshot['applicationComponentNodeId'])
+        Summary = snapshot['summary'].encode('ASCII', 'ignore') if 'summary' in snapshot else ""
 
         try:
             filewriter.writerow({'Time': Time,
                                 'UserExperience': snapshot['userExperience'],
                                 'URL': snapshot['URL'],
-                                'Summary': snapshot['summary'] if 'summary' in snapshot else "",
+                                'Summary': Summary,
                                 'BussinessTransaction': snapshot['businessTransactionId'],
                                 'Tier': Tier,
                                 'Node': Node,
                                 'ExeTime': snapshot['timeTakenInMilliSecs']})
         except:
             print ("Could not write to the output.")
-            if fileName is not None: csvfile.close()
-            exit(1)
+            continue
     if fileName is not None: csvfile.close()
 
 def generate_snapshots_JSON(app_ID,snapshots=None,fileName=None):
