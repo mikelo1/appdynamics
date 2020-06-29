@@ -84,7 +84,7 @@ def generate_snapshots_CSV(app_ID,snapshots=None,fileName=None):
     else:
         csvfile = sys.stdout
 
-    fieldnames = ['Time', 'UserExperience', 'URL', 'BussinessTransaction', 'Tier', 'Node', 'ExeTime']
+    fieldnames = ['Time', 'UserExperience', 'URL', 'Summary', 'BussinessTransaction', 'Tier', 'Node', 'ExeTime']
     filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
     filewriter.writeheader()
 
@@ -98,15 +98,34 @@ def generate_snapshots_CSV(app_ID,snapshots=None,fileName=None):
             filewriter.writerow({'Time': Time,
                                 'UserExperience': snapshot['userExperience'],
                                 'URL': snapshot['URL'],
+                                'Summary': snapshot['summary'] if 'summary' in snapshot else "",
                                 'BussinessTransaction': snapshot['businessTransactionId'],
                                 'Tier': Tier,
                                 'Node': Node,
                                 'ExeTime': snapshot['timeTakenInMilliSecs']})
         except:
-            print ("Could not write to the output file " + fileName + ".")
+            print ("Could not write to the output.")
             if fileName is not None: csvfile.close()
             exit(1)
     if fileName is not None: csvfile.close()
+
+def generate_snapshots_JSON(app_ID,snapshots=None,fileName=None):
+    if snapshots is None and str(app_ID) not in snapshotDict:
+        print "Snapshots for application "+str(app_ID)+" not loaded."
+        return
+    elif snapshots is None and str(app_ID) in snapshotDict:
+        snapshots = snapshotDict[str(app_ID)]
+
+    if fileName is not None:
+        try:
+            JSONfile = open(fileName, 'w')
+            json.dumps(snapshots,JSONfile)
+            JSONfile.close()
+        except:
+            print ("Could not open output file " + fileName + ".")
+            return (-1)
+    else:
+        print json.dumps(snapshots)
 
 
 ###### FROM HERE PUBLIC FUNCTIONS ######
@@ -121,7 +140,7 @@ def get_snapshots_from_stream(streamdata,outFilename=None):
         return 0
     generate_snapshots_CSV(app_ID=0,snapshots=snapshots,fileName=outFilename)
 
-def get_snapshots(app_ID,minutesBeforeNow,selectors=None,serverURL=None,userName=None,password=None,token=None):
+def get_snapshots(app_ID,minutesBeforeNow,selectors=None,outputFormat=None,serverURL=None,userName=None,password=None,token=None):
     if serverURL and serverURL == "dummyserver":
         build_test_events(app_ID)
     elif serverURL and userName and password:
@@ -132,4 +151,7 @@ def get_snapshots(app_ID,minutesBeforeNow,selectors=None,serverURL=None,userName
         if fetch_snapshots(app_ID,minutesBeforeNow,selectors=selectors,token=token) == 0:
             print "get_snapshots: Failed to retrieve snapshots for application " + str(app_ID)
             return None
-    generate_snapshots_CSV(app_ID)
+    if outputFormat and outputFormat == "JSON":
+        generate_snapshots_JSON(app_ID)
+    else:
+        generate_snapshots_CSV(app_ID)

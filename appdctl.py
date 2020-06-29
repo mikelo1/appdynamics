@@ -125,8 +125,9 @@ elif COMMAND.lower() == "get":
                   'load_applications':get_applications_from_stream,
                   'load_dashboards':get_dashboards_from_stream
                 }
+    # TODO: output formats
     for key in functions:
-      functions[key](data)
+      functions[key](data) #,outputFormat=options.outFormat)
     exit()
 
   if len(args) < 2:
@@ -194,7 +195,7 @@ elif COMMAND.lower() == "get":
         if minutes == 0:
           optParser.error("Specified duration not correctly formatted. (use --since=<days>d<hours>h<minutes>m format)")
           exit()
-        functions["get_"+ENTITY](appID,minutes,selectors)
+        functions["get_"+ENTITY](appID,minutes,selectors,outputFormat=options.outFormat)
     else:
       print "WARN: Application " + application + " does not exist."
   if 'application' not in locals(): print "No application was selected."

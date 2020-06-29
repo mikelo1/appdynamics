@@ -33,3 +33,11 @@ for JSON_ENTITY in 	actions \
 #	read -p "Press any key" input
 #	clear
 done
+
+for JSON_ENTITY in 	healthrule-violations \
+					request-snapshots ; do
+	echo "### Get $JSON_ENTITY ###"
+	unzip -p tests.zip $JSON_ENTITY.json | $SCRIPTPATH/appdctl.py get -f - -o JSON
+#	read -p "Press any key" input
+#	clear
+done

@@ -140,6 +140,23 @@ def generate_events_CSV(app_ID,events=None,fileName=None):
             return (-1)
     if fileName is not None: csvfile.close()
 
+def generate_events_JSON(app_ID,events=None,fileName=None):
+    if events is None and str(app_ID) not in eventDict:
+        print "Events for application "+str(app_ID)+" not loaded."
+        return
+    elif events is None and str(app_ID) in eventDict:
+        events = eventDict[str(app_ID)]
+
+    if fileName is not None:
+        try:
+            JSONfile = open(fileName, 'w')
+            json.dumps(events,JSONfile)
+            JSONfile.close()
+        except:
+            print ("Could not open output file " + fileName + ".")
+            return (-1)
+    else:
+        print json.dumps(events)
 
 ###### FROM HERE PUBLIC FUNCTIONS ######
 
@@ -153,7 +170,7 @@ def get_healthrule_violations_from_stream(streamdata,outFilename=None):
         return 0
     generate_events_CSV(app_ID=0,events=events,fileName=outFilename)
 
-def get_healthrule_violations(app_ID,minutesBeforeNow,selectors=None,serverURL=None,userName=None,password=None,token=None):
+def get_healthrule_violations(app_ID,minutesBeforeNow,selectors=None,outputFormat=None,serverURL=None,userName=None,password=None,token=None):
     if serverURL and serverURL == "dummyserver":
         build_test_events(app_ID)
     elif serverURL and userName and password:
@@ -164,4 +181,7 @@ def get_healthrule_violations(app_ID,minutesBeforeNow,selectors=None,serverURL=N
         if fetch_healthrule_violations(app_ID,minutesBeforeNow,selectors=selectors,token=token) == 0:
             print "get_healthrule_violations: Failed to retrieve events for application " + str(app_ID)
             return None
-    generate_events_CSV(app_ID)
+    if outputFormat and outputFormat == "JSON":
+        generate_events_JSON(app_ID)
+    else:
+        generate_events_CSV(app_ID)
