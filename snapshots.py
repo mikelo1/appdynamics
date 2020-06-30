@@ -118,9 +118,9 @@ def generate_snapshots_JSON(app_ID,snapshots=None,fileName=None):
 
     if fileName is not None:
         try:
-            JSONfile = open(fileName, 'w')
-            json.dumps(snapshots,JSONfile)
-            JSONfile.close()
+            with open(fileName, 'w') as outfile:
+                json.dump(policies, outfile)
+            outfile.close()
         except:
             print ("Could not open output file " + fileName + ".")
             return (-1)
