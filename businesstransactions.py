@@ -88,6 +88,24 @@ def generate_business_transactions_CSV(app_ID,transactions=None,fileName=None):
             exit(1)
     if fileName is not None: csvfile.close()
 
+def generate_business_transactions_JSON(app_ID,transactions=None,fileName=None):
+    if transactions is None and str(app_ID) not in BTDict:
+        print "Business transaction for application "+str(app_ID)+" not loaded."
+        return
+    elif transactions is None and str(app_ID) in BTDict:
+        transactions = BTDict[str(app_ID)]
+
+    if fileName is not None:
+        try:
+            with open(fileName, 'w') as outfile:
+                json.dump(transactions, outfile)
+            outfile.close()
+        except:
+            print ("Could not open output file " + fileName + ".")
+            return (-1)
+    else:
+        print json.dumps(transactions)
+
 
 ###### FROM HERE PUBLIC FUNCTIONS ######
 
@@ -101,7 +119,7 @@ def get_business_transactions_from_stream(streamdata,outFilename=None):
         return 0
     generate_business_transactions_CSV(app_ID=0,transactions=BTs,fileName=outFilename)
 
-def get_business_transactions(app_ID,serverURL=None,userName=None,password=None,token=None):
+def get_business_transactions(app_ID,outputFormat=None,serverURL=None,userName=None,password=None,token=None):
     if serverURL and serverURL == "dummyserver":
         build_test_policies(app_ID)
     elif serverURL and userName and password:
@@ -112,7 +130,10 @@ def get_business_transactions(app_ID,serverURL=None,userName=None,password=None,
         if fetch_business_transactions(app_ID,token=token) == 0:
             print "get_business_transactions: Failed to retrieve business transactions for application " + str(app_ID)
             return None
-    generate_business_transactions_CSV(app_ID)
+    if outputFormat and outputFormat == "JSON":
+        generate_business_transactions_JSON(app_ID)
+    else:
+        generate_business_transactions_CSV(app_ID)
 
 def get_business_transaction_ID(appID,transactionName):
     if appID <= 0: return 0

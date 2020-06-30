@@ -44,29 +44,6 @@ def fetch_dashboards(serverURL=None,userName=None,password=None,token=None,loadD
 
     return len(dashboards)
 
-def generate_dashboards_JSON(dashboards=None,outFileName=None):
-    if dashboards is None and len(dashboardDict) == 0:
-        print "generate_dashboards_CSV: Dahsboards not loaded."
-        return
-    elif dashboards is None:
-        dashboards = dashboardDict
-
-    data = []
-    for dashboardID in dashboards:
-        data.append(dashboardDict[dashboardID])
-
-    if outFileName is not None:
-        try:
-            with open(outFileName, 'w') as outfile:
-                json.dump(data, outfile)
-            outfile.close()
-        except:
-            print ("Could not open output file " + outFileName + ".")
-            return (-1)
-    else:
-        json.dump(data,sys.stdout)
-
-
 def generate_dashboards_CSV(dashboards=None,fileName=None):
     if dashboards is None and len(dashboardDict) == 0:
         print "generate_dashboards_CSV: Dahsboards not loaded."
@@ -103,6 +80,28 @@ def generate_dashboards_CSV(dashboards=None,fileName=None):
             return (-1)
     if fileName is not None: csvfile.close()
 
+def generate_dashboards_JSON(dashbDict=None,fileName=None):
+    if dashbDict is None and len(dashboardDict) == 0:
+        print "generate_dashboards_CSV: Dahsboards not loaded."
+        return
+    elif dashbDict is None:
+        dashbDict = dashboardDict
+
+    data = []
+    for dashboardID in dashbDict:
+        data.append(dashbDict[dashboardID])
+
+    if fileName is not None:
+        try:
+            with open(fileName, 'w') as outfile:
+                json.dump(data, outfile)
+            outfile.close()
+        except:
+            print ("Could not open output file " + fileName + ".")
+            return (-1)
+    else:
+        print json.dumps(data)
+
 
 ###### FROM HERE PUBLIC FUNCTIONS ######
 
@@ -125,10 +124,16 @@ def get_dashboards_from_stream(streamdata,outFilename=None):
     generate_dashboards_CSV(dashboards=dashbDict)
 
 
-def get_dashboards(serverURL=None,userName=None,password=None,token=None):
+def get_dashboards(outputFormat=None,serverURL=None,userName=None,password=None,token=None):
     if serverURL and userName and password:
-        if fetch_dashboards(serverURL=serverURL,userName=userName,password=password) > 0:
-            generate_dashboards_CSV()
+        if fetch_dashboards(serverURL=serverURL,userName=userName,password=password) == 0:
+            print "get_dashboards: Failed to retrieve policies for application " + str(app_ID)
+            return None
     else:
-        if fetch_dashboards(token=token) > 0:
-            generate_dashboards_CSV()
+        if fetch_dashboards(token=token) == 0:
+            print "get_dashboards: Failed to retrieve policies for application " + str(app_ID)
+            return None
+    if outputFormat and outputFormat == "JSON":
+        generate_dashboards_JSON()
+    else:
+        generate_dashboards_CSV()

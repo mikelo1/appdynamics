@@ -39,7 +39,7 @@ def time_to_minutes(string):
 
   return total
 
-usage = "usage: %prog [apply|config|create|delete|get|login|patch|replace] [options]"
+usage = "usage: %prog [get|login|patch] [options]"
 epilog= "examples: %prog get applications"
 
 optParser = OptionParser(usage=usage, version="%prog 0.1", epilog=epilog)
@@ -148,10 +148,10 @@ elif COMMAND.lower() == "get":
 
   # make the application list, if applies
   if ENTITY == "applications":
-    get_applications(server,token=token,includeNodes=False)
+    get_applications(outputFormat=options.outFormat,includeNodes=False)
     exit()
   elif ENTITY == "dashboards":
-    get_dashboards(server,token=token)
+    get_dashboards(outputFormat=options.outFormat)
     exit()
   elif not options.applications and not options.allApplications:
       optParser.error("Missing application (use -A for all applications)")
@@ -184,7 +184,7 @@ elif COMMAND.lower() == "get":
     appID = getID(application)
     if appID > 0:
       if ENTITY in ['policies','actions','schedules','health-rules','detection-rules','businesstransactions','backends']:
-        functions["get_"+ENTITY](appID,server)
+        functions["get_"+ENTITY](appID,outputFormat=options.outFormat)
       elif ENTITY in ['healthrule-violations','snapshots']:
         if options.since is None:
           optParser.error("No duration was specified. (use --since=0 for all events)")

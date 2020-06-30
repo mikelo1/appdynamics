@@ -173,6 +173,25 @@ def generate_applications_CSV(appDict=None,fileName=None):
     if fileName is not None: csvfile.close()
 
 
+def generate_applications_JSON(appDict=None,fileName=None):
+    if appDict is None: appDict = applicationDict
+
+    data = []
+    for appID in appDict:
+        data.append(appDict[appID])
+
+    if fileName is not None:
+        try:
+            with open(fileName, 'w') as outfile:
+                json.dump(data, outfile)
+            outfile.close()
+        except:
+            print ("Could not open output file " + fileName + ".")
+            return (-1)
+    else:
+        print json.dumps(data)
+
+
 ###### FROM HERE PUBLIC FUNCTIONS ######
 
 
@@ -193,13 +212,19 @@ def get_applications_from_stream(streamdata,outFilename=None):
 
     generate_applications_CSV(appDict=appDict)
 
-def get_applications(serverURL=None,appList=None,userName=None,password=None,token=None,includeNodes=False):
+def get_applications(outputFormat=None,serverURL=None,userName=None,password=None,token=None,includeNodes=False):
     if serverURL and userName and password:
-        if fetch_applications(serverURL=serverURL,userName=userName,password=password,includeNodes=includeNodes) > 0:
-            generate_applications_CSV()
+        if fetch_applications(serverURL=serverURL,userName=userName,password=password,includeNodes=includeNodes) == 0:
+            print "get_applications: Failed to retrieve policies for application " + str(app_ID)
+            return None
     else:
-        if fetch_applications(token=token,includeNodes=includeNodes) > 0:
-            generate_applications_CSV()
+        if fetch_applications(token=token,includeNodes=includeNodes) == 0:
+            print "get_applications: Failed to retrieve policies for application " + str(app_ID)
+            return None
+    if outputFormat and outputFormat == "JSON":
+        generate_applications_JSON()
+    else:
+        generate_applications_CSV()
 
 def get_application_list():
     if len(applicationDict) == 0:

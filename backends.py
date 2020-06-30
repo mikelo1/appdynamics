@@ -80,6 +80,24 @@ def generate_backends_CSV(app_ID,backends=None,fileName=None):
             exit(1)
     if fileName is not None: csvfile.close()
 
+def generate_backends_JSON(app_ID,backends=None,fileName=None):
+    if backends is None and str(app_ID) not in backendDict:
+        print "Backends for application "+str(app_ID)+" not loaded."
+        return
+    elif backends is None and str(app_ID) in backendDict:
+        backends = backendDict[str(app_ID)]
+
+    if fileName is not None:
+        try:
+            with open(fileName, 'w') as outfile:
+                json.dump(backends, outfile)
+            outfile.close()
+        except:
+            print ("Could not open output file " + fileName + ".")
+            return (-1)
+    else:
+        print json.dumps(backends)
+
 
 ###### FROM HERE PUBLIC FUNCTIONS ######
 
@@ -93,7 +111,7 @@ def get_backends_from_stream(streamdata,outFilename=None):
         return 0
     generate_backends_CSV(app_ID=0,backends=BEs,fileName=outFilename)
 
-def get_backends(app_ID,serverURL=None,userName=None,password=None,token=None):
+def get_backends(app_ID,outputFormat=None,serverURL=None,userName=None,password=None,token=None):
     if serverURL and serverURL == "dummyserver":
         build_test_policies(app_ID)
     elif serverURL and userName and password:
@@ -104,4 +122,7 @@ def get_backends(app_ID,serverURL=None,userName=None,password=None,token=None):
         if fetch_backends(app_ID,token=token) == 0:
             print "get_backends: Failed to retrieve backends for application " + str(app_ID)
             return None
-    generate_backends_CSV(app_ID)
+    if outputFormat and outputFormat == "JSON":
+        generate_backends_JSON(app_ID)
+    else:
+        generate_backends_CSV(app_ID)

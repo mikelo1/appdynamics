@@ -245,6 +245,23 @@ def generate_schedules_CSV(app_ID,schedules=None,fileName=None):
             return (-1)
     if fileName is not None: csvfile.close()
 
+def generate_schedules_JSON(app_ID,schedules=None,fileName=None):
+    if schedules is None and str(app_ID) not in scheduleDict:
+        print "Schedules for application "+str(app_ID)+" not loaded."
+        return
+    elif schedules is None and str(app_ID) in scheduleDict:
+        schedules = scheduleDict[str(app_ID)]
+
+    if fileName is not None:
+        try:
+            with open(fileName, 'w') as outfile:
+                json.dump(schedules, outfile)
+            outfile.close()
+        except:
+            print ("Could not open output file " + fileName + ".")
+            return (-1)
+    else:
+        print json.dumps(schedules)
 
 ###### FROM HERE PUBLIC FUNCTIONS ######
 
@@ -277,7 +294,7 @@ def get_schedules_from_stream(streamData,outFilename=None):
     generate_schedules_CSV(app_ID=0,schedules=schedules,fileName=outFilename)
 
 
-def get_schedules(app_ID,serverURL=None,userName=None,password=None,token=None):
+def get_schedules(app_ID,outputFormat=None,serverURL=None,userName=None,password=None,token=None):
     if serverURL and serverURL == "dummyserver":
         build_test_schedules(app_ID)
     elif serverURL and userName and password:
@@ -288,7 +305,10 @@ def get_schedules(app_ID,serverURL=None,userName=None,password=None,token=None):
         if fetch_schedules(app_ID,token=token) == 0:
             print "get_schedules: Failed to retrieve schedules for application " + str(app_ID)
             return None
-    generate_schedules_CSV(app_ID)
+    if outputFormat and outputFormat == "JSON":
+        generate_schedules_JSON(app_ID)
+    else:
+        generate_schedules_CSV(app_ID)
 
 def patch_schedules(app_ID,source,serverURL=None,userName=None,password=None,token=None):
     # Verify if the source is a file or stream JSON data

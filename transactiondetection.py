@@ -249,6 +249,10 @@ def generate_transactiondetection_CSV(app_ID,detectionRules=None,fileName=None):
             exit(1)
     if fileName is not None: csvfile.close()
 
+# TODO: generate JSON output format
+def generate_transactiondetection_JSON(app_ID,detectionRules=None,fileName=None):
+    print "generate_health_rules_JSON: feature not implemented yet."
+
 
 ###### FROM HERE PUBLIC FUNCTIONS ######
 
@@ -262,7 +266,7 @@ def get_detection_rules_from_stream(streamdata,outFilename=None):
         return 0
     generate_transactiondetection_CSV(app_ID=0,detectionRules=root,fileName=outFilename)
 
-def get_detection_rules(app_ID,serverURL=None,userName=None,password=None,token=None):
+def get_detection_rules(app_ID,outputFormat=None,serverURL=None,userName=None,password=None,token=None):
     if serverURL and serverURL == "dummyserver":
         build_test_transactiondetections(app_ID)
     elif serverURL and userName and password:
@@ -273,7 +277,10 @@ def get_detection_rules(app_ID,serverURL=None,userName=None,password=None,token=
         if fetch_transactiondetection(app_ID,token=token) == 0:
             print "get_detection_rules: Failed to retrieve transaction detection rules for application " + str(app_ID)
             return None
-    generate_transactiondetection_CSV(app_ID)
+    if outputFormat and outputFormat == "JSON":
+        generate_transactiondetection_JSON(app_ID)
+    else:
+        generate_transactiondetection_CSV(app_ID)
 
 def get_transactiondetections_matching_URL(URL):
     pass 

@@ -285,6 +285,10 @@ def generate_health_rules_CSV(app_ID,healthrules=None,fileName=None):
         if fileName is not None: csvfile.close()
 
 
+# TODO: generate JSON output format
+def generate_health_rules_JSON(app_ID,healthrules=None,fileName=None):
+    print "generate_health_rules_JSON: feature not implemented yet."
+
 ###### FROM HERE PUBLIC FUNCTIONS ######
 
 
@@ -297,15 +301,18 @@ def get_health_rules_from_stream(streamdata,outFilename=None):
         return 0
     generate_health_rules_CSV(app_ID=0,healthrules=root,fileName=outFilename)
 
-def get_health_rules(app_ID,serverURL=None,userName=None,password=None,token=None):
+def get_health_rules(app_ID,outputFormat=None,serverURL=None,userName=None,password=None,token=None):
     if serverURL and serverURL == "dummyserver":
         build_test_health_rules(app_ID)
     elif serverURL and userName and password:
-        if fetch_health_rules(serverURL,app_ID,userName=userName,password=password) == 0:
+        if fetch_health_rules(app_ID,serverURL=serverURL,userName=userName,password=password) == 0:
             print "get_health_rules: Failed to retrieve health rules for application " + str(app_ID)
             return None
     else:
-        if fetch_health_rules(serverURL,app_ID,token=token) == 0:
+        if fetch_health_rules(app_ID,token=token) == 0:
             print "get_health_rules: Failed to retrieve health rules for application " + str(app_ID)
             return None
-    generate_health_rules_CSV(app_ID)
+    if outputFormat and outputFormat == "JSON":
+        generate_health_rules_JSON(app_ID)
+    else:
+        generate_health_rules_CSV(app_ID)

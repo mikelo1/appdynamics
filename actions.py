@@ -191,6 +191,23 @@ def generate_actions_CSV(app_ID,actions=None,fileName=None):
             exit(1)
     if fileName is not None: csvfile.close()
 
+def generate_actions_JSON(app_ID,actions=None,fileName=None):
+    if actions is None and str(app_ID) not in actionDict:
+        print "generate_actions_JSON: [Warn] Actions for application "+str(app_ID)+" not loaded."
+        return
+    elif actions is None and str(app_ID) in actionDict:
+        actions = actionDict[str(app_ID)]
+
+    if fileName is not None:
+        try:
+            with open(fileName, 'w') as outfile:
+                json.dump(actions, outfile)
+            outfile.close()
+        except:
+            print ("Could not open output file " + fileName + ".")
+            return (-1)
+    else:
+        print json.dumps(actions)
 
 ###### FROM HERE PUBLIC FUNCTIONS ######
 
@@ -204,7 +221,7 @@ def get_actions_from_stream(streamdata,outFilename=None):
         return 0
     generate_actions_CSV(app_ID=0,actions=actions,fileName=outFilename)
 
-def get_actions(app_ID,serverURL=None,userName=None,password=None,token=None):
+def get_actions(app_ID,outputFormat=None,serverURL=None,userName=None,password=None,token=None):
     if serverURL and serverURL == "dummyserver":
         build_test_actions(app_ID)
     elif serverURL and userName and password:
@@ -215,9 +232,12 @@ def get_actions(app_ID,serverURL=None,userName=None,password=None,token=None):
         if fetch_actions(app_ID,token=token) == 0:
             print "get_actions: Failed to retrieve actions for application " + str(app_ID)
             return None
-    generate_actions_CSV(app_ID)
+    if outputFormat and outputFormat == "JSON":
+        generate_actions_JSON(app_ID)
+    else:
+        generate_actions_CSV(app_ID)
 
-def get_actions_legacy(app_ID,serverURL=None,userName=None,password=None,token=None,fileName=None):
+def get_actions_legacy(app_ID,outputFormat=None,serverURL=None,userName=None,password=None,token=None,fileName=None):
     if serverURL and userName and password:
         if fetch_actions_legacy(app_ID,serverURL=serverURL,userName=userName,password=password) == 0:
             print "get_actions: Failed to retrieve actions for application " + str(app_ID)
@@ -226,4 +246,7 @@ def get_actions_legacy(app_ID,serverURL=None,userName=None,password=None,token=N
         if fetch_actions_legacy(app_ID,token=token) == 0:
             print "get_actions: Failed to retrieve actions for application " + str(app_ID)
             return None
-    generate_actions_CSV(app_ID,fileName=fileName)
+    if outputFormat and outputFormat == "JSON":
+        generate_actions_JSON(app_ID,fileName=fileName)
+    else:
+        generate_actions_CSV(app_ID,fileName=fileName)

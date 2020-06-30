@@ -253,7 +253,7 @@ def generate_policies_JSON(app_ID,policies=None,fileName=None):
             print ("Could not open output file " + fileName + ".")
             return (-1)
     else:
-        json.dump(policies,sys.stdout)
+        print json.dumps(policies)
 
 
 ###### FROM HERE PUBLIC FUNCTIONS ######
@@ -267,7 +267,7 @@ def get_policies_from_stream(streamdata,outFilename=None):
         return 0
     generate_policies_CSV(app_ID=0,policies=policies,fileName=outFilename)
 
-def get_policies(app_ID,serverURL=None,userName=None,password=None,token=None):
+def get_policies(app_ID,outputFormat=None,serverURL=None,userName=None,password=None,token=None):
     if serverURL == "dummyserver":
         build_test_policies(app_ID)
     elif serverURL and userName and password:
@@ -278,9 +278,12 @@ def get_policies(app_ID,serverURL=None,userName=None,password=None,token=None):
         if fetch_policies(app_ID,token=token) == 0:
             print "get_policies: Failed to retrieve policies for application " + str(app_ID)
             return None
-    generate_policies_CSV(app_ID)
+    if outputFormat and outputFormat == "JSON":
+        generate_policies_JSON(app_ID)
+    else:
+        generate_policies_CSV(app_ID)
 
-def get_policies_legacy(app_ID,serverURL=None,userName=None,password=None,token=None,fileName=None):
+def get_policies_legacy(app_ID,outputFormat=None,serverURL=None,userName=None,password=None,token=None,fileName=None):
     if serverURL and userName and password:
         if fetch_policies_legacy(app_ID,serverURL=serverURL,userName=userName,password=password) == 0:
             print "get_policies: Failed to retrieve policies for application " + str(app_ID)
@@ -289,7 +292,10 @@ def get_policies_legacy(app_ID,serverURL=None,userName=None,password=None,token=
         if fetch_policies_legacy(app_ID,token=token) == 0:
             print "get_policies: Failed to retrieve policies for application " + str(app_ID)
             return None
-    generate_policies_CSV(app_ID,fileName=fileName)
+    if outputFormat and outputFormat == "JSON":
+        generate_policies_JSON(app_ID,fileName=fileName)
+    else:
+        generate_policies_CSV(app_ID,fileName=fileName)
 
 def get_policies_matching_action(app_ID,name):
     MatchList = []
