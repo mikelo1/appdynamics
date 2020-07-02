@@ -4,7 +4,7 @@ import csv
 import sys
 from datetime import datetime, timedelta
 import time
-from appdRESTfulAPI import fetch_RESTful_JSON, timerange_to_params
+from appdRESTfulAPI import fetch_RESTfulPath, timerange_to_params
 from applications import getTierName, getNodeName
 
 snapshotDict = dict()
@@ -31,22 +31,25 @@ def fetch_snapshots(app_ID,minutesBeforeNow,selectors=None,serverURL=None,userNa
         sinceTime = datetime.today()-timedelta(minutes=i)
         sinceEpoch= long(time.mktime(sinceTime.timetuple())*1000)
         params = timerange_to_params("AFTER_TIME",duration="180",startEpoch=sinceEpoch)
+        params.update({"output": "JSON"})
         if selectors: params.update(selectors)
 
         for retry in range(1,4):
             if 'DEBUG' in locals(): print ("Fetching snapshots for App " + str(app_ID) + "params "+str(params)+"...")
             if serverURL and userName and password:
-                data_chunck = fetch_RESTful_JSON(restfulPath,params=params,serverURL=serverURL,userName=userName,password=password)
+                response = fetch_RESTfulPath(restfulPath,params=params,serverURL=serverURL,userName=userName,password=password)
             else:
-                data_chunck = fetch_RESTful_JSON(restfulPath,params=params)
+                response = fetch_RESTfulPath(restfulPath,params=params)
 
-            if data_chunck is not None:
-                break
-            elif retry < 3:
-                print "Failed to fetch snapshots. Retrying (",retry," of 3)..."
-            else:
-                print "Giving up."
-                return None
+            try:
+                data_chunck = json.loads(response)
+            except JSONDecodeError:
+                if retry < 3:
+                    print "Failed to fetch healthrule violations. Retrying (",retry," of 3)..."
+                else:
+                    print "Giving up."
+                    return None
+            if data_chunck is not None: break
     
         if 'snapshots' not in locals():
             snapshots = data_chunck
@@ -131,14 +134,17 @@ def generate_snapshots_JSON(app_ID,snapshots=None,fileName=None):
 ###### FROM HERE PUBLIC FUNCTIONS ######
 
 
-def get_snapshots_from_stream(streamdata,outFilename=None):
+def get_snapshots_from_stream(streamdata,outputFormat=None,outFilename=None):
     if 'DEBUG' in locals(): print "Processing file " + inFileName + "..."
     try:
         snapshots = json.loads(streamdata)
     except:
         if 'DEBUG' in locals(): print ("Could not process JSON file " + inFileName)
         return 0
-    generate_snapshots_CSV(app_ID=0,snapshots=snapshots,fileName=outFilename)
+    if outputFormat and outputFormat == "JSON":
+        generate_snapshots_JSON(app_ID=0,snapshots=snapshots,fileName=outFilename)
+    else:
+        generate_snapshots_CSV(app_ID=0,snapshots=snapshots,fileName=outFilename)
 
 def get_snapshots(app_ID,minutesBeforeNow,selectors=None,outputFormat=None,serverURL=None,userName=None,password=None,token=None):
     if serverURL and serverURL == "dummyserver":

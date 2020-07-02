@@ -5,7 +5,7 @@ import sys
 from datetime import datetime, timedelta
 import time
 from applications import getName
-from appdRESTfulAPI import fetch_RESTful_XML, fetch_RESTful_JSON, timerange_to_params
+from appdRESTfulAPI import fetch_RESTfulPath, timerange_to_params
 
 eventDict = dict()
 
@@ -31,22 +31,25 @@ def fetch_healthrule_violations(app_ID,minutesBeforeNow,selectors=None,serverURL
         sinceTime = datetime.today()-timedelta(minutes=i)
         sinceEpoch= long(time.mktime(sinceTime.timetuple())*1000)
         params = timerange_to_params("AFTER_TIME",duration="1440",startEpoch=sinceEpoch)
+        params.update({"output": "JSON"})
         if selectors: params.update(selectors)
 
         for retry in range(1,4):
             if 'DEBUG' in locals(): print ("Fetching healthrule violations for App " + str(app_ID) + "params "+str(params)+"...")
             if serverURL and userName and password:
-                data_chunck = fetch_RESTful_JSON(restfulPath,params=params,serverURL=serverURL,userName=userName,password=password)
+                response = fetch_RESTfulPath(restfulPath,params=params,serverURL=serverURL,userName=userName,password=password)
             else:
-                data_chunck = fetch_RESTful_JSON(restfulPath,params=params)
+                response = fetch_RESTfulPath(restfulPath,params=params)
 
-            if data_chunck is not None:
-                break
-            elif retry < 3:
-                print "Failed to fetch healthrule violations. Retrying (",retry," of 3)..."
-            else:
-                print "Giving up."
-                return None
+            try:
+                data_chunck = json.loads(response)
+            except JSONDecodeError:
+                if retry < 3:
+                    print "Failed to fetch healthrule violations. Retrying (",retry," of 3)..."
+                else:
+                    print "Giving up."
+                    return None
+            if data_chunck is not None: break
     
         if 'events' not in locals():
             events = data_chunck
@@ -161,14 +164,17 @@ def generate_events_JSON(app_ID,events=None,fileName=None):
 ###### FROM HERE PUBLIC FUNCTIONS ######
 
 
-def get_healthrule_violations_from_stream(streamdata,outFilename=None):
+def get_healthrule_violations_from_stream(streamdata,outputFormat=None,outFilename=None):
     if 'DEBUG' in locals(): print "Processing file " + inFileName + "..."
     try:
         events = json.loads(streamdata)
     except:
         if 'DEBUG' in locals(): print ("Could not process JSON file " + inFileName)
         return 0
-    generate_events_CSV(app_ID=0,events=events,fileName=outFilename)
+    if outputFormat and outputFormat == "JSON":
+        generate_events_JSON(app_ID=0,events=events,fileName=outFilename)
+    else:
+        generate_events_CSV(app_ID=0,events=events,fileName=outFilename)
 
 def get_healthrule_violations(app_ID,minutesBeforeNow,selectors=None,outputFormat=None,serverURL=None,userName=None,password=None,token=None):
     if serverURL and serverURL == "dummyserver":

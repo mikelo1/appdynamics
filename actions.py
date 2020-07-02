@@ -2,7 +2,7 @@
 import json
 import csv
 import sys
-from appdRESTfulAPI import fetch_RESTful_JSON
+from appdRESTfulAPI import fetch_RESTfulPath
 from policies import get_policies_matching_action
 
 actionDict = dict()
@@ -34,24 +34,30 @@ def build_test_actions(app_ID):
 ###
  # Fetch application actions from a controller then add them to the actions dictionary. Provide either an username/password or an access token.
  # @param app_ID the ID number of the application actions to fetch
+ # @param selectors fetch only snapshots filtered by specified selectors
  # @param serverURL Full hostname of the Appdynamics controller. i.e.: https://demo1.appdynamics.com:443
  # @param userName Full username, including account. i.e.: myuser@customer1
  # @param password password for the specified user and host. i.e.: mypassword
  # @param token API acccess token
  # @return the number of fetched actions. Zero if no action was found.
 ###
-def fetch_actions(app_ID,serverURL=None,userName=None,password=None,token=None,loadData=False):
+def fetch_actions(app_ID,selectors=None,serverURL=None,userName=None,password=None,token=None,loadData=False):
     if 'DEBUG' in locals(): print ("Fetching actions for App " + str(app_ID) + "...")
     # Retrieve a List of Actions for a Given Application
     # GET <controller_url>/controller/alerting/rest/v1/applications/<application_id>/actions
     restfulPath = "/controller/alerting/rest/v1/applications/" + str(app_ID) + "/actions"
-    if serverURL and userName and password:
-        actions = fetch_RESTful_JSON(restfulPath,serverURL=serverURL,userName=userName,password=password)
-    else:
-        actions = fetch_RESTful_JSON(restfulPath)
+    params = {"output": "JSON"}
+    if selectors: params.update(selectors)
 
-    if actions is None:
-        print "fetch_actions: Failed to retrieve actions for application " + str(app_ID)
+    if serverURL and userName and password:
+        response = fetch_RESTfulPath(restfulPath,params=params,serverURL=serverURL,userName=userName,password=password)
+    else:
+        response = fetch_RESTfulPath(restfulPath,params=params)
+
+    try:
+        actions = json.loads(response)
+    except JSONDecodeError:
+        print ("fetch_actions: Could not process JSON content.")
         return None
 
     if loadData:
@@ -81,19 +87,24 @@ def fetch_actions(app_ID,serverURL=None,userName=None,password=None,token=None,l
 
     return len(actions)
 
-def fetch_actions_legacy(app_ID,serverURL=None,userName=None,password=None,token=None):
+def fetch_actions_legacy(app_ID,selectors=None,serverURL=None,userName=None,password=None,token=None):
     if 'DEBUG' in locals(): print ("Fetching actions for App " + str(app_ID) + "...")
     # https://docs.appdynamics.com/display/PRO44/Configuration+Import+and+Export+API#ConfigurationImportandExportAPI-ExportActionsfromanApplication
     # Exports all actions in the specified application to a JSON file.
     # GET /controller/actions/application_id
     restfulPath = "/controller/actions/" + str(app_ID)
-    if userName and password:
-        actions = fetch_RESTful_JSON(restfulPath,userName=userName,password=password)
+    params = {"output": "JSON"}
+    if selectors: params.update(selectors)
+    
+    if serverURL and userName and password:
+        response = fetch_RESTfulPath(restfulPath,params=params,serverURL=serverURL,userName=userName,password=password)
     else:
-        actions = fetch_RESTful_JSON(restfulPath)
+        response = fetch_RESTfulPath(restfulPath,params=params)
 
-    if actions is None:
-        print "fetch_actions: Failed to retrieve actions for application " + str(app_ID)
+    try:
+        actions = json.loads(response)
+    except JSONDecodeError:
+        print ("fetch_actions: Could not process JSON content.")
         return None
 
     # Add loaded actions to the actions dictionary
@@ -212,24 +223,27 @@ def generate_actions_JSON(app_ID,actions=None,fileName=None):
 ###### FROM HERE PUBLIC FUNCTIONS ######
 
 
-def get_actions_from_stream(streamdata,outFilename=None):
+def get_actions_from_stream(streamdata,outputFormat=None,outFilename=None):
     if 'DEBUG' in locals(): print "Processing file " + inFileName + "..."
     try:
         actions = json.loads(streamdata)
     except:
         if 'DEBUG' in locals(): print ("Could not process JSON file " + inFileName)
         return 0
-    generate_actions_CSV(app_ID=0,actions=actions,fileName=outFilename)
+    if outputFormat and outputFormat == "JSON":
+        generate_actions_JSON(app_ID=0,actions=actions,fileName=outFilename)
+    else:
+        generate_actions_CSV(app_ID=0,actions=actions,fileName=outFilename)
 
-def get_actions(app_ID,outputFormat=None,serverURL=None,userName=None,password=None,token=None):
+def get_actions(app_ID,selectors=None,outputFormat=None,serverURL=None,userName=None,password=None,token=None):
     if serverURL and serverURL == "dummyserver":
         build_test_actions(app_ID)
     elif serverURL and userName and password:
-        if fetch_actions(app_ID,serverURL=serverURL,userName=userName,password=password) == 0:
+        if fetch_actions(app_ID,selectors=selectors,serverURL=serverURL,userName=userName,password=password) == 0:
             print "get_actions: Failed to retrieve actions for application " + str(app_ID)
             return None
     else:
-        if fetch_actions(app_ID,token=token) == 0:
+        if fetch_actions(app_ID,selectors=selectors,token=token) == 0:
             print "get_actions: Failed to retrieve actions for application " + str(app_ID)
             return None
     if outputFormat and outputFormat == "JSON":
@@ -237,13 +251,13 @@ def get_actions(app_ID,outputFormat=None,serverURL=None,userName=None,password=N
     else:
         generate_actions_CSV(app_ID)
 
-def get_actions_legacy(app_ID,outputFormat=None,serverURL=None,userName=None,password=None,token=None,fileName=None):
+def get_actions_legacy(app_ID,selectors=None,outputFormat=None,serverURL=None,userName=None,password=None,token=None,fileName=None):
     if serverURL and userName and password:
-        if fetch_actions_legacy(app_ID,serverURL=serverURL,userName=userName,password=password) == 0:
+        if fetch_actions_legacy(app_ID,selectors=selectors,serverURL=serverURL,userName=userName,password=password) == 0:
             print "get_actions: Failed to retrieve actions for application " + str(app_ID)
             return None    
     else:
-        if fetch_actions_legacy(app_ID,token=token) == 0:
+        if fetch_actions_legacy(app_ID,selectors=selectors,token=token) == 0:
             print "get_actions: Failed to retrieve actions for application " + str(app_ID)
             return None
     if outputFormat and outputFormat == "JSON":

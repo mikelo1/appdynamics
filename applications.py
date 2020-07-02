@@ -2,7 +2,7 @@
 import json
 import csv
 import sys
-from appdRESTfulAPI import fetch_RESTful_JSON
+from appdRESTfulAPI import fetch_RESTfulPath
 
 applicationDict = dict()
 
@@ -32,14 +32,18 @@ def fetch_application(key,serverURL=None,userName=None,password=None,token=None,
     # Retrieve a specific Business Application
     # GET /controller/rest/applications/application_name
     restfulPath = "/controller/rest/applications/" + str(key)
-    if serverURL and userName and password:
-        application = fetch_RESTful_JSON(restfulPath,serverURL=serverURL,userName=userName,password=password)
-    else:
-        application = fetch_RESTful_JSON(restfulPath)
+    params = {"output": "JSON"}
 
-    if application is None:
-        print "fetch_application: Failed to retrieve application " + str(key) + " for controller " + serverURL
-        return 0
+    if serverURL and userName and password:
+        response = fetch_RESTfulPath(restfulPath,params=params,serverURL=serverURL,userName=userName,password=password)
+    else:
+        response = fetch_RESTfulPath(restfulPath,params=params)
+
+    try:
+        application = json.loads(response)
+    except JSONDecodeError:
+        print ("fetch_application: Could not process JSON content.")
+        return None
 
     if includeNodes:
         # Add tiers and nodes to the application data
@@ -62,6 +66,7 @@ def fetch_application(key,serverURL=None,userName=None,password=None,token=None,
 
 ###
  # Fetch applications from a controller, then add them to the application dictionary. Provide either an username/password or an access token.
+ # @param selectors fetch only snapshots filtered by specified selectors
  # @param serverURL Full hostname of the Appdynamics controller. i.e.: https://demo1.appdynamics.com:443
  # @param userName Full username, including account. i.e.: myuser@customer1
  # @param password password for the specified user and host. i.e.: mypassword
@@ -69,19 +74,24 @@ def fetch_application(key,serverURL=None,userName=None,password=None,token=None,
  # @param includeNodes flag to determine if nodes and tiers need to be loaded as well
  # @return the number of fetched applications. Zero if no application was found.
 ###
-def fetch_applications(serverURL=None,userName=None,password=None,token=None,includeNodes=False):
+def fetch_applications(selectors=None,serverURL=None,userName=None,password=None,token=None,includeNodes=False):
     if 'DEBUG' in locals(): print ("Fetching applications for controller " + serverURL + "...")
     # Retrieve All Business Applications
     # GET /controller/rest/applications
     restfulPath = "/controller/rest/applications/"
-    if serverURL and userName and password:
-        applications = fetch_RESTful_JSON(restfulPath,serverURL=serverURL,userName=userName,password=password)
-    else:
-        applications = fetch_RESTful_JSON(restfulPath)
+    params = {"output": "JSON"}
+    if selectors: params.update(selectors)
 
-    if applications is None:
-        print "fetch_application: Failed to retrieve applications for controller " + serverURL
-        return 0
+    if serverURL and userName and password:
+        response = fetch_RESTfulPath(restfulPath,params=params,serverURL=serverURL,userName=userName,password=password)
+    else:
+        response = fetch_RESTfulPath(restfulPath,params=params)
+
+    try:
+        applications = json.loads(response)
+    except JSONDecodeError:
+        print ("fetch_application: Could not process JSON content.")
+        return None
 
     for application in applications:
         if includeNodes:
@@ -195,7 +205,7 @@ def generate_applications_JSON(appDict=None,fileName=None):
 ###### FROM HERE PUBLIC FUNCTIONS ######
 
 
-def get_applications_from_stream(streamdata,outFilename=None):
+def get_applications_from_stream(streamdata,outputFormat=None,outFilename=None):
     if 'DEBUG' in locals(): print "Processing file " + inFileName + "..."
     try:
         applications = json.loads(streamdata)
@@ -209,8 +219,10 @@ def get_applications_from_stream(streamdata,outFilename=None):
         if 'accountGuid' not in application: continue
         app_ID = application['id']
         appDict.update({str(app_ID):application})
-
-    generate_applications_CSV(appDict=appDict)
+    if outputFormat and outputFormat == "JSON":
+        generate_applications_JSON(appDict=appDict)
+    else:
+        generate_applications_CSV(appDict=appDict)
 
 def get_applications(outputFormat=None,serverURL=None,userName=None,password=None,token=None,includeNodes=False):
     if serverURL and userName and password:

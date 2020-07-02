@@ -110,7 +110,7 @@ elif COMMAND.lower() == "get":
       print os.path.basename(__file__),": URL resources not implemented yet."
       exit()
     else:
-      print "Dont' know what to do with ",options.filename
+      print "Don't know what to do with ",options.filename
       exit()
 
     functions = { 'load_policies':get_policies_from_stream,
@@ -125,9 +125,8 @@ elif COMMAND.lower() == "get":
                   'load_applications':get_applications_from_stream,
                   'load_dashboards':get_dashboards_from_stream
                 }
-    # TODO: output formats
     for key in functions:
-      functions[key](data) #,outputFormat=options.outFormat)
+      functions[key](data,outputFormat=options.outFormat)
     exit()
 
   if len(args) < 2:
@@ -163,8 +162,8 @@ elif COMMAND.lower() == "get":
     applicationList = get_application_list()
 
   # make the filters list, if applies
+  selectors = {}
   if options.selector:
-    selectors = {}
     for selector in options.selector.split(','):
       selectors.update({selector.split('=')[0]:selector.split('=')[1]})
 
@@ -184,7 +183,7 @@ elif COMMAND.lower() == "get":
     appID = getID(application)
     if appID > 0:
       if ENTITY in ['policies','actions','schedules','health-rules','detection-rules','businesstransactions','backends']:
-        functions["get_"+ENTITY](appID,outputFormat=options.outFormat)
+        functions["get_"+ENTITY](appID,selectors,outputFormat=options.outFormat)
       elif ENTITY in ['healthrule-violations','snapshots']:
         if options.since is None:
           optParser.error("No duration was specified. (use --since=0 for all events)")

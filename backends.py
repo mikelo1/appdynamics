@@ -2,7 +2,7 @@
 import json
 import csv
 import sys
-from appdRESTfulAPI import fetch_RESTful_JSON
+from appdRESTfulAPI import fetch_RESTfulPath
 
 backendDict = dict()
 
@@ -18,25 +18,31 @@ class Backend:
 ###
  # Fetch application backends from a controller then add them to the backends dictionary. Provide either an username/password or an access token.
  # @param serverURL Full hostname of the Appdynamics controller. i.e.: https://demo1.appdynamics.com:443
+ # @param selectors fetch only snapshots filtered by specified selectors
  # @param app_ID the ID number of the application backends to fetch
  # @param userName Full username, including account. i.e.: myuser@customer1
  # @param password password for the specified user and host. i.e.: mypassword
  # @param token API acccess token
  # @return the number of fetched backends. Zero if no backend was found.
 ###
-def fetch_backends(app_ID,serverURL=None,userName=None,password=None,token=None):
+def fetch_backends(app_ID,selectors=None,serverURL=None,userName=None,password=None,token=None):
     if 'DEBUG' in locals(): print ("Fetching business transactions for App " + str(app_ID) + "...")
 
     # Retrieve All Registered Backends in a Business Application With Their Properties
     # GET /controller/rest/applications/application_name/backends
     restfulPath = "/controller/rest/applications/" + str(app_ID) + "/backends"
-    if serverURL and userName and password:
-        backends = fetch_RESTful_JSON(restfulPath,params={"output": "JSON"},serverURL=serverURL,userName=userName,password=password)
-    else:
-        backends = fetch_RESTful_JSON(restfulPath,params={"output": "JSON"})
+    params = {"output": "JSON"}
+    if selectors: params.update(selectors)
 
-    if backends is None:
-        print "fetch_backends: Failed to retrieve backends for application " + str(app_ID)
+    if serverURL and userName and password:
+        response = fetch_RESTfulPath(restfulPath,params=params,serverURL=serverURL,userName=userName,password=password)
+    else:
+        response = fetch_RESTfulPath(restfulPath,params=params)
+
+    try:
+        backends = json.loads(response)
+    except JSONDecodeError:
+        print ("fetch_backends: Could not process JSON content.")
         return None
 
     # Add loaded Backends to the Backend dictionary
@@ -102,24 +108,27 @@ def generate_backends_JSON(app_ID,backends=None,fileName=None):
 ###### FROM HERE PUBLIC FUNCTIONS ######
 
 
-def get_backends_from_stream(streamdata,outFilename=None):
+def get_backends_from_stream(streamdata,outputFormat=None,outFilename=None):
     if 'DEBUG' in locals(): print "Processing file " + inFileName + "..."
     try:
         BEs = json.loads(streamdata)
     except:
         if 'DEBUG' in locals(): print ("Could not process JSON file " + inFileName)
         return 0
-    generate_backends_CSV(app_ID=0,backends=BEs,fileName=outFilename)
+    if outputFormat and outputFormat == "JSON":
+        generate_backends_JSON(app_ID=0,backends=BEs,fileName=outFilename)
+    else:
+        generate_backends_CSV(app_ID=0,backends=BEs,fileName=outFilename)
 
-def get_backends(app_ID,outputFormat=None,serverURL=None,userName=None,password=None,token=None):
+def get_backends(app_ID,selectors=None,outputFormat=None,serverURL=None,userName=None,password=None,token=None):
     if serverURL and serverURL == "dummyserver":
         build_test_policies(app_ID)
     elif serverURL and userName and password:
-        if fetch_backends(app_ID,serverURL=serverURL,userName=userName,password=password) == 0:
+        if fetch_backends(app_ID,selectors=selectors,serverURL=serverURL,userName=userName,password=password) == 0:
             print "get_backends: Failed to retrieve backends for application " + str(app_ID)
             return None
     else:
-        if fetch_backends(app_ID,token=token) == 0:
+        if fetch_backends(app_ID,selectors=selectors,token=token) == 0:
             print "get_backends: Failed to retrieve backends for application " + str(app_ID)
             return None
     if outputFormat and outputFormat == "JSON":

@@ -3,7 +3,7 @@ import xml.etree.ElementTree as ET
 import json
 import csv
 import sys
-from appdRESTfulAPI import fetch_RESTful_XML
+from appdRESTfulAPI import fetch_RESTfulPath
 
 detectionruleDict = dict()
 class DetectionRule:
@@ -36,21 +36,31 @@ class MatchCriteria:
 ###
  # Fetch transaction detection rules from a controller then add them to the detectionrule dictionary. Provide either an username/password or an access token.
  # @param app_ID the ID number of the detection rules to fetch
+ # @param selectors fetch only snapshots filtered by specified selectors
  # @param serverURL Full hostname of the Appdynamics controller. i.e.: https://demo1.appdynamics.com:443
  # @param userName Full username, including account. i.e.: myuser@customer1
  # @param password password for the specified user and host. i.e.: mypassword
  # @param token API acccess token
  # @return the number of fetched transaction detection rules. Zero if no detection rule was found.
 ###
-def fetch_transactiondetection(app_ID,serverURL=None,userName=None,password=None,token=None):
+def fetch_transactiondetection(app_ID,selectors=None,serverURL=None,userName=None,password=None,token=None):
     if 'DEBUG' in locals(): print ("Fetching Auto Detection Rules for App " + str(app_ID) + "...")
     # Export Transaction Detection Rules for All Entry Point Types
     # GET /controller/transactiondetection/application_id/[tier_name/]rule_type  
     restfulPath = "/controller/transactiondetection/" + str(app_ID) + "/auto"
+    params = {"output": "XML"}
+    if selectors: params.update(selectors)
+
     if serverURL and userName and password:
-        root = fetch_RESTful_XML(restfulPath,serverURL=serverURL,userName=userName,password=password)
+        response = fetch_RESTfulPath(restfulPath,params=params,serverURL=serverURL,userName=userName,password=password)
     else:
-        root = fetch_RESTful_XML(restfulPath)
+        response = fetch_RESTfulPath(restfulPath,params=params)
+
+    try:
+        root = ET.fromstring(response)
+    except:
+        print ("fetch_health_rules: Could not process XML content.")
+        return None
 
     if root is None:
         print "fetch_transactiondetection: Failed to retrieve transaction detection rules for application " + str(app_ID)
@@ -58,10 +68,17 @@ def fetch_transactiondetection(app_ID,serverURL=None,userName=None,password=None
 
     if 'DEBUG' in locals(): print ("Fetching Custom Detection Rules for App " + str(app_ID) + "...")
     restfulPath = "/controller/transactiondetection/" + str(app_ID) + "/custom"
+
     if serverURL and userName and password:
-        rootCustom = fetch_RESTful_XML(restfulPath,serverURL=serverURL,userName=userName,password=password)
+        response = fetch_RESTfulPath(restfulPath,params=params,serverURL=serverURL,userName=userName,password=password)
     else:
-        rootCustom = fetch_RESTful_XML(restfulPath)
+        response = fetch_RESTfulPath(restfulPath,params=params)
+
+    try:
+        rootCustom = ET.fromstring(response)
+    except:
+        print ("fetch_health_rules: Could not process XML content.")
+        return None
 
     if rootCustom is None:
         print "fetch_transactiondetection: Failed to retrieve transaction detection rules for application " + str(app_ID)
@@ -257,24 +274,27 @@ def generate_transactiondetection_JSON(app_ID,detectionRules=None,fileName=None)
 ###### FROM HERE PUBLIC FUNCTIONS ######
 
 
-def get_detection_rules_from_stream(streamdata,outFilename=None):
+def get_detection_rules_from_stream(streamdata,outputFormat=None,outFilename=None):
     if 'DEBUG' in locals(): print "Processing file " + inFileName + "..."
     try:
         root = ET.fromstring(streamdata)
     except:
         if 'DEBUG' in locals(): print ("Could not process XML file " + inFileName)
         return 0
-    generate_transactiondetection_CSV(app_ID=0,detectionRules=root,fileName=outFilename)
+    if outputFormat and outputFormat == "JSON":
+        generate_transactiondetection_JSON(app_ID=0,detectionRules=root,fileName=outFilename)
+    else:
+        generate_transactiondetection_CSV(app_ID=0,detectionRules=root,fileName=outFilename)
 
-def get_detection_rules(app_ID,outputFormat=None,serverURL=None,userName=None,password=None,token=None):
+def get_detection_rules(app_ID,selectors=None,outputFormat=None,serverURL=None,userName=None,password=None,token=None):
     if serverURL and serverURL == "dummyserver":
         build_test_transactiondetections(app_ID)
     elif serverURL and userName and password:
-        if fetch_transactiondetection(app_ID,serverURL=serverURL,userName=userName,password=password) == 0:
+        if fetch_transactiondetection(app_ID,selectors=selectors,serverURL=serverURL,userName=userName,password=password) == 0:
             print "get_detection_rules: Failed to retrieve transaction detection rules for application " + str(app_ID)
             return None
     else:
-        if fetch_transactiondetection(app_ID,token=token) == 0:
+        if fetch_transactiondetection(app_ID,selectors=selectors,token=token) == 0:
             print "get_detection_rules: Failed to retrieve transaction detection rules for application " + str(app_ID)
             return None
     if outputFormat and outputFormat == "JSON":

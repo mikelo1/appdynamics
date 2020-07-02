@@ -2,7 +2,7 @@
 import json
 import csv
 import sys
-from appdRESTfulAPI import fetch_RESTful_JSON, update_RESTful_JSON
+from appdRESTfulAPI import fetch_RESTfulPath, update_RESTful_JSON
 
 scheduleDict = dict()
 
@@ -74,24 +74,30 @@ def build_test_schedules(app_ID):
 ###
  # Fetch application schedules from a controller then add them to the policies dictionary. Provide either an username/password or an access token.
  # @param app_ID the ID number of the application schedules to fetch
+ # @param selectors fetch only snapshots filtered by specified selectors
  # @param serverURL Full hostname of the Appdynamics controller. i.e.: https://demo1.appdynamics.com:443
  # @param userName Full username, including account. i.e.: myuser@customer1
  # @param password password for the specified user and host. i.e.: mypassword
  # @param token API acccess token
  # @return the number of fetched schedules. Zero if no schedule was found.
 ###
-def fetch_schedules(app_ID,serverURL=None,userName=None,password=None,token=None,loadData=False):
+def fetch_schedules(app_ID,selectors=None,serverURL=None,userName=None,password=None,token=None,loadData=False):
     if 'DEBUG' in locals(): print ("Fetching schedules for App " + str(app_ID) + "...")
     # Retrieve a List of Schedules for a Given Application
     # GET <controller_url>/controller/alerting/rest/v1/applications/<application_id>/schedules
     restfulPath = "/controller/alerting/rest/v1/applications/" + str(app_ID) + "/schedules"
-    if serverURL and userName and password:
-        schedules = fetch_RESTful_JSON(restfulPath,serverURL=serverURL,userName=userName,password=password)
-    else:
-        schedules = fetch_RESTful_JSON(restfulPath)
+    params = {"output": "JSON"}
+    if selectors: params.update(selectors)
 
-    if schedules is None:
-        print "fetch_schedules: Failed to retrieve schedules for application " + str(app_ID)
+    if serverURL and userName and password:
+        response = fetch_RESTfulPath(restfulPath,params=params,serverURL=serverURL,userName=userName,password=password)
+    else:
+        response = fetch_RESTfulPath(restfulPath,params=params)
+
+    try:
+        schedules = json.loads(response)
+    except JSONDecodeError:
+        print ("fetch_schedules: Could not process JSON content.")
         return None
 
     if loadData:
@@ -266,7 +272,7 @@ def generate_schedules_JSON(app_ID,schedules=None,fileName=None):
 ###### FROM HERE PUBLIC FUNCTIONS ######
 
 
-def get_schedules_from_stream(streamData,outFilename=None):
+def get_schedules_from_stream(streamData,outputFormat=None,outFilename=None):
     if 'DEBUG' in locals(): print "Processing file " + inFileName + "..."
     try:
         schedules = json.loads(streamData)
@@ -291,18 +297,20 @@ def get_schedules_from_stream(streamData,outFilename=None):
                 continue
             schedules[index] = scheduleJSON
             index = index + 1
-    generate_schedules_CSV(app_ID=0,schedules=schedules,fileName=outFilename)
+    if outputFormat and outputFormat == "JSON":
+        generate_schedules_JSON(app_ID=0,schedules=schedules,fileName=outFilename)
+    else:
+        generate_schedules_CSV(app_ID=0,schedules=schedules,fileName=outFilename)
 
-
-def get_schedules(app_ID,outputFormat=None,serverURL=None,userName=None,password=None,token=None):
+def get_schedules(app_ID,selectors=None,outputFormat=None,serverURL=None,userName=None,password=None,token=None):
     if serverURL and serverURL == "dummyserver":
         build_test_schedules(app_ID)
     elif serverURL and userName and password:
-        if fetch_schedules(app_ID,serverURL=serverURL,userName=userName,password=password) == 0:
+        if fetch_schedules(app_ID,selectors=selectors,serverURL=serverURL,userName=userName,password=password) == 0:
             print "get_schedules: Failed to retrieve schedules for application " + str(app_ID)
             return None
     else:
-        if fetch_schedules(app_ID,token=token) == 0:
+        if fetch_schedules(app_ID,selectors=selectors,token=token) == 0:
             print "get_schedules: Failed to retrieve schedules for application " + str(app_ID)
             return None
     if outputFormat and outputFormat == "JSON":

@@ -2,25 +2,38 @@
 import json
 import csv
 import sys
-from appdRESTfulAPI import fetch_RESTful_JSON
+from appdRESTfulAPI import fetch_RESTfulPath
 
 dashboardDict = dict()
 
 ###
  # Fetch dashboards from a controller then add them to the dashboards dictionary. Provide either an username/password or an access token.
+ # @param selectors fetch only snapshots filtered by specified selectors
  # @param serverURL Full hostname of the Appdynamics controller. i.e.: https://demo1.appdynamics.com:443
  # @param userName Full username, including account. i.e.: myuser@customer1
  # @param password password for the specified user and host. i.e.: mypassword
  # @param token API acccess token
  # @return the number of fetched dashboards. Zero if no dashboard was found.
 ###
-def fetch_dashboards(serverURL=None,userName=None,password=None,token=None,loadData=False):
+def fetch_dashboards(selectors=None,serverURL=None,userName=None,password=None,token=None,loadData=False):
     if 'DEBUG' in locals(): print ("Fetching dashboards list...")    
     # Export the list of all Custom Dashboards
     # https://community.appdynamics.com/t5/Dashboards/How-to-export-the-list-of-all-Custom-Dashboards-in-the/td-p/30083
     # HTTP call: /controller/restui/dashboards/getAllDashboardsByType/false
     restfulPath = "/controller/restui/dashboards/getAllDashboardsByType/false"
-    dashboards = fetch_RESTful_JSON(restfulPath)
+    params = {"output": "JSON"}
+    if selectors: params.update(selectors)
+
+    if serverURL and userName and password:
+        response = fetch_RESTfulPath(restfulPath,params=params,serverURL=serverURL,userName=userName,password=password)
+    else:
+        response = fetch_RESTfulPath(restfulPath,params=params)
+
+    try:
+        dashboards = json.loads(response)
+    except JSONDecodeError:
+        print ("fetch_dashboards: Could not process JSON content.")
+        return None
 
     for dashboard in dashboards:
         if loadData:
@@ -44,12 +57,12 @@ def fetch_dashboards(serverURL=None,userName=None,password=None,token=None,loadD
 
     return len(dashboards)
 
-def generate_dashboards_CSV(dashboards=None,fileName=None):
-    if dashboards is None and len(dashboardDict) == 0:
+def generate_dashboards_CSV(dashbDict=None,fileName=None):
+    if dashbDict is None and len(dashboardDict) == 0:
         print "generate_dashboards_CSV: Dahsboards not loaded."
         return
-    elif dashboards is None:
-        dashboards = dashboardDict
+    elif dashbDict is None:
+        dashbDict = dashboardDict
 
     if fileName is not None:
         try:
@@ -65,8 +78,8 @@ def generate_dashboards_CSV(dashboards=None,fileName=None):
     filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
     filewriter.writeheader()
          
-    for dashboardID in dashboards:
-        dashboard = dashboards[dashboardID]
+    for dashboardID in dashbDict:
+        dashboard = dashbDict[dashboardID]
         if 'success' in dashboard and dashboard['success']==False: continue
         try:
             filewriter.writerow({'Name': dashboard['name'],
@@ -106,7 +119,7 @@ def generate_dashboards_JSON(dashbDict=None,fileName=None):
 ###### FROM HERE PUBLIC FUNCTIONS ######
 
 
-def get_dashboards_from_stream(streamdata,outFilename=None):
+def get_dashboards_from_stream(streamdata,outputFormat=None,outFilename=None):
     if 'DEBUG' in locals(): print "Processing file " + inFileName + "..."
     try:
         dashboards = json.loads(streamdata)
@@ -121,8 +134,10 @@ def get_dashboards_from_stream(streamdata,outFilename=None):
         dashboardID = dashboard['id']
         dashbDict.update({str(dashboardID):dashboard})
 
-    generate_dashboards_CSV(dashboards=dashbDict)
-
+    if outputFormat and outputFormat == "JSON":
+        generate_dashboards_JSON(dashbDict=dashbDict)
+    else:
+        generate_dashboards_CSV(dashbDict=dashbDict)
 
 def get_dashboards(outputFormat=None,serverURL=None,userName=None,password=None,token=None):
     if serverURL and userName and password:

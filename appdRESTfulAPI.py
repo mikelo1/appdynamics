@@ -67,15 +67,11 @@ def get_access_token(serverURL=None,API_Client=None,Client_Secret=None):
  # @param serverURL Full hostname of the Appdynamics controller. i.e.: https://demo1.appdynamics.com:443
  # @param userName Full username, including account. i.e.: myuser@customer1
  # @param password password for the specified user and host. i.e.: mypassword
- # @return the response JSON data. Null if no JSON data was received.
+ # @return the response data. Null if no data was received.
 ###
-def fetch_RESTful_JSON(RESTfulPath,params=None,serverURL=None,userName=None,password=None):
-    if 'DEBUG' in locals(): print ("Fetching JSON from RESTful path " + RESTfulPath + "...")
+def fetch_RESTfulPath(RESTfulPath,params=None,serverURL=None,userName=None,password=None):
+    if 'DEBUG' in locals(): print ("Fetching JSON from RESTful path " + RESTfulPath + "with params " + params + " ...")
     if serverURL is None: serverURL = get_current_context_serverURL()
-    if params is None:
-        params = {"output": "JSON"}
-    elif 'output' not in params:
-        params.update({"output": "JSON"})
     if userName and password:
         try:
             response = requests.get(serverURL + RESTfulPath,
@@ -103,12 +99,7 @@ def fetch_RESTful_JSON(RESTfulPath,params=None,serverURL=None,userName=None,pass
             file1.close() 
         return None
 
-    try:
-        responseJSON = json.loads(response.content)
-    except:
-        print ("Could not process JSON content.")
-        return None
-    return responseJSON
+    return response.content
 
 ###
  # Update data from a controller. Either provide an username/password or let it get an access token automatically.
@@ -151,57 +142,6 @@ def update_RESTful_JSON(RESTfulPath,JSONdata,serverURL=None,userName=None,passwo
             file1.close()
         return False
     return True
-
-###
- # Fetch RESTful Path from a controller. Either provide an username/password or let it get an access token automatically.
- # @param RESTfulPath RESTful path to retrieve data
- # @param params additional HTTP parameters (if any)
- # @param serverURL Full hostname of the Appdynamics controller. i.e.: https://demo1.appdynamics.com:443
- # @param userName Full username, including account. i.e.: myuser@customer1
- # @param password password for the specified user and host. i.e.: mypassword
- # @return the response XML data root. Null if no XML data was received.
-###
-def fetch_RESTful_XML(RESTfulPath,params=None,serverURL=None,userName=None,password=None):
-    if 'DEBUG' in locals(): print ("Fetching XML from RESTful path " + RESTfulPath + "...")
-    if serverURL is None: serverURL = get_current_context_serverURL()
-    if params is None:
-        params = {"output": "XML"}
-    elif 'output' not in params:
-        params.update({"output": "XML"})
-    if userName and password:
-        try:
-            response = requests.get(serverURL + RESTfulPath,
-                                    auth=(userName, password), params=params)
-        except requests.exceptions.InvalidURL:
-            print ("Invalid URL: " + serverURL + RESTfulPath + ". Do you have the right controller hostname and RESTful path?")
-            return None
-    else:
-        token = get_access_token()
-        if token is None: return None
-        try:
-            response = requests.get(serverURL + RESTfulPath,
-                                headers={"Authorization": "Bearer "+token}, params=params)
-        except requests.exceptions.InvalidURL:
-            print ("Invalid URL: " + serverURL + RESTfulPath + ". Do you have the right controller hostname and RESTful path?")
-            return None
-
-    if response.status_code != 200:
-        print "Something went wrong on HTTP request. Status:", response.status_code
-        if 'DEBUG' in locals():
-            print "   status:", response.status_code
-            print "   header:", response.headers
-            print "Writing content to file: response.txt"
-            file1 = open("response.txt","w") 
-            file1.write(response.content)
-            file1.close() 
-        return None
-
-    try:
-        root = ET.fromstring(response.content)
-    except:
-        print ("Could not process XML content.")
-        return None
-    return root
 
 ###
  # Get the controller version. Either provide an username/password or let it get an access token automatically.

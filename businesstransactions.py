@@ -2,7 +2,7 @@
 import json
 import csv
 import sys
-from appdRESTfulAPI import fetch_RESTful_JSON
+from appdRESTfulAPI import fetch_RESTfulPath
 
 BTDict = dict()
 
@@ -22,25 +22,31 @@ class BusinessTransaction:
 ###
  # Fetch application business transactions from a controller then add them to the business transactions dictionary. Provide either an username/password or an access token.
  # @param app_ID the ID number of the application business transactions to fetch
+ # @param selectors fetch only snapshots filtered by specified selectors
  # @param serverURL Full hostname of the Appdynamics controller. i.e.: https://demo1.appdynamics.com:443
  # @param userName Full username, including account. i.e.: myuser@customer1
  # @param password password for the specified user and host. i.e.: mypassword
  # @param token API acccess token
  # @return the number of fetched business transactions. Zero if no business transaction was found.
 ###
-def fetch_business_transactions(app_ID,serverURL=None,userName=None,password=None,token=None):
+def fetch_business_transactions(app_ID,selectors=None,serverURL=None,userName=None,password=None,token=None):
     if 'DEBUG' in locals(): print ("Fetching business transactions for App " + str(app_ID) + "...")
 
     # Retrieve All Business Transactions in a Business Application
     # GET /controller/rest/applications/application_name/business-transactions
     restfulPath = "/controller/rest/applications/" + str(app_ID) + "/business-transactions"
-    if serverURL and userName and password:
-        transactions = fetch_RESTful_JSON(restfulPath,params={"output": "JSON"},serverURL=serverURL,userName=userName,password=password)
-    else:
-        transactions = fetch_RESTful_JSON(restfulPath,params={"output": "JSON"})
+    params = {"output": "JSON"}
+    if selectors: params.update(selectors)
 
-    if transactions is None:
-        print "fetch_business_transactions: Failed to retrieve business transactions for application " + str(app_ID)
+    if serverURL and userName and password:
+        response = fetch_RESTfulPath(restfulPath,params=params,serverURL=serverURL,userName=userName,password=password)
+    else:
+        response = fetch_RESTfulPath(restfulPath,params=params)
+
+    try:
+        transactions = json.loads(response)
+    except JSONDecodeError:
+        print ("fetch_business_transactions: Could not process JSON content.")
         return None
   
     # Add loaded business transactions to the business transaction dictionary
@@ -110,24 +116,27 @@ def generate_business_transactions_JSON(app_ID,transactions=None,fileName=None):
 ###### FROM HERE PUBLIC FUNCTIONS ######
 
 
-def get_business_transactions_from_stream(streamdata,outFilename=None):
+def get_business_transactions_from_stream(streamdata,outputFormat=None,outFilename=None):
     if 'DEBUG' in locals(): print "Processing file " + inFileName + "..."
     try:
         BTs = json.loads(streamdata)
     except:
         if 'DEBUG' in locals(): print ("Could not process JSON file " + inFileName)
         return 0
-    generate_business_transactions_CSV(app_ID=0,transactions=BTs,fileName=outFilename)
+    if outputFormat and outputFormat == "JSON":
+        generate_business_transactions_JSON(app_ID=0,transactions=BTs,fileName=outFilename)
+    else:
+        generate_business_transactions_CSV(app_ID=0,transactions=BTs,fileName=outFilename)
 
-def get_business_transactions(app_ID,outputFormat=None,serverURL=None,userName=None,password=None,token=None):
+def get_business_transactions(app_ID,selectors=None,outputFormat=None,serverURL=None,userName=None,password=None,token=None):
     if serverURL and serverURL == "dummyserver":
         build_test_policies(app_ID)
     elif serverURL and userName and password:
-        if fetch_business_transactions(app_ID,serverURL=serverURL,userName=userName,password=password) == 0:
+        if fetch_business_transactions(app_ID,selectors=selectors,serverURL=serverURL,userName=userName,password=password) == 0:
             print "get_business_transactions: Failed to retrieve business transactions for application " + str(app_ID)
             return None
     else:
-        if fetch_business_transactions(app_ID,token=token) == 0:
+        if fetch_business_transactions(app_ID,selectors=selectors,token=token) == 0:
             print "get_business_transactions: Failed to retrieve business transactions for application " + str(app_ID)
             return None
     if outputFormat and outputFormat == "JSON":

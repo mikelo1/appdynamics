@@ -39,29 +39,29 @@ Advanced Commands:
 Usage:
    appdctl.py [flags] [options]
 
-# Examples
+# Examples:
 Basic Commands (Basic):
  * Get applications list
-  $ ./appdctl.py get applications
+   $ appdctl.py get applications
  * Get policies list for specific applications
-  $ ./appdctl.py get policies -a myApp1,myApp2
+   $ appdctl.py get policies -a myApp1,myApp2
  * Get schedules for specific application
-  $ ./appdctl.py get schedules -a myApp1
+   $ appdctl.py get schedules -a myApp1
  * Get health rules for specific application
-  $ ./appdctl.py get health-rules -a myApp1
+   $ appdctl.py get health-rules -a myApp1
  * Get actions for specific application
-  $ ./appdctl.py get actions -a myApp1
+   $ appdctl.py get actions -a myApp1
  * Get transaction detection rules for specific application
-  $ ./appdctl.py get detection-rules -a myApp1
+   $ appdctl.py get detection-rules -a myApp1
  * Get business transactions for specific application
-  $ ./appdctl.py get businesstransactions -a myApp1
+   $ appdctl.py get businesstransactions -a myApp1
  * Get backends for specific application
-  $ ./appdctl.py get backends -a myApp1
+   $ appdctl.py get backends -a myApp1
 
 Advanced Commands:
  * Get health rule violations for specific application and last 1 day and a half
-  $ ./appdctl.py get healthrule-violations -a myApp1 --since=1d12h
+   $ appdctl.py get healthrule-violations -a myApp1 --since=1d12h
  * Get last 1 day snapshots for specific application, where user experience was ERROR
-  $ ./appdctl.py get snapshots -a myApp1 -l user-experience=ERROR --since=1d -o JSON
+   $ appdctl.py get snapshots -a myApp1 -l user-experience=ERROR --since=1d -o JSON
  * Update timezone for all schedules of a specific application
-  $ ./appdctl.py patch schedules -a myApp1 -p '{"timezone":"Europe\/Belgrade"}'
+   $ appdctl.py patch schedules -a myApp1 -p '{"timezone":"Europe\/Belgrade"}'

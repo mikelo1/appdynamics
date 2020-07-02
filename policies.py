@@ -2,7 +2,7 @@
 import json
 import csv
 import sys
-from appdRESTfulAPI import fetch_RESTful_JSON
+from appdRESTfulAPI import fetch_RESTfulPath
 
 policyDict = dict()
 
@@ -50,24 +50,30 @@ def build_test_policies(app_ID):
 ###
  # Fetch application policies from a controller then add them to the policies dictionary. Provide either an username/password or an access token.
  # @param app_ID the ID number of the application policies to fetch
+ # @param selectors fetch only snapshots filtered by specified selectors
  # @param serverURL Full hostname of the Appdynamics controller. i.e.: https://demo1.appdynamics.com:443
  # @param userName Full username, including account. i.e.: myuser@customer1
  # @param password password for the specified user and host. i.e.: mypassword
  # @param token API acccess token
  # @return the number of fetched policies. Zero if no policy was found.
 ###
-def fetch_policies(app_ID,serverURL=None,userName=None,password=None,token=None,loadData=False):
+def fetch_policies(app_ID,selectors=None,serverURL=None,userName=None,password=None,token=None,loadData=False):
     if 'DEBUG' in locals(): print ("Fetching policies for App " + str(app_ID) + "...")
     # Retrieve a list of Policies associated with an Application
     # GET <controller_url>/controller/alerting/rest/v1/applications/<application_id>/policies
     restfulPath = "/controller/alerting/rest/v1/applications/" + str(app_ID) + "/policies"
-    if serverURL and userName and password:
-        policies = fetch_RESTful_JSON(restfulPath,serverURL=serverURL,userName=userName,password=password)
-    else:
-        policies = fetch_RESTful_JSON(restfulPath)
+    params = {"output": "JSON"}
+    if selectors: params.update(selectors)
 
-    if policies is None:
-        print "fetch_policies: Failed to retrieve policies for application " + str(app_ID)
+    if serverURL and userName and password:
+        response = fetch_RESTfulPath(restfulPath,params=params,serverURL=serverURL,userName=userName,password=password)
+    else:
+        response = fetch_RESTfulPath(restfulPath,params=params)
+
+    try:
+        policies = json.loads(response)
+    except JSONDecodeError:
+        print ("fetch_policies: Could not process JSON content.")
         return None
 
     if loadData:
@@ -97,19 +103,24 @@ def fetch_policies(app_ID,serverURL=None,userName=None,password=None,token=None,
 
     return len(policies)
 
-def fetch_policies_legacy(app_ID,serverURL=None,userName=None,password=None,token=None):
+def fetch_policies_legacy(app_ID,selectors=None,serverURL=None,userName=None,password=None,token=None):
     if 'DEBUG' in locals(): print ("Fetching policies for App " + str(app_ID) + "...")
     # https://docs.appdynamics.com/display/PRO44/Configuration+Import+and+Export+API#ConfigurationImportandExportAPI-ExportPolicies
     # export policies to a JSON file.
     # GET /controller/policies/application_id
     restfulPath = "/controller/policies/" + str(app_ID)
-    if serverURL and userName and password:
-        policies = fetch_RESTful_JSON(restfulPath,serverURL=serverURL,userName=userName,password=password)
-    else:
-        policies = fetch_RESTful_JSON(restfulPath)
+    params = {"output": "JSON"}
+    if selectors: params.update(selectors)
 
-    if policies is None:
-        print "fetch_policies: Failed to retrieve policies for application " + str(app_ID)
+    if serverURL and userName and password:
+        response = fetch_RESTfulPath(restfulPath,params=params,serverURL=serverURL,userName=userName,password=password)
+    else:
+        response = fetch_RESTfulPath(restfulPath,params=params)
+
+    try:
+        policies = json.loads(response)
+    except JSONDecodeError:
+        print ("fetch_policies: Could not process JSON content.")
         return None
 
     # Add loaded policies to the policy dictionary
@@ -258,24 +269,27 @@ def generate_policies_JSON(app_ID,policies=None,fileName=None):
 
 ###### FROM HERE PUBLIC FUNCTIONS ######
 
-def get_policies_from_stream(streamdata,outFilename=None):
+def get_policies_from_stream(streamdata,outputFormat=None,outFilename=None):
     if 'DEBUG' in locals(): print "Processing file " + inFileName + "..."
     try:
         policies = json.loads(streamdata)
     except:
         if 'DEBUG' in locals(): print ("Could not process JSON file " + inFileName)
         return 0
-    generate_policies_CSV(app_ID=0,policies=policies,fileName=outFilename)
+    if outputFormat and outputFormat == "JSON":
+        generate_policies_JSON(app_ID=0,policies=policies,fileName=outFilename)
+    else:
+        generate_policies_CSV(app_ID=0,policies=policies,fileName=outFilename)
 
-def get_policies(app_ID,outputFormat=None,serverURL=None,userName=None,password=None,token=None):
+def get_policies(app_ID,selectors=None,outputFormat=None,serverURL=None,userName=None,password=None,token=None):
     if serverURL == "dummyserver":
         build_test_policies(app_ID)
     elif serverURL and userName and password:
-        if fetch_policies(app_ID,serverURL=serverURL,userName=userName,password=password) == 0:
+        if fetch_policies(app_ID,selectors=selectors,serverURL=serverURL,userName=userName,password=password) == 0:
             print "get_policies: Failed to retrieve policies for application " + str(app_ID)
             return None
     else:
-        if fetch_policies(app_ID,token=token) == 0:
+        if fetch_policies(app_ID,selectors=selectors,token=token) == 0:
             print "get_policies: Failed to retrieve policies for application " + str(app_ID)
             return None
     if outputFormat and outputFormat == "JSON":
@@ -283,13 +297,13 @@ def get_policies(app_ID,outputFormat=None,serverURL=None,userName=None,password=
     else:
         generate_policies_CSV(app_ID)
 
-def get_policies_legacy(app_ID,outputFormat=None,serverURL=None,userName=None,password=None,token=None,fileName=None):
+def get_policies_legacy(app_ID,selectors=None,outputFormat=None,serverURL=None,userName=None,password=None,token=None,fileName=None):
     if serverURL and userName and password:
-        if fetch_policies_legacy(app_ID,serverURL=serverURL,userName=userName,password=password) == 0:
+        if fetch_policies_legacy(app_ID,selectors=selectors,serverURL=serverURL,userName=userName,password=password) == 0:
             print "get_policies: Failed to retrieve policies for application " + str(app_ID)
             return None
     else:
-        if fetch_policies_legacy(app_ID,token=token) == 0:
+        if fetch_policies_legacy(app_ID,selectors=selectors,token=token) == 0:
             print "get_policies: Failed to retrieve policies for application " + str(app_ID)
             return None
     if outputFormat and outputFormat == "JSON":

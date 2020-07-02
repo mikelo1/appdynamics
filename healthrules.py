@@ -3,7 +3,7 @@ import xml.etree.ElementTree as ET
 import csv
 import sys
 from applications import getName
-from appdRESTfulAPI import fetch_RESTful_XML
+from appdRESTfulAPI import fetch_RESTfulPath
 
 healthruleDict = dict()
 
@@ -31,25 +31,34 @@ class HealthRule:
 ###
  # Fetch health rules from a controller then add them to the healthrule dictionary. Provide either an username/password or an access token.
  # @param app_ID the ID number of the health rules to fetch
+ # @param selectors fetch only snapshots filtered by specified selectors
  # @param serverURL Full hostname of the Appdynamics controller. i.e.: https://demo1.appdynamics.com:443
  # @param userName Full username, including account. i.e.: myuser@customer1
  # @param password password for the specified user and host. i.e.: mypassword
  # @param token API acccess token
  # @return the number of fetched health rules. Zero if no health rule was found.
 ###
-def fetch_health_rules(app_ID,serverURL=None,userName=None,password=None,token=None):
+def fetch_health_rules(app_ID,selectors=None,serverURL=None,userName=None,password=None,token=None):
     if 'DEBUG' in locals(): print ("Fetching Health Rules for application " + str(app_ID) + "...")
-
     # Export Health Rules from an Application
     # GET /controller/healthrules/application_id?name=health_rule_name
     restfulPath = "/controller/healthrules/" + str(app_ID)
+    params = {"output": "XML"}
+    if selectors: params.update(selectors)
+
     if serverURL and userName and password:
-        root = fetch_RESTful_XML(restfulPath,serverURL=serverURL,userName=userName,password=password)
+        response = fetch_RESTfulPath(restfulPath,params=params,serverURL=serverURL,userName=userName,password=password)
     else:
-        root = fetch_RESTful_XML(restfulPath)
+        response = fetch_RESTfulPath(restfulPath,params=params)
+
+    try:
+        root = ET.fromstring(response)
+    except:
+        print ("fetch_health_rules: Could not process XML content.")
+        return None
 
     if root is None:
-        print "fetch_health_rules: Failed to retrieve health rules for application " + str(app_ID)
+        print " Failed to retrieve health rules for application " + str(app_ID)
         return None
 
     # Add loaded events to the event dictionary
@@ -292,24 +301,27 @@ def generate_health_rules_JSON(app_ID,healthrules=None,fileName=None):
 ###### FROM HERE PUBLIC FUNCTIONS ######
 
 
-def get_health_rules_from_stream(streamdata,outFilename=None):
+def get_health_rules_from_stream(streamdata,outputFormat=None,outFilename=None):
     if 'DEBUG' in locals(): print "Processing file " + inFileName + "..."
     try:
         root = ET.fromstring(streamdata)
     except:
         if 'DEBUG' in locals(): print ("Could not process XML file " + inFileName)
         return 0
-    generate_health_rules_CSV(app_ID=0,healthrules=root,fileName=outFilename)
+    if outputFormat and outputFormat == "JSON":
+        generate_health_rules_JSON(app_ID=0,healthrules=root,fileName=outFilename)
+    else:
+        generate_health_rules_CSV(app_ID=0,healthrules=root,fileName=outFilename)
 
-def get_health_rules(app_ID,outputFormat=None,serverURL=None,userName=None,password=None,token=None):
+def get_health_rules(app_ID,selectors=None,outputFormat=None,serverURL=None,userName=None,password=None,token=None):
     if serverURL and serverURL == "dummyserver":
         build_test_health_rules(app_ID)
     elif serverURL and userName and password:
-        if fetch_health_rules(app_ID,serverURL=serverURL,userName=userName,password=password) == 0:
+        if fetch_health_rules(app_ID,selectors=selectors,serverURL=serverURL,userName=userName,password=password) == 0:
             print "get_health_rules: Failed to retrieve health rules for application " + str(app_ID)
             return None
     else:
-        if fetch_health_rules(app_ID,token=token) == 0:
+        if fetch_health_rules(app_ID,selectors=selectors,token=token) == 0:
             print "get_health_rules: Failed to retrieve health rules for application " + str(app_ID)
             return None
     if outputFormat and outputFormat == "JSON":
