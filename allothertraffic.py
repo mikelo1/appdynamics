@@ -3,7 +3,7 @@ import json
 import csv
 import sys
 from businesstransactions import get_business_transaction_ID
-from appdRESTfulAPI import fetch_RESTful_JSON, timerange_to_params
+from appdRESTfulAPI import fetch_RESTfulPath, timerange_to_params
 from datetime import datetime, timedelta
 import time
 
@@ -22,13 +22,15 @@ class OverflowBT:
  # Fetch AllOtherTraffic snapshots from a controller then add them to the AllOtherTraffic dictionary. Provide either an username/password or an access token.
  # @param app_ID the ID number of the AllOtherTraffic snapshots to fetch
  # @param minutesBeforeNow fetch only snapshots newer than a relative duration in minutes
+ # @param selectors fetch only snapshots filtered by specified selectors
  # @param serverURL Full hostname of the Appdynamics controller. i.e.: https://demo1.appdynamics.com:443
  # @param userName Full username, including account. i.e.: myuser@customer1
  # @param password password for the specified user and host. i.e.: mypassword
  # @param token API acccess token
  # @return the number of fetched snapshots. Zero if no snapshot was found.
 ###
-def fetch_allothertraffic(app_ID,minutesBeforeNow,serverURL=None,userName=None,password=None,token=None):
+def fetch_allothertraffic(app_ID,minutesBeforeNow,selectors=None,serverURL=None,userName=None,password=None,token=None):
+    DEBUG = True
     MAX_RESULTS="9999"
     AllOtherTraffic_ID = get_business_transaction_ID(app_ID,"_APPDYNAMICS_DEFAULT_TX_")
     if AllOtherTraffic_ID == 0: return None
@@ -42,22 +44,25 @@ def fetch_allothertraffic(app_ID,minutesBeforeNow,serverURL=None,userName=None,p
         sinceTime = datetime.today()-timedelta(minutes=i)
         sinceEpoch= long(time.mktime(sinceTime.timetuple())*1000)
         params = timerange_to_params("AFTER_TIME",duration="180",startEpoch=sinceEpoch)
-        params.update({"business-transaction-ids": AllOtherTraffic_ID})
+        params.update({"business-transaction-ids": AllOtherTraffic_ID, "output": "JSON"})
+        if selectors: params.update(selectors)
 
         for retry in range(1,4):
             if 'DEBUG' in locals(): print ("Fetching snapshots for App " + str(app_ID) + "params "+str(params)+"...")
             if serverURL and userName and password:
-                data_chunck = fetch_RESTful_JSON(restfulPath,params=params,serverURL=serverURL,userName=userName,password=password)
+                response = fetch_RESTfulPath(restfulPath,params=params,serverURL=serverURL,userName=userName,password=password)
             else:
-                data_chunck = fetch_RESTful_JSON(restfulPath,params=params)
+                response = fetch_RESTfulPath(restfulPath,params=params)
 
-            if data_chunck is not None:
-                break
-            elif retry < 3:
-                print "Failed to fetch snapshots. Retrying (",retry," of 3)..."
-            else:
-                print "Giving up."
-                return None
+            try:
+                data_chunck = json.loads(response)
+            except JSONDecodeError:
+                if retry < 3:
+                    print "Failed to fetch healthrule violations. Retrying (",retry," of 3)..."
+                else:
+                    print "Giving up."
+                    return None
+            if data_chunck is not None: break
     
         if 'snapshots' not in locals():
             snapshots = data_chunck
@@ -118,19 +123,40 @@ def generate_allothertraffic_CSV(app_ID,snapshots=None,fileName=None):
             exit(1)
     if fileName is not None: csvfile.close()
 
+def generate_allothertraffic_JSON(app_ID,snapshots=None,fileName=None):
+    if snapshots is None and str(app_ID) not in snapshotDict:
+        print "Snapshots for application "+str(app_ID)+" not loaded."
+        return
+    elif snapshots is None and str(app_ID) in snapshotDict:
+        snapshots = snapshotDict[str(app_ID)]
+
+    if fileName is not None:
+        try:
+            with open(fileName, 'w') as outfile:
+                json.dump(policies, outfile)
+            outfile.close()
+        except:
+            print ("Could not open output file " + fileName + ".")
+            return (-1)
+    else:
+        print json.dumps(snapshots)
+
 
 ###### FROM HERE PUBLIC FUNCTIONS ######
 
 
-def get_allothertraffic(app_ID,minutesBeforeNow,serverURL=None,userName=None,password=None,token=None):
+def get_allothertraffic(app_ID,minutesBeforeNow,selectors=None,outputFormat=None,serverURL=None,userName=None,password=None,token=None):
     if serverURL and serverURL == "dummyserver":
         build_test_events(app_ID)
     elif serverURL and userName and password:
-        if fetch_allothertraffic(app_ID,minutesBeforeNow,serverURL=serverURL,userName=userName,password=password) == 0:
+        if fetch_allothertraffic(app_ID,minutesBeforeNow,selectors=selectors,serverURL=serverURL,userName=userName,password=password) == 0:
             print "get_allothertraffic: Failed to retrieve snapshots for application " + str(app_ID)
             return None
     else:
-        if fetch_allothertraffic(app_ID,minutesBeforeNow,token=token) == 0:
+        if fetch_allothertraffic(app_ID,minutesBeforeNow,selectors=selectors,token=token) == 0:
             print "get_allothertraffic: Failed to retrieve snapshots for application " + str(app_ID)
             return None
-    generate_allothertraffic_CSV(app_ID)
+    if outputFormat and outputFormat == "JSON":
+        generate_allothertraffic_JSON(app_ID)
+    else:
+        generate_allothertraffic_CSV(app_ID)
