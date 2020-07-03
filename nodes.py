@@ -2,94 +2,72 @@
 import json
 import csv
 import sys
-from businesstransactions import get_business_transaction_ID
-from appdRESTfulAPI import fetch_RESTfulPath, timerange_to_params
-from datetime import datetime, timedelta
-import time
+from appdRESTfulAPI import fetch_RESTfulPath
 
-appdDefaultTX_Dict = dict()
-
-class OverflowBT:
-    URL= ""
-    count = 0
-    def __init__(self,URL,count):
-        self.URL= URL
-        self.count = count
-    def __str__(self):
-        return "({0},{1})".format(self.URL,self.count)
+nodeDict = dict()
 
 ###
- # Fetch AllOtherTraffic snapshots from a controller then add them to the AllOtherTraffic dictionary. Provide either an username/password or an access token.
- # @param app_ID the ID number of the AllOtherTraffic snapshots to fetch
- # @param minutesBeforeNow fetch only snapshots newer than a relative duration in minutes
- # @param selectors fetch only snapshots filtered by specified selectors
+ # Fetch application nodes from a controller then add them to the nodes dictionary. Provide either an username/password or an access token.
+ # @param app_ID the ID number of the nodes to fetch
+ # @param selectors fetch only nodes filtered by specified selectors
  # @param serverURL Full hostname of the Appdynamics controller. i.e.: https://demo1.appdynamics.com:443
  # @param userName Full username, including account. i.e.: myuser@customer1
  # @param password password for the specified user and host. i.e.: mypassword
  # @param token API acccess token
- # @return the number of fetched snapshots. Zero if no snapshot was found.
+ # @return the number of fetched nodes. Zero if no node was found.
 ###
-def fetch_allothertraffic(app_ID,minutesBeforeNow,selectors=None,serverURL=None,userName=None,password=None,token=None):
-    DEBUG = True
-    MAX_RESULTS="9999"
-    AllOtherTraffic_ID = get_business_transaction_ID(app_ID,"_APPDYNAMICS_DEFAULT_TX_")
-    if AllOtherTraffic_ID == 0: return None
+def fetch_nodes(app_ID,selectors=None,serverURL=None,userName=None,password=None,token=None,loadData=False):
+    if 'DEBUG' in locals(): print ("Fetching nodes for App " + str(app_ID) + "...")
+    # Retrieve Node Information for All Nodes in a Business Application
+    # GET /controller/rest/applications/application_name/nodes
+    restfulPath = "/controller/rest/applications/" + str(app_ID) + "/nodes"
+    params = {"output": "JSON"}
+    if selectors: params.update(selectors)
 
-    if 'DEBUG' in locals(): print ("Fetching all other traffic snapshots for App "+str(app_ID)+"...")
-    # Retrieving All Other Traffic Business Transaction Metrics
-    # The All Other Traffic business transaction uses a special identifier in API URI paths, _APPDYNAMICS_DEFAULT_TX_
-    restfulPath = "/controller/rest/applications/" + str(app_ID) + "/request-snapshots"
-
-    for i in range(int(minutesBeforeNow),0,-180): # loop "minutesBeforeNow" minutes in chunks of 180 minutes (3 hours)
-        sinceTime = datetime.today()-timedelta(minutes=i)
-        sinceEpoch= long(time.mktime(sinceTime.timetuple())*1000)
-        params = timerange_to_params("AFTER_TIME",duration="180",startEpoch=sinceEpoch)
-        params.update({"business-transaction-ids": AllOtherTraffic_ID, "output": "JSON"})
-        if selectors: params.update(selectors)
-
-        for retry in range(1,4):
-            if 'DEBUG' in locals(): print ("Fetching snapshots for App " + str(app_ID) + "params "+str(params)+"...")
-            if serverURL and userName and password:
-                response = fetch_RESTfulPath(restfulPath,params=params,serverURL=serverURL,userName=userName,password=password)
-            else:
-                response = fetch_RESTfulPath(restfulPath,params=params)
-
-            try:
-                data_chunck = json.loads(response)
-            except JSONDecodeError:
-                if retry < 3:
-                    print "Failed to fetch healthrule violations. Retrying (",retry," of 3)..."
-                else:
-                    print "Giving up."
-                    return None
-            if data_chunck is not None: break
-    
-        if 'snapshots' not in locals():
-            snapshots = data_chunck
-            if 'DEBUG' in locals(): print "fetch_allothertraffic: Added " + str(len(snapshots)) + " snapshots."
-        else:
-            # Append retrieved data to root
-            for new_snapshot in data_chunck:
-                snapshots.append(new_snapshot)
-            if 'DEBUG' in locals(): print "fetch_allothertraffic: Added " + str(len(snapshots)) + " snapshots."
-
-    # Add loaded events to the event dictionary
-    if 'snapshots' in locals():
-        appdDefaultTX_Dict.update({str(app_ID):snapshots})
+    if serverURL and userName and password:
+        response = fetch_RESTfulPath(restfulPath,params=params,serverURL=serverURL,userName=userName,password=password)
     else:
-        return 0
+        response = fetch_RESTfulPath(restfulPath,params=params)
+
+    try:
+        nodes = json.loads(response)
+    except JSONDecodeError:
+        print ("fetch_nodes: Could not process JSON content.")
+        return None
+
+    if loadData:
+        index = 0
+        for node in nodes:
+            if 'DEBUG' in locals(): print ("Fetching node " + node['name'] + "...")
+            # Retrieve Node Information by Node Name
+            # GET /controller/rest/applications/application_name/nodes/node_name
+            restfulPath = "/controller/rest/applications/" + str(app_ID) + "/nodes/" + str(node['id'])
+            if userName and password:
+                nodeJSON = fetch_RESTful_JSON(restfulPath,userName=userName,password=password)
+            else:
+                nodeJSON = fetch_RESTful_JSON(restfulPath)
+            if nodeJSON is None:
+                "fetch_nodes: Failed to retrieve node " + str(node['id']) + " for application " + str(app_ID)
+                continue
+            nodes[index] = nodeJSON
+            index = index + 1
+
+    # Add loaded nodes to the node dictionary
+    nodeDict.update({str(app_ID):nodes})
 
     if 'DEBUG' in locals():
-        print "fetch_allothertraffic: Loaded " + str(len(snapshots)) + " snapshots."
+        print "fetch_nodes: Loaded " + str(len(nodes)) + " nodes."
+        for appID in nodeDict:
+            print str(nodeDict[appID])
 
-    return len(snapshots)
+    return len(nodes)
 
-def generate_allothertraffic_CSV(app_ID,snapshots=None,fileName=None):
-    if snapshots is None and str(app_ID) not in appdDefaultTX_Dict:
-        print "AllOtherTraffic snapshots for application "+str(app_ID)+" not loaded."
+def generate_nodes_CSV(app_ID,nodes=None,fileName=None):
+    if nodes is None and str(app_ID) not in nodeDict:
+        print "Nodes for application "+str(app_ID)+" not loaded."
         return
-    elif snapshots is None and str(app_ID) in appdDefaultTX_Dict:
-        snapshots = appdDefaultTX_Dict[str(app_ID)]
+    elif nodes is None and str(app_ID) in nodeDict:
+        nodes = nodeDict[str(app_ID)]
 
     if fileName is not None:
         try:
@@ -100,63 +78,71 @@ def generate_allothertraffic_CSV(app_ID,snapshots=None,fileName=None):
     else:
         csvfile = sys.stdout
 
-    fieldnames = ['URL', 'Count']
+    fieldnames = ['Node', 'Tier', 'Application', 'AgentVersion', 'MachineName', 'OSType']
     filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
     filewriter.writeheader()
 
-    # Count distinct URLs and store in a dictionary
-    URL_Count = dict()
-    for snapshot in snapshots:
-        if snapshot['URL'] in URL_Count:
-            URL_Count[snapshot['URL']] = URL_Count[snapshot['URL']] + 1
-        else:
-            URL_Count.update({snapshot['URL']:0})
-
-    # Add URLs and counts to CSV
-    for URL in URL_Count:
+    for node in nodes:
+        if 'nodeUniqueLocalId' not in node: continue
+        
         try:
-            filewriter.writerow({'URL': URL,
-                                'Count': URL_Count[URL]})
+            filewriter.writerow({'Node': node['name'],
+                                 'Tier': node['tierName'],
+                                 'Application': app_ID,
+                                 'AgentVersion': node['appAgentVersion'] if node['agentType']=="APP_AGENT" else node['agentType'],
+                                 'MachineName': node['machineName'],
+                                 'OSType': node['machineOSType']})
         except:
-            print ("Could not write to the output file " + fileName + ".")
+            print ("Could not write to the output.")
             if fileName is not None: csvfile.close()
-            exit(1)
+            return (-1)
+    if 'DEBUG' in locals(): print "generate_nodes_CSV: [INFO] Displayed number of nodes:" + str(len(nodes))
     if fileName is not None: csvfile.close()
 
-def generate_allothertraffic_JSON(app_ID,snapshots=None,fileName=None):
-    if snapshots is None and str(app_ID) not in snapshotDict:
-        print "Snapshots for application "+str(app_ID)+" not loaded."
+def generate_nodes_JSON(app_ID,nodes=None,fileName=None):
+    if nodes is None and str(app_ID) not in nodeDict:
+        print "Nodes for application "+str(app_ID)+" not loaded."
         return
-    elif snapshots is None and str(app_ID) in snapshotDict:
-        snapshots = snapshotDict[str(app_ID)]
+    elif nodes is None and str(app_ID) in nodeDict:
+        nodes = nodeDict[str(app_ID)]
 
     if fileName is not None:
         try:
             with open(fileName, 'w') as outfile:
-                json.dump(policies, outfile)
+                json.dump(nodes, outfile)
             outfile.close()
         except:
             print ("Could not open output file " + fileName + ".")
             return (-1)
     else:
-        print json.dumps(snapshots)
+        print json.dumps(nodes)
 
 
 ###### FROM HERE PUBLIC FUNCTIONS ######
 
 
-def get_allothertraffic(app_ID,minutesBeforeNow,selectors=None,outputFormat=None,serverURL=None,userName=None,password=None,token=None):
-    if serverURL and serverURL == "dummyserver":
-        build_test_events(app_ID)
-    elif serverURL and userName and password:
-        if fetch_allothertraffic(app_ID,minutesBeforeNow,selectors=selectors,serverURL=serverURL,userName=userName,password=password) == 0:
-            print "get_allothertraffic: Failed to retrieve snapshots for application " + str(app_ID)
+def get_nodes_from_stream(streamdata,outputFormat=None,outFilename=None):
+    if 'DEBUG' in locals(): print "Processing file " + inFileName + "..."
+    try:
+        nodes = json.loads(streamdata)
+    except:
+        if 'DEBUG' in locals(): print ("Could not process JSON file " + inFileName)
+        return 0
+    if outputFormat and outputFormat == "JSON":
+        generate_nodes_JSON(app_ID=0,nodes=nodes,fileName=outFilename)
+    else:
+        generate_nodes_CSV(app_ID=0,nodes=nodes,fileName=outFilename)
+
+def get_nodes(app_ID,selectors=None,outputFormat=None,serverURL=None,userName=None,password=None,token=None):
+    if serverURL and userName and password:
+        if fetch_nodes(app_ID,selectors=selectors,serverURL=serverURL,userName=userName,password=password) == 0:
+            print "get_allothertraffic: Failed to retrieve nodes for application " + str(app_ID)
             return None
     else:
-        if fetch_allothertraffic(app_ID,minutesBeforeNow,selectors=selectors,token=token) == 0:
-            print "get_allothertraffic: Failed to retrieve snapshots for application " + str(app_ID)
+        if fetch_nodes(app_ID,selectors=selectors,token=token) == 0:
+            print "get_allothertraffic: Failed to retrieve nodes for application " + str(app_ID)
             return None
     if outputFormat and outputFormat == "JSON":
-        generate_allothertraffic_JSON(app_ID)
+        generate_nodes_JSON(app_ID)
     else:
-        generate_allothertraffic_CSV(app_ID)
+        generate_nodes_CSV(app_ID)

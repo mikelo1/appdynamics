@@ -7,6 +7,7 @@ from appdRESTfulAPI import get_access_token
 from appdconfig import get_current_context_serverURL, get_current_context_username
 from applications import get_applications, getID, get_application_list, get_applications_from_stream
 from dashboards import get_dashboards, get_dashboards_from_stream
+from nodes import get_nodes, get_nodes_from_stream
 from transactiondetection import get_detection_rules, get_detection_rules_from_stream
 from businesstransactions import get_business_transactions, get_business_transactions_from_stream, get_business_transaction_ID
 from backends import get_backends, get_backends_from_stream
@@ -120,6 +121,7 @@ elif COMMAND.lower() == "get":
                   'load_detection-rules':get_detection_rules_from_stream,
                   'load_businesstransactions':get_business_transactions_from_stream,
                   'load_backends':get_backends_from_stream,
+                  'load_nodes':get_nodes_from_stream,
                   'load_healthrule-violations':get_healthrule_violations_from_stream,
                   'load_snapshots':get_snapshots_from_stream,
                   'load_applications':get_applications_from_stream,
@@ -137,7 +139,7 @@ elif COMMAND.lower() == "get":
   if ENTITY not in ['policies','actions','schedules','health-rules',
                     'detection-rules','businesstransactions','backends',
                     'healthrule-violations','snapshots','allothertraffic',
-                    'applications','dashboards']:
+                    'applications','dashboards','nodes']:
     optParser.error("incorrect entity "+ENTITY)
     exit()
 
@@ -175,6 +177,7 @@ elif COMMAND.lower() == "get":
                 'get_detection-rules':get_detection_rules,
                 'get_businesstransactions':get_business_transactions,
                 'get_backends':get_backends,
+                'get_nodes':get_nodes,
                 'get_healthrule-violations':get_healthrule_violations,
                 'get_snapshots':get_snapshots
           }
@@ -183,7 +186,7 @@ elif COMMAND.lower() == "get":
     print COMMAND + " " + ENTITY + " " + application + "..."
     appID = getID(application)
     if appID > 0:
-      if ENTITY in ['policies','actions','schedules','health-rules','detection-rules','businesstransactions','backends']:
+      if ENTITY in ['policies','actions','schedules','health-rules','detection-rules','businesstransactions','backends','nodes']:
         functions["get_"+ENTITY](appID,selectors,outputFormat=options.outFormat)
       elif ENTITY in ['healthrule-violations','snapshots','allothertraffic']:
         if options.since is None:
