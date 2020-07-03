@@ -35,7 +35,7 @@ def fetch_snapshots(app_ID,minutesBeforeNow,selectors=None,serverURL=None,userNa
         if selectors: params.update(selectors)
 
         for retry in range(1,4):
-            if 'DEBUG' in locals(): print ("Fetching snapshots for App " + str(app_ID) + "params "+str(params)+"...")
+            if 'DEBUG' in locals(): print ("Fetching snapshots for App " + str(app_ID) + ", params "+str(params)+"...")
             if serverURL and userName and password:
                 response = fetch_RESTfulPath(restfulPath,params=params,serverURL=serverURL,userName=userName,password=password)
             else:

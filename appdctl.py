@@ -8,7 +8,7 @@ from appdconfig import get_current_context_serverURL, get_current_context_userna
 from applications import get_applications, getID, get_application_list, get_applications_from_stream
 from dashboards import get_dashboards, get_dashboards_from_stream
 from transactiondetection import get_detection_rules, get_detection_rules_from_stream
-from businesstransactions import get_business_transactions, get_business_transactions_from_stream
+from businesstransactions import get_business_transactions, get_business_transactions_from_stream, get_business_transaction_ID
 from backends import get_backends, get_backends_from_stream
 from healthrules import get_health_rules, get_health_rules_from_stream
 from policies import get_policies, get_policies_legacy, get_policies_from_stream
@@ -134,9 +134,10 @@ elif COMMAND.lower() == "get":
       exit()
 
   ENTITY = args[1]
-  if ENTITY not in ['policies','schedules','actions','health-rules','healthrule-violations',
-                    'detection-rules','businesstransactions','applications','snapshots','backends',
-                    'dashboards']:
+  if ENTITY not in ['policies','actions','schedules','health-rules',
+                    'detection-rules','businesstransactions','backends',
+                    'healthrule-violations','snapshots','allothertraffic',
+                    'applications','dashboards']:
     optParser.error("incorrect entity "+ENTITY)
     exit()
 
@@ -184,7 +185,7 @@ elif COMMAND.lower() == "get":
     if appID > 0:
       if ENTITY in ['policies','actions','schedules','health-rules','detection-rules','businesstransactions','backends']:
         functions["get_"+ENTITY](appID,selectors,outputFormat=options.outFormat)
-      elif ENTITY in ['healthrule-violations','snapshots']:
+      elif ENTITY in ['healthrule-violations','snapshots','allothertraffic']:
         if options.since is None:
           optParser.error("No duration was specified. (use --since=0 for all events)")
           exit()
@@ -194,6 +195,13 @@ elif COMMAND.lower() == "get":
         if minutes == 0:
           optParser.error("Specified duration not correctly formatted. (use --since=<days>d<hours>h<minutes>m format)")
           exit()
+        if ENTITY == "allothertraffic":
+          AllOtherTraffic_ID = get_business_transaction_ID(appID,"_APPDYNAMICS_DEFAULT_TX_")
+          if AllOtherTraffic_ID == 0:
+            print "All Other Traffic transaction not found in application "+str(appID)
+            exit()
+          selectors.update({"business-transaction-ids": ''+str(AllOtherTraffic_ID)+''})
+          ENTITY="snapshots"
         functions["get_"+ENTITY](appID,minutes,selectors,outputFormat=options.outFormat)
     else:
       print "WARN: Application " + application + " does not exist."
