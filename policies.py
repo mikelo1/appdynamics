@@ -285,30 +285,36 @@ def get_policies(app_ID,selectors=None,outputFormat=None,serverURL=None,userName
     if serverURL == "dummyserver":
         build_test_policies(app_ID)
     elif serverURL and userName and password:
-        if fetch_policies(app_ID,selectors=selectors,serverURL=serverURL,userName=userName,password=password) == 0:
+        number = fetch_policies(app_ID,selectors=selectors,serverURL=serverURL,userName=userName,password=password)
+        if number == 0:
             print "get_policies: Failed to retrieve policies for application " + str(app_ID)
             return None
     else:
-        if fetch_policies(app_ID,selectors=selectors,token=token) == 0:
+        number =fetch_policies(app_ID,selectors=selectors,token=token)
+        if number == 0:
             print "get_policies: Failed to retrieve policies for application " + str(app_ID)
             return None
+    if 'DEBUG' in locals(): print "get_policies: [INFO] Loaded",number,"policies"
     if outputFormat and outputFormat == "JSON":
         generate_policies_JSON(app_ID)
-    else:
+    elif not outputFormat or outputFormat == "CSV":
         generate_policies_CSV(app_ID)
 
 def get_policies_legacy(app_ID,selectors=None,outputFormat=None,serverURL=None,userName=None,password=None,token=None,fileName=None):
     if serverURL and userName and password:
-        if fetch_policies_legacy(app_ID,selectors=selectors,serverURL=serverURL,userName=userName,password=password) == 0:
+        number = fetch_policies_legacy(app_ID,selectors=selectors,serverURL=serverURL,userName=userName,password=password)
+        if number == 0:
             print "get_policies: Failed to retrieve policies for application " + str(app_ID)
             return None
     else:
-        if fetch_policies_legacy(app_ID,selectors=selectors,token=token) == 0:
+        number = fetch_policies_legacy(app_ID,selectors=selectors,token=token)
+        if number == 0:
             print "get_policies: Failed to retrieve policies for application " + str(app_ID)
             return None
+    if 'DEBUG' in locals(): print "get_policies: [INFO] Loaded",number,"policies"
     if outputFormat and outputFormat == "JSON":
         generate_policies_JSON(app_ID,fileName=fileName)
-    else:
+    elif not outputFormat or outputFormat == "CSV":
         generate_policies_CSV(app_ID,fileName=fileName)
 
 def get_policies_matching_action(app_ID,name):

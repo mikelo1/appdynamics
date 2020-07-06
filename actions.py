@@ -239,28 +239,34 @@ def get_actions(app_ID,selectors=None,outputFormat=None,serverURL=None,userName=
     if serverURL and serverURL == "dummyserver":
         build_test_actions(app_ID)
     elif serverURL and userName and password:
-        if fetch_actions(app_ID,selectors=selectors,serverURL=serverURL,userName=userName,password=password) == 0:
+        number = fetch_actions(app_ID,selectors=selectors,serverURL=serverURL,userName=userName,password=password)
+        if number == 0:
             print "get_actions: Failed to retrieve actions for application " + str(app_ID)
             return None
     else:
-        if fetch_actions(app_ID,selectors=selectors,token=token) == 0:
+        number = fetch_actions(app_ID,selectors=selectors,token=token)
+        if number == 0:
             print "get_actions: Failed to retrieve actions for application " + str(app_ID)
             return None
+    if 'DEBUG' in locals(): print "get_actions: [INFO] Loaded",number,"actions"
     if outputFormat and outputFormat == "JSON":
         generate_actions_JSON(app_ID)
-    else:
+    elif not outputFormat or outputFormat == "CSV":
         generate_actions_CSV(app_ID)
 
 def get_actions_legacy(app_ID,selectors=None,outputFormat=None,serverURL=None,userName=None,password=None,token=None,fileName=None):
     if serverURL and userName and password:
-        if fetch_actions_legacy(app_ID,selectors=selectors,serverURL=serverURL,userName=userName,password=password) == 0:
+        number = fetch_actions_legacy(app_ID,selectors=selectors,serverURL=serverURL,userName=userName,password=password)
+        if number == 0:
             print "get_actions: Failed to retrieve actions for application " + str(app_ID)
             return None    
     else:
-        if fetch_actions_legacy(app_ID,selectors=selectors,token=token) == 0:
+        number = fetch_actions_legacy(app_ID,selectors=selectors,token=token)
+        if number == 0:
             print "get_actions: Failed to retrieve actions for application " + str(app_ID)
             return None
+    if 'DEBUG' in locals(): print "get_actions: [INFO] Loaded",number,"actions"
     if outputFormat and outputFormat == "JSON":
         generate_actions_JSON(app_ID,fileName=fileName)
-    else:
+    elif not outputFormat or outputFormat == "CSV":
         generate_actions_CSV(app_ID,fileName=fileName)

@@ -135,14 +135,38 @@ def get_nodes_from_stream(streamdata,outputFormat=None,outFilename=None):
 
 def get_nodes(app_ID,selectors=None,outputFormat=None,serverURL=None,userName=None,password=None,token=None):
     if serverURL and userName and password:
-        if fetch_nodes(app_ID,selectors=selectors,serverURL=serverURL,userName=userName,password=password) == 0:
+        number = fetch_nodes(app_ID,selectors=selectors,serverURL=serverURL,userName=userName,password=password)
+        if number == 0:
             print "get_allothertraffic: Failed to retrieve nodes for application " + str(app_ID)
             return None
     else:
-        if fetch_nodes(app_ID,selectors=selectors,token=token) == 0:
+        number = fetch_nodes(app_ID,selectors=selectors,token=token)
+        if number == 0:
             print "get_allothertraffic: Failed to retrieve nodes for application " + str(app_ID)
             return None
+    if 'DEBUG' in locals(): print "get_nodes: [INFO] Loaded",number,"nodes"
     if outputFormat and outputFormat == "JSON":
         generate_nodes_JSON(app_ID)
-    else:
+    elif not outputFormat or outputFormat == "CSV":
         generate_nodes_CSV(app_ID)
+
+
+### TODO: Export app and machine agent status by Rest Api
+# Date:   02-12-2020 07:20 AM
+# Hi There
+# 
+# This is what i did, in 3 steps, you can use an automation tool, or just create a script that iterates through the apps,nodes and output it to a CSV.
+#
+# 1. Query Applications API to get the Application Names & IDs
+# https://<controller details>/controller/rest/applications?output=JSON
+#
+# 2. Query REST API to get Node Id's per application(Will output App Agent & Machine agent), example will get metrics for last 60 minutes
+# https://<controller details>/controller/rest/applications/<Application Name>/nodes?output=JSON&time-range-type=BEFORE_NOW&duration-in-mins=60
+#
+# 3. Use the IDs to query another API to output the availability you see in the UI
+# POST
+# https://<controller details>/controller/restui/v1/nodes/list/health/ids
+# Body of Request(Please replace start_time & end_time with the epoch times you require)
+# {"requestFilter":[<comma seperated list of node id's>],"resultColumns":["LAST_APP_SERVER_RESTART_TIME","VM_RUNTIME_VERSION","MACHINE_AGENT_STATUS","APP_AGENT_VERSION","APP_AGENT_STATUS","HEALTH"],"offset":0,"limit":-1,"searchFilters":[],"columnSorts":[],"timeRangeStart":<start_time>,"timeRangeEnd":<end_time>}
+#
+# This will output the availability that you see in the UI, for the time period you selected

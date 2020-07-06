@@ -132,16 +132,19 @@ def get_business_transactions(app_ID,selectors=None,outputFormat=None,serverURL=
     if serverURL and serverURL == "dummyserver":
         build_test_policies(app_ID)
     elif serverURL and userName and password:
-        if fetch_business_transactions(app_ID,selectors=selectors,serverURL=serverURL,userName=userName,password=password) == 0:
+        number = fetch_business_transactions(app_ID,selectors=selectors,serverURL=serverURL,userName=userName,password=password)
+        if number == 0:
             print "get_business_transactions: Failed to retrieve business transactions for application " + str(app_ID)
             return None
     else:
-        if fetch_business_transactions(app_ID,selectors=selectors,token=token) == 0:
+        number = fetch_business_transactions(app_ID,selectors=selectors,token=token)
+        if number == 0:
             print "get_business_transactions: Failed to retrieve business transactions for application " + str(app_ID)
             return None
+    if 'DEBUG' in locals(): print "get_business_transactions: [INFO] Loaded",number,"business transactions"
     if outputFormat and outputFormat == "JSON":
         generate_business_transactions_JSON(app_ID)
-    else:
+    elif not outputFormat or outputFormat == "CSV":
         generate_business_transactions_CSV(app_ID)
 
 def get_business_transaction_ID(appID,transactionName):

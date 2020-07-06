@@ -124,14 +124,17 @@ def get_backends(app_ID,selectors=None,outputFormat=None,serverURL=None,userName
     if serverURL and serverURL == "dummyserver":
         build_test_policies(app_ID)
     elif serverURL and userName and password:
-        if fetch_backends(app_ID,selectors=selectors,serverURL=serverURL,userName=userName,password=password) == 0:
+        number = fetch_backends(app_ID,selectors=selectors,serverURL=serverURL,userName=userName,password=password)
+        if number == 0:
             print "get_backends: Failed to retrieve backends for application " + str(app_ID)
             return None
     else:
-        if fetch_backends(app_ID,selectors=selectors,token=token) == 0:
+        number = fetch_backends(app_ID,selectors=selectors,token=token)
+        if number == 0:
             print "get_backends: Failed to retrieve backends for application " + str(app_ID)
             return None
+    if 'DEBUG' in locals(): print "get_backends: [INFO] Loaded",number,"backends"
     if outputFormat and outputFormat == "JSON":
         generate_backends_JSON(app_ID)
-    else:
+    elif not outputFormat or outputFormat == "CSV":
         generate_backends_CSV(app_ID)

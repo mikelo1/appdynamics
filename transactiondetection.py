@@ -290,16 +290,19 @@ def get_detection_rules(app_ID,selectors=None,outputFormat=None,serverURL=None,u
     if serverURL and serverURL == "dummyserver":
         build_test_transactiondetections(app_ID)
     elif serverURL and userName and password:
-        if fetch_transactiondetection(app_ID,selectors=selectors,serverURL=serverURL,userName=userName,password=password) == 0:
+        number = fetch_transactiondetection(app_ID,selectors=selectors,serverURL=serverURL,userName=userName,password=password)
+        if number == 0:
             print "get_detection_rules: Failed to retrieve transaction detection rules for application " + str(app_ID)
             return None
     else:
-        if fetch_transactiondetection(app_ID,selectors=selectors,token=token) == 0:
+        number = fetch_transactiondetection(app_ID,selectors=selectors,token=token)
+        if number == 0:
             print "get_detection_rules: Failed to retrieve transaction detection rules for application " + str(app_ID)
             return None
+    if 'DEBUG' in locals(): print "get_detection_rules: [INFO] Loaded",number,"transaction detection rules"
     if outputFormat and outputFormat == "JSON":
         generate_transactiondetection_JSON(app_ID)
-    else:
+    elif not outputFormat or outputFormat == "CSV":
         generate_transactiondetection_CSV(app_ID)
 
 def get_transactiondetections_matching_URL(URL):

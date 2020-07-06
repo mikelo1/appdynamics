@@ -306,16 +306,19 @@ def get_schedules(app_ID,selectors=None,outputFormat=None,serverURL=None,userNam
     if serverURL and serverURL == "dummyserver":
         build_test_schedules(app_ID)
     elif serverURL and userName and password:
-        if fetch_schedules(app_ID,selectors=selectors,serverURL=serverURL,userName=userName,password=password) == 0:
+        number = fetch_schedules(app_ID,selectors=selectors,serverURL=serverURL,userName=userName,password=password)
+        if number == 0:
             print "get_schedules: Failed to retrieve schedules for application " + str(app_ID)
             return None
     else:
-        if fetch_schedules(app_ID,selectors=selectors,token=token) == 0:
+        number = fetch_schedules(app_ID,selectors=selectors,token=token)
+        if number == 0:
             print "get_schedules: Failed to retrieve schedules for application " + str(app_ID)
             return None
+    if 'DEBUG' in locals(): print "get_schedules: [INFO] Loaded",number,"schedules"
     if outputFormat and outputFormat == "JSON":
         generate_schedules_JSON(app_ID)
-    else:
+    elif not outputFormat or outputFormat == "CSV":
         generate_schedules_CSV(app_ID)
 
 def patch_schedules(app_ID,source,serverURL=None,userName=None,password=None,token=None):

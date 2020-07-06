@@ -141,14 +141,17 @@ def get_dashboards_from_stream(streamdata,outputFormat=None,outFilename=None):
 
 def get_dashboards(outputFormat=None,serverURL=None,userName=None,password=None,token=None):
     if serverURL and userName and password:
-        if fetch_dashboards(serverURL=serverURL,userName=userName,password=password) == 0:
+        number = fetch_dashboards(serverURL=serverURL,userName=userName,password=password)
+        if number == 0:
             print "get_dashboards: Failed to retrieve policies for application " + str(app_ID)
             return None
     else:
-        if fetch_dashboards(token=token) == 0:
+        number = fetch_dashboards(token=token)
+        if number == 0:
             print "get_dashboards: Failed to retrieve policies for application " + str(app_ID)
             return None
+    if 'DEBUG' in locals(): print "get_dashboards: [INFO] Loaded",number,"dashboards"
     if outputFormat and outputFormat == "JSON":
         generate_dashboards_JSON()
-    else:
+    elif not outputFormat or outputFormat == "CSV":
         generate_dashboards_CSV()

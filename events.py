@@ -88,7 +88,7 @@ def generate_events_CSV(app_ID,events=None,fileName=None):
         csvfile = sys.stdout
 
     # create the csv writer object
-    fieldnames = ['PolicyName', 'EntityName', 'Severity', 'Status', 'Start_Time', 'End_Time', 'Application']
+    fieldnames = ['PolicyName', 'EntityName', 'Severity', 'Status', 'Start_Time', 'End_Time', 'Application', 'Description']
     filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
     filewriter.writeheader()
 
@@ -126,6 +126,10 @@ def generate_events_CSV(app_ID,events=None,fileName=None):
         else:
             EntityName = ""
 
+        desc_pos = policyviolation['description'].find("All of the following conditions were found to be violating")
+        Description = policyviolation['description'][desc_pos+58:] if desc_pos > 0 else policyviolation['description']
+        Description = Description.replace("<br>","\n")
+
         #appName = str(app_ID)
         appName = getName(app_ID)
 
@@ -136,7 +140,8 @@ def generate_events_CSV(app_ID,events=None,fileName=None):
                                 'Status': Status,
                                 'Start_Time': Start_Time,
                                 'End_Time': End_Time,
-                                'Application': appName})
+                                'Application': appName,
+                                'Description': Description})
         except:
             print ("Could not write to the output.")
             if fileName is not None: csvfile.close()
