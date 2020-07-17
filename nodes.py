@@ -2,7 +2,9 @@
 import json
 import csv
 import sys
-from appdRESTfulAPI import fetch_RESTfulPath
+from appdRESTfulAPI import fetch_RESTfulPath, create_RESTful_JSON
+from datetime import datetime, timedelta
+import time
 
 nodeDict = dict()
 
@@ -151,22 +153,31 @@ def get_nodes(app_ID,selectors=None,outputFormat=None,serverURL=None,userName=No
         generate_nodes_CSV(app_ID)
 
 
-### TODO: Export app and machine agent status by Rest Api
-# Date:   02-12-2020 07:20 AM
-# Hi There
-# 
-# This is what i did, in 3 steps, you can use an automation tool, or just create a script that iterates through the apps,nodes and output it to a CSV.
-#
-# 1. Query Applications API to get the Application Names & IDs
-# https://<controller details>/controller/rest/applications?output=JSON
-#
-# 2. Query REST API to get Node Id's per application(Will output App Agent & Machine agent), example will get metrics for last 60 minutes
-# https://<controller details>/controller/rest/applications/<Application Name>/nodes?output=JSON&time-range-type=BEFORE_NOW&duration-in-mins=60
-#
-# 3. Use the IDs to query another API to output the availability you see in the UI
-# POST
-# https://<controller details>/controller/restui/v1/nodes/list/health/ids
-# Body of Request(Please replace start_time & end_time with the epoch times you require)
-# {"requestFilter":[<comma seperated list of node id's>],"resultColumns":["LAST_APP_SERVER_RESTART_TIME","VM_RUNTIME_VERSION","MACHINE_AGENT_STATUS","APP_AGENT_VERSION","APP_AGENT_STATUS","HEALTH"],"offset":0,"limit":-1,"searchFilters":[],"columnSorts":[],"timeRangeStart":<start_time>,"timeRangeEnd":<end_time>}
-#
-# This will output the availability that you see in the UI, for the time period you selected
+###
+ # Export app and machine agent status by Rest API
+ # @source https://community.appdynamics.com/t5/Controller-SaaS-On-Premise/Export-app-and-machine-agent-status-by-Rest-Api/m-p/38378#M1983
+ # @param app_ID the ID number of the nodes to fetch
+ # @return the number of fetched nodes. Zero if no node was found.
+###
+def get_node_availability(app_ID):
+    if str(app_ID) in nodeDict:
+        nodeList = []
+        for node in nodeDict[str(app_ID)]: nodeList.append(node['id'])
+        end_time   = datetime.today()-timedelta(minutes=5)
+        start_time = end_time-timedelta(minutes=60)
+        start_epoch= long(time.mktime(start_time.timetuple())*1000)
+        end_epoch  = long(time.mktime(end_time.timetuple())*1000)
+        # Retrieve app and machine agent status by Rest API
+        # POST /controller/restui/v1/nodes/list/health/ids
+        # BODY {"requestFilter":[<comma seperated list of node id's>],"resultColumns":["LAST_APP_SERVER_RESTART_TIME","VM_RUNTIME_VERSION","MACHINE_AGENT_STATUS","APP_AGENT_VERSION","APP_AGENT_STATUS","HEALTH"],"offset":0,"limit":-1,"searchFilters":[],"columnSorts":[],"timeRangeStart":<start_time>,"timeRangeEnd":<end_time>}
+        restfulPath= "/controller/restui/v1/nodes/list/health/ids"
+        params     = {"requestFilter":nodeList,"offset":0,"limit":-1,"searchFilters":[],"columnSorts":[],
+                      "resultColumns":["APP_AGENT_STATUS","HEALTH"],
+                      "timeRangeStart":start_epoch,"timeRangeEnd":end_epoch}
+        response = create_RESTful_JSON(restfulPath,JSONdata=params)
+        if response is not None:
+            availabilities = json.loads(response)
+            for i in range(0, len(nodeList), 1):
+                nodeName   = availabilities['data'][i]['nodeName']
+                percentage = availabilities['data'][i]['healthMetricStats']['appServerAgentAvailability']['percentage']
+                print "Node name:",nodeName,"Percentage:",percentage

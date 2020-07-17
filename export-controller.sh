@@ -34,7 +34,9 @@ HOST=`grep $ENVIRONMENT -A8 $CRED_FILE | grep url | awk -F: '{print $3}' | sed '
 GREEN='\033[0;32m'
 NC='\033[0m' # No Color
 
-if [ ! -d $ENVIRONMENT ]; then mkdir $ENVIRONMENT; fi
+
+
+#if [ ! -d $ENVIRONMENT ]; then mkdir $ENVIRONMENT; fi
 
 # https://docs.appdynamics.com/display/PRO45/API+Clients#APIClients-using-the-access-token
 # https://docs.appdynamics.com/display/PRO45/API+Clients
@@ -45,8 +47,27 @@ echo_appd_access_token() {
 			"https://${HOST}/controller/api/oauth/access_token" | grep -o "\"access_token\": \"[^\"]*\"," | awk -F\" '{print $4}'
 }
 
+echo_appd_applications() {
+	curl -s -H "Authorization:Bearer $ACCESS_TOKEN" "https://${HOST}/controller/rest/applications?output=JSON"
+}
+
+echo_appd_unavailable_agents() {
+	if [ -z $ACCESS_TOKEN -a -z $APP_LIST ]; then exit; fi
+	end_time=`date +%s000`
+	start_time=`expr $end_time - 3600000`
+	nodeIDs="3108604,3108611,3108637,3193950"
+	curl -sL -X POST -H "Authorization:Bearer $ACCESS_TOKEN" -H "Content-Type: application/json" -H "Accept: application/json" \
+				--data '{"requestFilter": ['"$nodeIDs"'], "timeRangeStart": '"$start_time"', "timeRangeEnd": '"$end_time"', "searchFilters": [], "columnSorts": [], "limit": -1, "offset": 0, "resultColumns": ["LAST_APP_SERVER_RESTART_TIME", "VM_RUNTIME_VERSION", "MACHINE_AGENT_STATUS", "APP_AGENT_VERSION", "APP_AGENT_STATUS", "HEALTH"]}' \
+				"https://${HOST}/controller/restui/v1/nodes/list/health/ids"
+}
+
+
 ACCESS_TOKEN=$(echo_appd_access_token)
 if [ -z $ACCESS_TOKEN ]; then echo "Something went wrong with the access token. Exiting..." ; exit; fi
+APP_LIST=$(echo_appd_applications)
+if [ -z $APP_LIST ]; then echo "Something went wrong with the access token. Exiting..." ; exit; fi
+
+#echo_appd_unavailable_agents
 
 echo -ne "AppDynamics Controller version: "
 curl -s -H "Authorization:Bearer $ACCESS_TOKEN" "https://${HOST}/controller/rest/configuration?name=schema.version&output=JSON" | grep value | awk '{print $2}' | sed -e 's/"//g'

@@ -101,6 +101,50 @@ def fetch_RESTfulPath(RESTfulPath,params=None,serverURL=None,userName=None,passw
 
     return response.content
 
+
+###
+ # Update data from a controller. Either provide an username/password or let it get an access token automatically.
+ # @param RESTfulPath RESTful path to upload data
+ # @param JSONdata the data to be updated in JSON format
+ # @param serverURL Full hostname of the Appdynamics controller. i.e.: https://demo1.appdynamics.com:443
+ # @param userName Full username, including account. i.e.: myuser@customer1
+ # @param password password for the specified user and host. i.e.: mypassword
+ # @return True if the update was successful. False if no schedule was updated.
+###
+def create_RESTful_JSON(RESTfulPath,JSONdata,serverURL=None,userName=None,password=None):
+    if 'DEBUG' in locals(): print ("Creating RESTful path " + RESTfulPath + " with provided JSON data...")
+    if serverURL is None: serverURL = get_current_context_serverURL()
+    if userName and password:
+        try:
+            response = requests.post(serverURL + RESTfulPath,
+                                    headers={"Content-Type": "application/json","Accept": "application/json"},
+                                    auth=(userName, password), data=json.dumps(JSONdata))
+        except requests.exceptions.InvalidURL:
+            print ("Invalid URL: " + serverURL + RESTfulPath + ". Do you have the right controller hostname and RESTful path?")
+            return None
+    else:
+        token = get_access_token()
+        if token is None: return None
+        try:
+            response = requests.post(serverURL + RESTfulPath,
+                                    headers={"Content-Type": "application/json", "Accept": "application/json", "Authorization": "Bearer "+token},
+                                    data=json.dumps(JSONdata))
+        except requests.exceptions.InvalidURL:
+            print ("Invalid URL: " + serverURL + RESTfulPath + ". Do you have the right controller hostname and RESTful path?")
+            return None
+
+    if response.status_code != 200:
+        print "Something went wrong on HTTP request. Status:", response.status_code
+        if 'DEBUG' in locals():
+            print "   header:", response.headers
+            print response.content
+            #print "Writing content to file: response.txt"
+            #file1 = open("response.txt","w")
+            #file1.write(response.content)
+            #file1.close()
+        return None
+    return response.content
+
 ###
  # Update data from a controller. Either provide an username/password or let it get an access token automatically.
  # @param RESTfulPath RESTful path to upload data
@@ -200,3 +244,20 @@ def timerange_to_params(time_range_type,duration=None,startEpoch=None,endEpoch=N
         print ("Unknown time range or missing arguments.")
         return None
     return params
+
+###
+ # Translates XML format entity names to JSON format entity names.
+ # @param entityType naming of the entity in the XML file format
+ # @return naming of the entity in the JSON file format. Null if provided entity name could not be interpreted.
+###
+def to_JSONentityName(XMLentityType):
+    switcher = {
+        "APPLICATION_COMPONENT": "TIER",
+        "APPLICATION_COMPONENT_NODE": "NODE",
+        "JMX_INSTANCE_NAME": "JMX_OBJECT",
+        "INFO_POINT": "INFORMATION_POINT",
+        "MACHINE_INSTANCE": "SERVER",
+        "BACKEND": "DATABASES",
+        "SERVICE_END_POINT": "SERVICE_ENDPOINTS"
+    }
+    return switcher.get(XMLentityType, XMLentityType)

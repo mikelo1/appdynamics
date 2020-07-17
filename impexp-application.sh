@@ -75,7 +75,7 @@ run_ImpExp() {
       curl -s -X GET --user "${USER}:${PASS}" -o ${FILEPATH}/${ENTITY}.json \
                       https://$HOST/controller/alerting/rest/v1/applications/$APP_ID/$ENTITY
       if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; else echo "OK"; fi
-      ENTITY_LIST=$(grep -o "\"id\":[0-9]*" ${FILEPATH}/${ENTITY}.json | awk -F: '{ print $2}')
+      ENTITY_LIST=$(grep -o "\"id\":[0-9]*" ${FILEPATH}/${ENTITY}.json | awk -F: '{print $2}')
       if [ ! -z "$ENTITY_LIST" ] && [ ! -d ${FILEPATH}/${ENTITY} ]; then mkdir -p ${FILEPATH}/${ENTITY}; fi
       for ELEMENT in $ENTITY_LIST; do
         echo -ne "$OPERATION $ENTITY $ELEMENT for application $APP_NAME($APP_ID)... "
@@ -85,18 +85,18 @@ run_ImpExp() {
       done
     elif [ $OPERATION == "create" ]; then
       if [ ! -f ${FILEPATH}/${ENTITY}.json ]; then echo "missing data file ${ENTITY}.json"; continue; fi
-      ENTITY_LIST=$(grep -o "\"id\":[0-9]*" ${FILEPATH}/${ENTITY}.json | awk -F: '{ print $2}')
+      ENTITY_LIST=$(grep -o "\"id\":[0-9]*" ${FILEPATH}/${ENTITY}.json | awk -F: '{print $2}')
       for ELEMENT in $ENTITY_LIST; do
         if [ ! -f ${FILEPATH}/${ENTITY}/${ELEMENT}.json ]; then echo "missing data file ${ENTITY}/${ELEMENT}.json"; continue; fi
         echo -ne "$OPERATION $ENTITY $ELEMENT for application $APP_NAME($APP_ID)... "
         curl -sL -w "%{http_code}" -X POST --user "${USER}:${PASS}" \
-                      -H "Content-Type: application/json" -F file=@${FILEPATH}/${ENTITY}/${ELEMENT}.json \
-                      https://$HOST/controller/alerting/rest/v1/applications/$APP_ID/$ENTITY/$ELEMENT
+                      -H "Content-Type: application/json" --data=@${FILEPATH}/${ENTITY}/${ELEMENT}.json \
+                      https://$HOST/controller/alerting/rest/v1/applications/$APP_ID/$ENTITY
         if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; else echo .; fi
       done
     elif [ $OPERATION == "update" ];  then
       if [ ! -f ${FILEPATH}/${ENTITY}.json ]; then echo "missing data file ${ENTITY}.json"; continue; fi
-      ENTITY_LIST=$(grep -o "\"id\":[0-9]*" ${FILEPATH}/${ENTITY}.json | awk -F: '{ print $2}')
+      ENTITY_LIST=$(grep -o "\"id\":[0-9]*" ${FILEPATH}/${ENTITY}.json | awk -F: '{print $2}')
       for ELEMENT in $ENTITY_LIST; do
         if [ ! -f ${FILEPATH}/${ENTITY}/${ELEMENT}.json ]; then echo "missing data file ${ENTITY}/${ELEMENT}.json"; continue; fi
         echo -ne "$OPERATION $ENTITY $ELEMENT for application $APP_NAME($APP_ID)... "
@@ -107,7 +107,7 @@ run_ImpExp() {
       done
     fi
   done
-  for FILE in transactiondetection-auto transactiondetection-custom; do
+  for FILE in transactiondetection-auto transactiondetection-custom transactiondetection-exclude; do
     ENTITY=`echo $FILE | awk -F[.-] '{print $1}'`
     TYPE=`echo $FILE | awk -F[.-] '{print $2}'`
     echo -ne "$OPERATION $ENTITY for application $APP_NAME($APP_ID)... "
@@ -229,4 +229,4 @@ PASS=`grep $ENVIRONMENT -A6 $CRED_FILE | grep password | awk -F: '{print $2}' | 
 HOST=`grep $ENVIRONMENT -A6 $CRED_FILE | grep url | awk -F: '{print $3}' | sed 's/\///g'`
 #env_name=`echo $ENVIRONMENT | awk -F"." '{print $3}' | tr '[:lower:]' '[:upper:]'`
 
-run_ImpExp $HOST ${USER}@${ACCOUNT} $PASS $APPLICATION $ENVIRONMENT/$APPLICATION $OPERATION
+run_ImpExp_legacy $HOST ${USER}@${ACCOUNT} $PASS $APPLICATION $ENVIRONMENT/$APPLICATION $OPERATION

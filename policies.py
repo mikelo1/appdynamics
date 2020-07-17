@@ -24,18 +24,6 @@ class Policy:
         return "({0},{1},{2},{3},{4},{5})".format(self.id,self.name,self.events,self.entities,self.actions,self.appID)
 
 
-def to_entityName(entityType):
-    switcher = {
-        "APPLICATION_COMPONENT": "TIER",
-        "APPLICATION_COMPONENT_NODE": "NODE",
-        "JMX_INSTANCE_NAME": "JMX_OBJECT",
-        "INFO_POINT": "INFORMATION_POINT",
-        "MACHINE_INSTANCE": "SERVER",
-        "BACKEND": "DATABASES",
-        "SERVICE_END_POINT": "SERVICE_ENDPOINTS"
-    }
-    return switcher.get(entityType, entityType)
-
 def build_test_policies(app_ID):
     policies1=json.loads('[{"id":1854,"name":"POLICY_SANDBOX","enabled":true,"executeActionsInBatch":true,"frequency":null,"actions":[{"actionName":"gogs@acme.com","actionType":"EMAIL","notes":""}],"events":{"healthRuleEvents":null,"otherEvents":[],"anomalyEvents":["ANOMALY_OPEN_CRITICAL"],"customEvents":[]},"selectedEntities":{"selectedEntityType":"ANY_ENTITY"}]')
     policies2=json.loads('[{"id":1855,"name":"POLICY_SANDBOX","enabled":true,"executeActionsInBatch":true,"frequency":null,"actions":[{"actionName":"gogs@acme.com","actionType":"EMAIL","notes":""}],"events":{"healthRuleEvents":null,"otherEvents":[],"anomalyEvents":["ANOMALY_OPEN_CRITICAL"],"customEvents":[]},"selectedEntities":{"selectedEntityType":"ANY_ENTITY"}]')
@@ -270,11 +258,10 @@ def generate_policies_JSON(app_ID,policies=None,fileName=None):
 ###### FROM HERE PUBLIC FUNCTIONS ######
 
 def get_policies_from_stream(streamdata,outputFormat=None,outFilename=None):
-    if 'DEBUG' in locals(): print "Processing file " + inFileName + "..."
     try:
         policies = json.loads(streamdata)
     except:
-        if 'DEBUG' in locals(): print ("Could not process JSON file " + inFileName)
+        if 'DEBUG' in locals(): print ("Could not process JSON content.")
         return 0
     if outputFormat and outputFormat == "JSON":
         generate_policies_JSON(app_ID=0,policies=policies,fileName=outFilename)
