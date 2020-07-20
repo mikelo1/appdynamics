@@ -7,7 +7,7 @@ from appdRESTfulAPI import get_access_token
 from appdconfig import get_current_context_serverURL, get_current_context_username
 from applications import get_applications, getID, get_application_list, get_applications_from_stream
 from dashboards import get_dashboards, get_dashboards_from_stream
-from nodes import get_nodes, get_nodes_from_stream
+from nodes import get_nodes, get_nodes_from_stream, update_nodes
 from transactiondetection import get_detection_rules, get_detection_rules_from_stream
 from businesstransactions import get_business_transactions, get_business_transactions_from_stream, get_business_transaction_ID
 from backends import get_backends, get_backends_from_stream
@@ -75,6 +75,9 @@ if len(args) < 1:
 
 COMMAND = args[0]
 
+#######################################
+############ LOGIN COMMAND ############
+#######################################
 if COMMAND.lower() == "login":
   if len(args) < 1:
       optParser.error("incorrect number of arguments")
@@ -100,7 +103,9 @@ if COMMAND.lower() == "login":
   if token is not None:
     print "Login successful. "
 
-
+#######################################
+############# GET COMMAND #############
+#######################################
 elif COMMAND.lower() == "get":
   if options.filename:
     if options.filename == "-":
@@ -148,7 +153,7 @@ elif COMMAND.lower() == "get":
   token=get_access_token(server,username)
   if token is None: exit()
 
-  # make the application list, if applies
+  # create the application list, if applies
   if ENTITY == "applications":
     get_applications(outputFormat=options.outFormat,includeNodes=False)
     exit()
@@ -164,7 +169,7 @@ elif COMMAND.lower() == "get":
   else: # if options.allApplications:
     applicationList = get_application_list()
 
-  # make the filters list, if applies
+  # create the filters list, if applies
   selectors = {}
   if options.selector:
     for selector in options.selector.split(','):
@@ -210,10 +215,45 @@ elif COMMAND.lower() == "get":
       print "WARN: Application " + application + " does not exist."
   if 'application' not in locals(): print "No application was selected."
 
+#######################################
+########### UPDATE COMMAND ############
+#######################################
+elif COMMAND.lower() == "update":
+  if len(args) < 2:
+      optParser.error("incorrect number of arguments")
+      exit()
+
+  ENTITY = args[1]
+  if ENTITY not in ['nodes']:
+    optParser.error("incorrect entity "+ENTITY)
+    exit()
+
+  if not options.applications and not options.allApplications:
+      optParser.error("Missing application (use -A for all applications)")
+      exit()
+  elif options.applications:
+    applicationList = options.applications.split(',')
+    if len(applicationList) > 1: get_application_list()
+  else: # if options.allApplications:
+    applicationList = get_application_list()
+  #if not options.patchJSON:
+  #  optParser.error("Missing patch JSON.")
+  #  exit()
+
+  for application in applicationList:
+    print COMMAND + " " + ENTITY + " " + application + "..."
+    appID = getID(application)
+    if appID > 0:
+      if ENTITY == "nodes":
+        update_nodes(app_ID=appID)
+    else:
+      print "WARN: Application " + application + " does not exist."
+  if 'application' not in locals(): print "No application was selected."
 
 
-
-
+#######################################
+############ PATCH COMMAND ############
+#######################################
 elif COMMAND.lower() == "patch":
   if len(args) < 2:
       optParser.error("incorrect number of arguments")
@@ -223,14 +263,6 @@ elif COMMAND.lower() == "patch":
   if ENTITY not in ['policies','schedules']:
     optParser.error("incorrect entity "+ENTITY)
     exit()
-
- # patch_schedules("dummyserver",app_ID=0,source=options.patchJSON)
- # exit()
-
-  server = get_current_context_serverURL()
-  username = get_current_context_username()
-  token=get_access_token(server,username)
-  if token is None: exit()
 
   if not options.applications and not options.allApplications:
       optParser.error("Missing application (use -A for all applications)")
@@ -249,7 +281,7 @@ elif COMMAND.lower() == "patch":
     appID = getID(application)
     if appID > 0:
       if ENTITY == "schedules":
-        patch_schedules(server,app_ID=appID,source=options.patchJSON,token=token)
+        patch_schedules(app_ID=appID,source=options.patchJSON)
     else:
       print "WARN: Application " + application + " does not exist."
   if 'application' not in locals(): print "No application was selected."
