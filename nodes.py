@@ -168,7 +168,10 @@ def mark_nodes_as_historical(nodeList):
     restfulPath= "/controller/rest/mark-nodes-historical?application-component-node-ids="+nodeList_str
     if 'DEBUG' in locals(): print "Unavailable node list:",nodeList
     response = create_RESTful_JSON(restfulPath,JSONdata="")
-    return len(response.split("\n"))-2
+    if response is None:
+        return 0
+    else:
+        return len(response.split("\n"))-2
 
 
 ###### FROM HERE PUBLIC FUNCTIONS ######
@@ -213,7 +216,7 @@ def update_nodes(app_ID,selectors=None,outputFormat=None,serverURL=None,userName
     update_availability_nodes(app_ID)
     for node in nodeDict[str(app_ID)]:
         if node['availability'] == 0.0:
-            unavailNodeList.append(nodesHealth['data'][i]['nodeId'])
+            unavailNodeList.append(node['id'])
             if len(unavailNodeList) == 25:
                 disabled = disabled + mark_nodes_as_historical(unavailNodeList)
                 unavailNodeList *= 0

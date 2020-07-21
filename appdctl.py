@@ -40,7 +40,7 @@ def time_to_minutes(string):
 
   return total
 
-usage = "usage: %prog [get|login|patch] [options]"
+usage = "usage: %prog [get|login|update|patch] [options]"
 epilog= "examples: %prog get applications"
 
 optParser = OptionParser(usage=usage, version="%prog 0.1", epilog=epilog)
@@ -145,7 +145,7 @@ elif COMMAND.lower() == "get":
                     'detection-rules','businesstransactions','backends',
                     'healthrule-violations','snapshots','allothertraffic',
                     'applications','dashboards','nodes']:
-    optParser.error("incorrect entity "+ENTITY)
+    optParser.error("incorrect entity \""+ENTITY+"\"")
     exit()
 
   server = get_current_context_serverURL()
@@ -225,7 +225,7 @@ elif COMMAND.lower() == "update":
 
   ENTITY = args[1]
   if ENTITY not in ['nodes']:
-    optParser.error("incorrect entity "+ENTITY)
+    optParser.error("incorrect entity \""+ENTITY+"\"")
     exit()
 
   if not options.applications and not options.allApplications:
@@ -261,7 +261,7 @@ elif COMMAND.lower() == "patch":
 
   ENTITY = args[1]
   if ENTITY not in ['policies','schedules']:
-    optParser.error("incorrect entity "+ENTITY)
+    optParser.error("incorrect entity \""+ENTITY+"\"")
     exit()
 
   if not options.applications and not options.allApplications:
