@@ -89,9 +89,11 @@ def fetch_applications(selectors=None,serverURL=None,userName=None,password=None
     else:
         response = fetch_RESTfulPath(restfulPath,params=params)
 
+    if response is None: return None
+    
     try:
         applications = json.loads(response)
-    except JSONDecodeError:
+    except:
         print ("fetch_application: Could not process JSON content.")
         return None
 
