@@ -1,9 +1,62 @@
 #!/usr/bin/python
 import yaml
+import csv
 from datetime import datetime, timedelta
 import time
 
 AppD_configfile="appdconfig.yaml"
+
+def read_config_yaml():
+    try:
+        stream = open(AppD_configfile)
+    except IOError:
+        create_new_config_yaml()
+
+    with open(AppD_configfile, 'r') as stream:
+        try:
+            return yaml.safe_load(stream)
+        except yaml.YAMLError as exc:
+            print(exc)
+
+def create_new_config_yaml():
+    if 'DEBUG' in locals(): print "Create default YAML file"
+    data = {
+        'Kind': 'Config',
+        'contexts': [ ],
+        'users': [ ],
+        'current-context': ''
+    }
+
+    # Write YAML file
+    with open(AppD_configfile, "w") as outfile:
+        yaml.dump(data, outfile, default_flow_style=False, allow_unicode=True)
+
+def build_test_config_yaml():
+    if 'DEBUG' in locals(): print "Create sample YAML file"
+    data = {
+        'Kind': 'Config',
+        'contexts': [ {
+            'context': {
+                'server': 'localhost:8090',
+                'user': 'admin/localhost:8090'
+            },
+            'name': 'localhost:8090/admin' 
+        } ],
+        'users': [ {
+            'name': 'admin/localhost:8090',
+            'user': { 
+                'token': 'abcdef',
+                'expire': '2099-12-31 23:59:59.9999999' }
+        } ],
+        'current-context': 'localhost:8090/admin'
+    }
+
+    # Write YAML file
+    with open(AppD_configfile, "w") as outfile:
+        yaml.dump(data, outfile, default_flow_style=False, allow_unicode=True)
+
+
+###### FROM HERE PUBLIC FUNCTIONS ######
 
 def get_current_context_serverURL():
     data = read_config_yaml()
@@ -86,51 +139,9 @@ def create_or_select_user(serverURL,API_Client):
         with open(AppD_configfile, "w") as outfile:
             yaml.dump(data, outfile, default_flow_style=False, allow_unicode=True)
 
-def read_config_yaml():
-    try:
-        stream = open(AppD_configfile)
-    except IOError:
-        create_new_config_yaml()
-
-    with open(AppD_configfile, 'r') as stream:
-        try:
-            return yaml.safe_load(stream)
-        except yaml.YAMLError as exc:
-            print(exc)
-
-def create_new_config_yaml():
-    if 'DEBUG' in locals(): print "Create default YAML file"
-    data = {
-        'Kind': 'Config',
-        'contexts': [ ],
-        'users': [ ],
-        'current-context': ''
-    }
-
-    # Write YAML file
-    with open(AppD_configfile, "w") as outfile:
-        yaml.dump(data, outfile, default_flow_style=False, allow_unicode=True)
-
-def build_test_config_yaml():
-    if 'DEBUG' in locals(): print "Create sample YAML file"
-    data = {
-        'Kind': 'Config',
-        'contexts': [ {
-            'context': {
-                'server': 'localhost:8090',
-                'user': 'admin/localhost:8090'
-            },
-            'name': 'localhost:8090/admin' 
-        } ],
-        'users': [ {
-            'name': 'admin/localhost:8090',
-            'user': { 
-                'token': 'abcdef',
-                'expire': '2099-12-31 23:59:59.9999999' }
-        } ],
-        'current-context': 'localhost:8090/admin'
-    }
-
-    # Write YAML file
-    with open(AppD_configfile, "w") as outfile:
-        yaml.dump(data, outfile, default_flow_style=False, allow_unicode=True)
+def get_password(basicAuthFile,API_Client):
+    with open(basicAuthFile, mode='r') as csv_file:
+        auth_dict = csv.DictReader(csv_file,fieldnames=['password','apiClient'])
+        for credential in auth_dict:
+            if credential['apiClient'] == API_Client:
+                return credential['password']

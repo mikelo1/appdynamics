@@ -48,6 +48,12 @@ optParser.add_option("-o", "--output", action="store", dest="outFormat",
                   help="Output format. One of: json|csv")
 optParser.add_option("-f", "--filename", action="store", dest="filename",
                   help="Filename, directory, or URL to files identifying the resource to get from a server.")
+optParser.add_option("--controller-url", action="store", dest="controllerURL",
+                  help="URL of the controller")
+optParser.add_option("--api-client", action="store", dest="apiClient",
+                  help="API client username")
+optParser.add_option("--basic-auth-file", action="store", dest="basicAuthFile",
+                  help="Basic authentication file")
 optParser.add_option("-p", "--patch", action="store", dest="patchJSON",
                   help="The patch to be applied to the resource JSON file")
 groupQuery = OptionGroup(optParser, "Query range options")
@@ -72,6 +78,7 @@ optParser.add_option_group(groupQuery)
 
 if len(args) < 1:
     optParser.error("incorrect number of arguments")
+    exit()
 
 COMMAND = args[0]
 
@@ -79,27 +86,30 @@ COMMAND = args[0]
 ############ LOGIN COMMAND ############
 #######################################
 if COMMAND.lower() == "login":
-  if len(args) < 1:
-      optParser.error("incorrect number of arguments")
+  if options.controllerURL and options.apiClient:
+    server = options.controllerURL
+    username = options.apiClient
+  else:
+    server = None
+    current_server = get_current_context_serverURL()
+    if current_server is None: current_server = "https://localhost:8090"
+    server = raw_input("AppDynamics Controller server [" + current_server + "]: ")
+    if len(server) == 0: server = current_server
+    if not server.startswith("http"):
+      print "Missing HTTP protocol in the URL. Please try login again."
       exit()
-  server = None
-  current_server = get_current_context_serverURL()
-  if current_server is None: current_server = "https://localhost:8090"
-  server = raw_input("AppDynamics Controller server [" + current_server + "]: ")
-  if len(server) == 0: server = current_server
-  if not server.startswith("http"):
-    print "Missing HTTP protocol in the URL. Please try login again."
-    exit()
+    current_user = get_current_context_username()
+    if current_user is None: current_user = "APIClient@customer1"
+    username = raw_input("API Client username [" + current_user + "]: ")
+    if len(username) == 0: username = current_user
+    if not username.find('@'):
+      print "Missing account in username. Please try login again."
+      exit()
 
-  current_user = get_current_context_username()
-  if current_user is None: current_user = "APIClient@customer1"
-  username = raw_input("API Client username [" + current_user + "]: ")
-  if len(username) == 0: username = current_user
-  if not username.find('@'):
-    print "Missing account in username. Please try login again."
-    exit()
-
-  token=get_access_token(server,username)
+  if options.basicAuthFile:
+    token=get_access_token(server,username,options.basicAuthFile)
+  else:
+    token=get_access_token(server,username)
   if token is not None:
     print "Login successful. "
 

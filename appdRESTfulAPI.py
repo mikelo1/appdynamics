@@ -3,8 +3,9 @@ import requests
 import json
 import xml.etree.ElementTree as ET
 from getpass import getpass
-from appdconfig import get_current_context_serverURL, get_current_context_username, get_current_context_token, create_or_select_user, set_new_token
+from appdconfig import get_current_context_serverURL, get_current_context_username, get_current_context_token, get_password, create_or_select_user, set_new_token
 
+Client_Secret=None
 
 ###
  # Fetch access token from a controller. Provide an username/password.
@@ -33,11 +34,11 @@ def fetch_access_token(serverURL,API_username,API_password):
 ###
  # Get access token from a controller. If no credentials provided it will try to get them from config file.
  # @param serverURL Full hostname of the Appdynamics controller. i.e.: https://demo1.appdynamics.com:443
- # @param userName Full username, including account. i.e.: myuser@customer1
- # @param password password for the specified user and host. i.e.: mypassword
+ # @param API_Client Full username, including account. i.e.: myuser@customer1
+ # @param basicAuthFile name of the source CSV file
  # @return the access token string. Null if there was a problem getting the access token.
 ###
-def get_access_token(serverURL=None,API_Client=None,Client_Secret=None):
+def get_access_token(serverURL=None,API_Client=None,basicAuthFile=None):
     if serverURL is None or API_Client is None:
         # If controller was not provided, try to find in the configuration file
         serverURL  = get_current_context_serverURL()
@@ -49,7 +50,9 @@ def get_access_token(serverURL=None,API_Client=None,Client_Secret=None):
     create_or_select_user(serverURL,API_Client)
     token = get_current_context_token()
     if token is None:
-        if Client_Secret is None:
+        if 'Client_Secret' not in locals() and basicAuthFile:
+             Client_Secret = get_password(basicAuthFile,API_Client)
+        elif 'Client_Secret' not in locals():
             print "Authentication required for " + serverURL
             Client_Secret = getpass(prompt='Password: ')
         token_data = fetch_access_token(serverURL,API_Client,Client_Secret)
