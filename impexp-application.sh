@@ -43,7 +43,7 @@ get_App_ID() {
   APPLICATION=$4
   response=$(curl -si --user "$USER:$PASS" https://${HOST}/controller/rest/applications/${APPLICATION})
   respCode=$(echo $response | grep -o "^HTTP\/......." | awk '{print $2}')
-  if [ "$respCode" == "200" ]; then
+  if [ "$respCode" = "200" ]; then
     echo $response | grep -o "<id>.*</id>" | awk -F"[<>]" '{print $3}'
   fi
 }
@@ -64,14 +64,16 @@ run_ImpExp() {
   APP_NAME=$4
   FILEPATH=$5
 
-  if [ $OPERATION == "retrieve" ] && [ ! -d ${FILEPATH} ]; then mkdir -p ${FILEPATH}; elif [ ! -d ${FILEPATH} ]; then echo "Path does not exist"; return; fi
+  if [ ! -d ${FILEPATH} ]; then
+   if [ "$OPERATION" == "retrieve" ]; then mkdir -p ${FILEPATH}; else echo "Path does not exist"; return; fi
+  fi
 
   APP_ID=$(get_App_ID $HOST $USER $PASS $APP_NAME)
   if [ -z $APP_ID ]; then echo "Could not find the App ID for application $APP_NAME."; exit; fi
 
   for ENTITY in health-rules actions policies schedules; do
     echo -ne "$OPERATION $ENTITY for application $APP_NAME($APP_ID)... "
-    if [ $OPERATION == "retrieve" ]; then
+    if [ $OPERATION = "retrieve" ]; then
       curl -s -X GET --user "${USER}:${PASS}" -o ${FILEPATH}/${ENTITY}.json \
                       https://$HOST/controller/alerting/rest/v1/applications/$APP_ID/$ENTITY
       if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; else echo "OK"; fi
@@ -83,7 +85,7 @@ run_ImpExp() {
                         https://$HOST/controller/alerting/rest/v1/applications/$APP_ID/$ENTITY/$ELEMENT
         if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; else echo "OK"; fi
       done
-    elif [ $OPERATION == "create" ]; then
+    elif [ $OPERATION = "create" ]; then
       if [ ! -f ${FILEPATH}/${ENTITY}.json ]; then echo "missing data file ${ENTITY}.json"; continue; fi
       ENTITY_LIST=$(grep -o "\"id\":[0-9]*" ${FILEPATH}/${ENTITY}.json | awk -F: '{print $2}')
       for ELEMENT in $ENTITY_LIST; do
@@ -94,7 +96,7 @@ run_ImpExp() {
                       https://$HOST/controller/alerting/rest/v1/applications/$APP_ID/$ENTITY
         if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; else echo .; fi
       done
-    elif [ $OPERATION == "update" ];  then
+    elif [ $OPERATION = "update" ];  then
       if [ ! -f ${FILEPATH}/${ENTITY}.json ]; then echo "missing data file ${ENTITY}.json"; continue; fi
       ENTITY_LIST=$(grep -o "\"id\":[0-9]*" ${FILEPATH}/${ENTITY}.json | awk -F: '{print $2}')
       for ELEMENT in $ENTITY_LIST; do
@@ -111,21 +113,21 @@ run_ImpExp() {
     ENTITY=`echo $FILE | awk -F[.-] '{print $1}'`
     TYPE=`echo $FILE | awk -F[.-] '{print $2}'`
     echo -ne "$OPERATION $ENTITY for application $APP_NAME($APP_ID)... "
-    if [ $OPERATION == "retrieve" ]; then
+    if [ $OPERATION = "retrieve" ]; then
         curl -s --user "${USER}:${PASS}" https://$HOST/controller/$ENTITY/$APP_ID/$TYPE -o ${FILEPATH}/${FILE}.xml
         if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; else echo "OK"; fi
-    elif [ $OPERATION == "create" ]; then
+    elif [ $OPERATION = "create" ]; then
         if [ ! -f ${FILEPATH}/${FILE}.xml ]; then echo "missing data file ${FILE}.xml"; continue; fi
         curl -sL -w "%{http_code}" -X POST --user "${USER}:${PASS}" https://$HOST/controller/$ENTITY/$APP_ID/$TYPE -F file=@${FILEPATH}/${FILE}.xml
         if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; else echo .; fi
-    elif [ $OPERATION == "update" ]; then
+    elif [ $OPERATION = "update" ]; then
         if [ ! -f ${FILEPATH}/${FILE}.xml ]; then echo "missing data file ${FILE}.xml"; continue; fi
         curl -sL -w "%{http_code}" -X POST --user "${USER}:${PASS}" "https://$HOST/controller/$ENTITY/$APP_ID/$TYPE?overwrite=true" -F file=@${FILEPATH}/${FILE}.xml
         echo .
         if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; else echo .; fi
     fi
   done
-  if [ $OPERATION == "retrieve" ]; then
+  if [ $OPERATION = "retrieve" ]; then
     for ENTITY in business-transactions backends; do
       echo -ne "$OPERATION $ENTITY for application $APP_NAME($APP_ID)... "
       curl -sG -X GET --user "${USER}:${PASS}" -o ${FILEPATH}/${ENTITY}.json \
@@ -165,21 +167,24 @@ run_ImpExp_legacy() {
   APP_NAME=$4
   FILEPATH=$5
 
-  if [ $OPERATION == "retrieve" ] && [ ! -d ${FILEPATH} ]; then mkdir -p ${FILEPATH}; elif [ ! -d ${FILEPATH} ]; then echo "Path does not exist"; return; fi
+  if [ ! -d ${FILEPATH} ]; then
+   if [ "$OPERATION" == "retrieve" ]; then mkdir -p ${FILEPATH}; else echo "Path does not exist"; return; fi
+  fi
 
   APP_ID=$(get_App_ID $HOST $USER $PASS $APP_NAME)
+
   if [ -z $APP_ID ]; then echo "Could not find the App ID for application $APP_NAME."; exit; fi
 
   for FILE in healthrules.xml actions.json policies.json; do
     ENTITY=`echo $FILE | awk -F. '{print $1}'`
     echo -ne "$OPERATION $ENTITY for application $APP_NAME($APP_ID)... "
-    if [ $OPERATION == "retrieve" ]; then
+    if [ $OPERATION = "retrieve" ]; then
       curl -s -X GET --user "${USER}:${PASS}" https://$HOST/controller/$ENTITY/$APP_ID -o ${FILEPATH}/${FILE}
       if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; else echo "OK"; fi
-    elif [ $OPERATION == "create" ] && [ -f ${FILEPATH}/${FILE} ]; then
+    elif [ $OPERATION = "create" ] && [ -f ${FILEPATH}/${FILE} ]; then
       curl -sL -w "%{http_code}" -X POST --user "${USER}:${PASS}" https://$HOST/controller/$ENTITY/$APP_ID -F file=@${FILEPATH}/${FILE}
       if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; else echo .; fi
-    elif [ $OPERATION == "update" ] && [ ${FILEPATH}/${FILE} ];  then
+    elif [ $OPERATION = "update" ] && [ ${FILEPATH}/${FILE} ];  then
       curl -sL -w "%{http_code}" -X POST --user "${USER}:${PASS}" "https://$HOST/controller/$ENTITY/$APP_ID?overwrite=true" -F file=@${FILEPATH}/${FILE}
       if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; else echo .; fi
     fi
@@ -188,19 +193,19 @@ run_ImpExp_legacy() {
     ENTITY=`echo $FILE | awk -F[.-] '{print $1}'`
     TYPE=`echo $FILE | awk -F[.-] '{print $2}'`
     echo -ne "$OPERATION $ENTITY for application $APP_NAME($APP_ID)... "
-    if [ $OPERATION == "retrieve" ]; then
+    if [ $OPERATION = "retrieve" ]; then
         curl -s --user "${USER}:${PASS}" https://$HOST/controller/$ENTITY/$APP_ID/$TYPE -o ${FILEPATH}/${FILE}.xml
         if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; else echo "OK"; fi
-    elif [ $OPERATION == "create" ]; then
+    elif [ $OPERATION = "create" ]; then
         curl -sL -w "%{http_code}" -X POST --user "${USER}:${PASS}" https://$HOST/controller/$ENTITY/$APP_ID/$TYPE -F file=@${FILEPATH}/${FILE}.xml
         if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; else echo .; fi
-    elif [ $OPERATION == "update" ]; then
+    elif [ $OPERATION = "update" ]; then
         curl -sL -w "%{http_code}" -X POST --user "${USER}:${PASS}" "https://$HOST/controller/$ENTITY/$APP_ID/$TYPE?overwrite=true" -F file=@${FILEPATH}/${FILE}.xml
         echo .
         if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; else echo .; fi
     fi
   done
-  if [ $OPERATION == "retrieve" ]; then
+  if [ $OPERATION = "retrieve" ]; then
     for ENTITY in business-transactions backends; do
       echo -ne "$OPERATION $ENTITY for application $APP_NAME($APP_ID)... "
       curl -sG -X GET --user "${USER}:${PASS}" -o ${FILEPATH}/${ENTITY}.json \

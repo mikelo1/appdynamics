@@ -253,14 +253,18 @@ def timerange_to_params(time_range_type,duration=None,startEpoch=None,endEpoch=N
  # @param entityType naming of the entity in the XML file format
  # @return naming of the entity in the JSON file format. Null if provided entity name could not be interpreted.
 ###
-def to_JSONentityName(XMLentityType):
+def entityXML2JSON(XMLentityType):
     switcher = {
-        "APPLICATION_COMPONENT": "TIER",
-        "APPLICATION_COMPONENT_NODE": "NODE",
+        "BUSINESS_TRANSACTION": "BUSINESS_TRANSACTION_PERFORMANCE",
+        "NODE_HEALTH_TRANSACTION_PERFORMANCE": "TIER_NODE_TRANSACTION_PERFORMANCE",
+        "INFRASTRUCTURE": "TIER_NODE_HARDWARE",
         "JMX_INSTANCE_NAME": "JMX_OBJECT",
-        "INFO_POINT": "INFORMATION_POINT",
-        "MACHINE_INSTANCE": "SERVER",
-        "BACKEND": "DATABASES",
-        "SERVICE_END_POINT": "SERVICE_ENDPOINTS"
+        "INFORMATION_POINT": "INFORMATION_POINTS",
+        "SIM": "SERVERS_IN_APPLICATION",
+        "BACKEND": "BACKENDS",
+        "SERVICEENDPOINTS": "SERVICE_ENDPOINTS",
+        "ERROR": "ERRORS",
+        "OVERALL_APPLICATION": "OVERALL_APPLICATION_PERFORMANCE",
+        "EUMPAGES": "EUM_BROWSER_APPS"
     }
     return switcher.get(XMLentityType, XMLentityType)
