@@ -268,7 +268,7 @@ def generate_transactiondetection_CSV(app_ID,detectionRules=None,fileName=None):
 
 # TODO: generate JSON output format
 def generate_transactiondetection_JSON(app_ID,detectionRules=None,fileName=None):
-    print "generate_health_rules_JSON: feature not implemented yet."
+    print "generate_transactiondetection_JSON: feature not implemented yet."
 
 
 ###### FROM HERE PUBLIC FUNCTIONS ######
