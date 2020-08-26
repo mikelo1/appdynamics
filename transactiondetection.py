@@ -314,3 +314,7 @@ def get_transactiondetections_matching_URL(URL):
             pass
     else:
         return None
+
+# TODO: Get Scopes
+# You can use the following endpoint as a start to query the scope within an application
+# https://<controller url>/controller/restui/transactionConfigProto/getScopes/<applicationid>
