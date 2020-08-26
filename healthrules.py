@@ -1,6 +1,5 @@
 #!/usr/bin/python
 import xml.etree.ElementTree as ET
-import libxml2
 import json
 import csv
 import sys
