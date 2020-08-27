@@ -96,14 +96,14 @@ if COMMAND.lower() == "login":
     server = raw_input("AppDynamics Controller server [" + current_server + "]: ")
     if len(server) == 0: server = current_server
     if not server.startswith("http"):
-      print "Missing HTTP protocol in the URL. Please try login again."
+      sys.stderr.write("Missing HTTP protocol in the URL. Please try login again.\n")
       exit()
     current_user = get_current_context_username()
     if current_user is None: current_user = "APIClient@customer1"
     username = raw_input("API Client username [" + current_user + "]: ")
     if len(username) == 0: username = current_user
     if not username.find('@'):
-      print "Missing account in username. Please try login again."
+      sys.stderr.write("Missing account in username. Please try login again.\n")
       exit()
 
   if options.basicAuthFile:
@@ -123,10 +123,10 @@ elif COMMAND.lower() == "get":
     elif os.path.isfile(options.filename):
       data = open(options.filename).read()
     elif options.filename.startswith("http"):
-      print os.path.basename(__file__),": URL resources not implemented yet."
+      sys.stderr.write(os.path.basename(__file__)+": URL resources not implemented yet.\n")
       exit()
     else:
-      print "Don't know what to do with ",options.filename
+      sys.stderr.write("Don't know what to do with "+options.filename+"\n")
       exit()
 
     functions = { 'load_policies':get_policies_from_stream,
@@ -198,7 +198,7 @@ elif COMMAND.lower() == "get":
           }
 
   for application in applicationList:
-    print COMMAND + " " + ENTITY + " " + application + "..."
+    sys.stderr.write(COMMAND + " " + ENTITY + " " + application + "...\n")
     appID = getID(application)
     if appID > 0:
       if ENTITY in ['policies','actions','schedules','health-rules','detection-rules','businesstransactions','backends','nodes']:
@@ -216,14 +216,14 @@ elif COMMAND.lower() == "get":
         if ENTITY == "allothertraffic":
           AllOtherTraffic_ID = get_business_transaction_ID(appID,"_APPDYNAMICS_DEFAULT_TX_")
           if AllOtherTraffic_ID == 0:
-            print "All Other Traffic transaction not found in application "+str(appID)
+            sys.stderr.write("All Other Traffic transaction not found in application "+str(appID)+"\n")
             exit()
           selectors.update({"business-transaction-ids": ''+str(AllOtherTraffic_ID)+''})
           ENTITY="snapshots"
         functions["get_"+ENTITY](appID,minutes,selectors,outputFormat=options.outFormat)
     else:
-      print "WARN: Application " + application + " does not exist."
-  if 'application' not in locals(): print "No application was selected."
+      sys.stderr.write("WARN: Application " + application + " does not exist.\n")
+  if 'application' not in locals(): sys.stderr.write("No application was selected.\n")
 
 #######################################
 ########### UPDATE COMMAND ############
@@ -251,14 +251,14 @@ elif COMMAND.lower() == "update":
   #  exit()
 
   for application in applicationList:
-    print COMMAND + " " + ENTITY + " " + application + "..."
+    sys.stderr.write(COMMAND + " " + ENTITY + " " + application + "...\n")
     appID = getID(application)
     if appID > 0:
       if ENTITY == "nodes":
         update_nodes(app_ID=appID)
     else:
-      print "WARN: Application " + application + " does not exist."
-  if 'application' not in locals(): print "No application was selected."
+      sys.stderr.write("WARN: Application " + application + " does not exist.\n")
+  if 'application' not in locals(): sys.stderr.write("No application was selected.\n")
 
 
 #######################################
@@ -287,14 +287,14 @@ elif COMMAND.lower() == "patch":
     exit()
 
   for application in applicationList:
-    print COMMAND + " " + ENTITY + " " + application + "..."
+    sys.stderr.write(COMMAND + " " + ENTITY + " " + application + "...\n")
     appID = getID(application)
     if appID > 0:
       if ENTITY == "schedules":
         patch_schedules(app_ID=appID,source=options.patchJSON)
     else:
-      print "WARN: Application " + application + " does not exist."
-  if 'application' not in locals(): print "No application was selected."
+      sys.stderr.write("WARN: Application " + application + " does not exist.\n")
+  if 'application' not in locals(): sys.stderr.write("No application was selected.\n")
 
 
 else:
