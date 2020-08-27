@@ -33,8 +33,8 @@ def fetch_nodes(app_ID,selectors=None,serverURL=None,userName=None,password=None
 
     try:
         nodes = json.loads(response)
-    except JSONDecodeError:
-        print ("fetch_nodes: Could not process JSON content.")
+    except:
+        print ("fetch_nodes: Could not process JSON content for application"+str(app_ID))
         return None
 
     if loadData:
