@@ -228,3 +228,21 @@ def update_nodes(app_ID,selectors=None,outputFormat=None,serverURL=None,userName
         print "update_nodes: [INFO] Updated nodes in application",app_ID,":",updated
     get_nodes(app_ID,outputFormat="none")
     return disabled+updated
+
+def getTierName(app_ID,tierID):
+    if tierID <= 0: return 0
+    if app_ID not in nodeDict:
+        fetch_nodes(app_ID)
+    for node in nodeDict[str(app_ID)]:
+        if node['tierId'] == tierID:
+            return node['tierName']
+    return None
+
+def getNodeName(app_ID,nodeID):
+    if nodeID <= 0: return 0
+    if app_ID not in nodeDict:
+        fetch_nodes(app_ID)
+    for node in nodeDict[str(app_ID)]:
+        if node['id'] == nodeID:
+            return node['name']
+    return None

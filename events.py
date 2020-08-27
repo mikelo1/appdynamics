@@ -4,7 +4,7 @@ import csv
 import sys
 from datetime import datetime, timedelta
 import time
-from applications import getName
+from applications import getAppName
 from appdRESTfulAPI import fetch_RESTfulPath, timerange_to_params
 
 eventDict = dict()
@@ -131,7 +131,7 @@ def generate_events_CSV(app_ID,events=None,fileName=None):
         Description = Description.replace("<br>","\n")
 
         #appName = str(app_ID)
-        appName = getName(app_ID)
+        appName = getAppName(app_ID)
 
         try:
             filewriter.writerow({'PolicyName': PolicyName,

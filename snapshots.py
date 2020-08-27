@@ -5,7 +5,7 @@ import sys
 from datetime import datetime, timedelta
 import time
 from appdRESTfulAPI import fetch_RESTfulPath, timerange_to_params
-from applications import getTierName, getNodeName
+from nodes import getTierName, getNodeName
 
 snapshotDict = dict()
 
@@ -94,8 +94,9 @@ def generate_snapshots_CSV(app_ID,snapshots=None,fileName=None):
     for snapshot in snapshots:
         if 'snapshotExitCalls' not in snapshot: continue
         Time = datetime.fromtimestamp(float(snapshot['localStartTime'])/1000).strftime('%Y-%m-%d %H:%M:%S')
-        Tier = getTierName(snapshot['applicationComponentId'])
-        Node = getNodeName(snapshot['applicationComponentNodeId'])
+        AppID= snapshot['applicationId']
+        Tier = getTierName(AppID,snapshot['applicationComponentId'])
+        Node = getNodeName(AppID,snapshot['applicationComponentNodeId'])
         Summary = snapshot['summary'].encode('ASCII', 'ignore') if 'summary' in snapshot else ""
 
         try:

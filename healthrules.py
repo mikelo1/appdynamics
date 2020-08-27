@@ -3,7 +3,7 @@ import xml.etree.ElementTree as ET
 import json
 import csv
 import sys
-from applications import getName
+from applications import getAppName
 from appdRESTfulAPI import fetch_RESTfulPath, entityXML2JSON
 
 healthruleDict = dict()
