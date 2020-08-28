@@ -8,27 +8,6 @@ from appdRESTfulAPI import fetch_RESTfulPath, entityXML2JSON
 
 healthruleDict = dict()
 
-class HealthRule:
-    name          = ""
-    duration      = 0
-    schedule      = ""
-    enabled       = None
-    entityType    = ""
-    entityCriteria= []
-    critCondition = ""
-    warnCondition = ""
-    def __init__(self,name,duration,schedule,enabled,entityType,entityCriteria,critCondition=None,warnCondition=None):
-        self.name          = name
-        self.duration      = duration
-        self.schedule      = schedule
-        self.enabled       = enabled
-        self.entityType    = entityType
-        self.entityCriteria= entityCriteria
-        self.critCondition = critCondition
-        self.warnCondition = warnCondition
-    def __str__(self):
-        return "({0},{1},{2},{3},{4},{5},{6},{7})".format(self.name,self.duration,self.schedule,self.enabled,self.entityType,self.entityCriteria,self.critCondition,self.warnCondition)
-
 ###
  # Fetch health rules from a controller then add them to the healthrule dictionary. Provide either an username/password or an access token.
  # @param app_ID the ID number of the health rules to fetch
@@ -39,7 +18,7 @@ class HealthRule:
  # @param token API acccess token
  # @return the number of fetched health rules. Zero if no health rule was found.
 ###
-def fetch_health_rules(app_ID,selectors=None,serverURL=None,userName=None,password=None,token=None,loadData=False):
+def fetch_health_rules(app_ID,selectors=None,serverURL=None,userName=None,password=None,token=None):
     if 'DEBUG' in locals(): print ("Fetching Health Rules for application " + str(app_ID) + "...")
 
     # Retrieve a list of Health Rules for an Application
@@ -58,9 +37,6 @@ def fetch_health_rules(app_ID,selectors=None,serverURL=None,userName=None,passwo
     except JSONDecodeError:
         print ("fetch_health_rules: Could not process JSON content.")
         return None
-
-    if loadData:
-        index = 0
 
     # Add loaded events to the event dictionary
     healthruleDict.update({str(app_ID):healthrules})

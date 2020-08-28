@@ -27,8 +27,11 @@ for job in jobs['jobs']:
     command = job['command']
     url     = job['url']
     username= job['apiclient']
-    entities=','.join(map(lambda x: str(x),job['entities']))
+    entities=','.join(map(lambda x: str(x),job['entities'])) if type(job['entities']) is list else job['entities']
     
     subprocess.call("./appdctl.py login --controller-url "+url+" --api-client "+username+" --basic-auth-file "+auth_file, shell=True)
-    subprocess.call("./appdctl.py "+command+" -a "+entities, shell=True)
+    if entities == "ALL":
+        subprocess.call("./appdctl.py "+command+" -A ", shell=True)
+    else:
+        subprocess.call("./appdctl.py "+command+" -a "+entities, shell=True)
     #print command,url,username,entities
