@@ -117,53 +117,6 @@ def fetch_actions_legacy(app_ID,selectors=None,serverURL=None,userName=None,pass
 
     return len(actions)
 
-def parse_action_legacy(action):
-    if action['actionType'] == "EmailAction":
-        CustomProperties = []
-        Emails = [action['toAddress']]
-        ActionPlan = ""
-    elif action['actionType'] == "CustomEmailAction":
-        CustomProperties = []
-        custProp = action['customProperties']
-        for prop in custProp:
-            CustomProperties.append(prop + " : " + custProp[prop].encode('ASCII', 'ignore'))
-        Emails = []
-        emailList = action['to']
-        for email in emailList:
-             Emails.append(email['emailAddress'])
-        ActionPlan = action['customEmailActionPlanName'].encode('ASCII', 'ignore')
-    elif action['actionType'] == "SMSAction":
-        ActionPlan=action['actionType']
-        CustomProperties = []
-        Emails = [action['toNumber']]
-    elif action['actionType'] == "DiagnosticSessionAction":
-        ActionPlan=action['actionType']+": "+str(action['businessTransactionTemplates'])
-        CustomProperties = [ 'Number of snapshots per minute: '+str(action['numberOfSnapshotsPerMinute']), 'Duration in minutes: '+str(action['durationInMinutes'])  ]
-        Emails = []
-    elif action['actionType'] == "ThreadDumpAction":
-        ActionPlan=action['actionType']
-        CustomProperties = [ 'Number of thread dumps: '+str(action['numberOfSamples']), 'Interval: '+str(action['samplingIntervalMills']) ]
-        Emails = []
-    elif action['actionType'] == "RunLocalScriptAction":
-        ActionPlan=action['actionType']
-        CustomProperties = [ 'Script path: '+str(action['scriptPath']), 'timeout(minutes): '+str(action['timeoutMinutes']) ]
-        Emails = []
-    elif action['actionType'] == "HttpRequestAction":
-        ActionPlan=action['httpRequestActionPlanName']
-        CustomProperties = action['customProperties']
-        Emails = []
-    elif action['actionType'] == "CustomAction":
-        ActionPlan=action['actionType']
-        CustomProperties = [ 'Custom action: '+str(['customType'])]
-        Emails = []
-    else:
-        print("parse_action_legacy: [Warn] Unknown action type ",action['actionType'])
-
-    return Action(name=action['name'],actiontype=action['actionType'],recipients=Emails,customProperties=CustomProperties)
-
-def parse_action(action):
-    return Action(name=action['name'],actiontype=action['actionType'],recipients="",customProperties="")
-
 def generate_actions_CSV(app_ID,actions=None,fileName=None):
     if actions is None and str(app_ID) not in actionDict:
         print "generate_actions_CSV: [Warn] Actions for application "+str(app_ID)+" not loaded."
@@ -186,18 +139,54 @@ def generate_actions_CSV(app_ID,actions=None,fileName=None):
 
     for action in actions:
         if 'actionType' in action:
-            actionData = parse_action(action) if 'id' in action else parse_action_legacy(action)
+            if 'id' in action: # New JSON format
+                Properties = ""
+                Recipients = ""
+            else: # Legacy JSON format
+                if action['actionType'] == "EmailAction":
+                    Properties = ""
+                    Recipients = action['toAddress']
+                    ActionPlan = ""
+                elif action['actionType'] == "CustomEmailAction":
+                    Properties = ','.join(map(lambda x: str(x+":"+action['customProperties'][x].encode('ASCII', 'ignore')),action['customProperties'])) if (len(action['customProperties']) > 0) else ""
+                    Recipients = ','.join(map(lambda x: str(x),action['to'])) if (len(action['to']) > 0) else ""
+                    ActionPlan = action['customEmailActionPlanName'].encode('ASCII', 'ignore')
+                elif action['actionType'] == "SMSAction":
+                    Properties = ""
+                    Recipients = action['toNumber']
+                    ActionPlan = action['actionType']
+                elif action['actionType'] == "DiagnosticSessionAction":
+                    Properties = 'Number of snapshots per minute: '+str(action['numberOfSnapshotsPerMinute']), 'Duration in minutes: '+str(action['durationInMinutes'])
+                    Recipients = ""
+                    ActionPlan = action['actionType']+": "+str(action['businessTransactionTemplates'])
+                elif action['actionType'] == "ThreadDumpAction":
+                    Properties = 'Number of thread dumps: '+str(action['numberOfSamples']), 'Interval: '+str(action['samplingIntervalMills'])
+                    Recipients = ""
+                    ActionPlan = action['actionType']
+                elif action['actionType'] == "RunLocalScriptAction":
+                    CustomProperties = 'Script path: '+str(action['scriptPath']), 'timeout(minutes): '+str(action['timeoutMinutes'])
+                    Recipients = ""
+                    ActionPlan = action['actionType']
+                elif action['actionType'] == "HttpRequestAction":
+                    Properties = action['customProperties']
+                    Recipients = ""
+                    ActionPlan = action['httpRequestActionPlanName']
+                elif action['actionType'] == "CustomAction":
+                    Properties = 'Custom action: '+str(['customType'])
+                    Recipients = ""
+                    ActionPlan=action['actionType']
+
             Policies = get_policies_matching_action(app_ID,action['name'])
         else: # Data does not belong to an action
             continue
         try:
-            filewriter.writerow({'ActionName': actionData.name,
-                                'ActionType': actionData.type,
-                                'Recipients': actionData.recipients,
+            filewriter.writerow({'ActionName': action['name'].encode('ASCII', 'ignore'),
+                                'ActionType': action['actionType'],
+                                'Recipients': Recipients,
                                 'Policies': Policies,
-                                'CustomProperties': actionData.properties})
+                                'CustomProperties': Properties})
         except:
-            print ("Could not write action "+action['name']+" to the output.")
+            print ("Could not write action "+action['name'].encode('ASCII', 'ignore')+" to the output.")
             if fileName is not None: csvfile.close()
             exit(1)
     if fileName is not None: csvfile.close()
