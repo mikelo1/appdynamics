@@ -164,7 +164,7 @@ def generate_actions_CSV(app_ID,actions=None,fileName=None):
                     Recipients = ""
                     ActionPlan = action['actionType']
                 elif action['actionType'] == "RunLocalScriptAction":
-                    CustomProperties = 'Script path: '+str(action['scriptPath']), 'timeout(minutes): '+str(action['timeoutMinutes'])
+                    Properties = 'Script path: '+str(action['scriptPath']), 'timeout(minutes): '+str(action['timeoutMinutes'])
                     Recipients = ""
                     ActionPlan = action['actionType']
                 elif action['actionType'] == "HttpRequestAction":

@@ -231,7 +231,7 @@ def update_nodes(app_ID,selectors=None,outputFormat=None,serverURL=None,userName
 
 def getTierName(app_ID,tierID):
     if tierID <= 0: return 0
-    if app_ID not in nodeDict:
+    if str(app_ID) not in nodeDict:
         fetch_nodes(app_ID)
     for node in nodeDict[str(app_ID)]:
         if node['tierId'] == tierID:
@@ -240,7 +240,7 @@ def getTierName(app_ID,tierID):
 
 def getNodeName(app_ID,nodeID):
     if nodeID <= 0: return 0
-    if app_ID not in nodeDict:
+    if str(app_ID) not in nodeDict:
         fetch_nodes(app_ID)
     for node in nodeDict[str(app_ID)]:
         if node['id'] == nodeID:

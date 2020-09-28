@@ -28,6 +28,32 @@ if [ $OPERATION != "retrieve" ] && [ $OPERATION != "create" ] && [ $OPERATION !=
   echo "Syntax: $0 <credentials_yaml_file> <environment> <application> <retrieve|create|update>"; exit
 fi
 
+
+###
+ # Check if an application exists in the controller.
+ # @param HOST Full hostname of the Appdynamics controller. i.e.: demo1.appdynamics.com:443
+ # @param USER Full username, including account. i.e.: myuser@customer1
+ # @param PASS password for the specified user and host. i.e.: mypassword
+ # @param APP_NAME Name of the application. i.e.: myApp
+ # @return true if application name exists. False if the application was not found.
+###
+application_exists() {
+  HOST=$1
+  USER=$2
+  PASS=$3
+  APPLICATION=$4
+    App_List=$(curl -s --user "${USER}:${PASS}" https://${HOST}/controller/rest/applications/ | grep -o "<name>[^<>]*</name>" | awk -F"[<>]" '{print $3}')
+    if [ $? -ne 0 ]; then
+       echo "Something went wrong with the cURL command. Exiting..."
+       return 1
+    fi
+    for app in $App_List; do
+       if [ "$app" = "$APPLICATION" ]; then return 0; fi
+    done
+    return 1
+}
+#if application_exists $APPLICATION ; then echo "Application exists"; else echo "Application does NOT exist."; fi
+
 ###
  # Get the Application ID for an application name.
  # @param HOST Full hostname of the Appdynamics controller. i.e.: demo1.appdynamics.com:443

@@ -1,6 +1,7 @@
 #!/usr/bin/python
 import requests
 import json
+import sys
 from getpass import getpass
 from appdconfig import get_current_context_serverURL, get_current_context_username, get_current_context_token, get_password, create_or_select_user, set_new_token
 
@@ -54,11 +55,11 @@ def get_access_token(serverURL=None,API_Client=None,basicAuthFile=None):
         if Default_basicAuthFile is not None:
             Client_Secret = get_password(Default_basicAuthFile,API_Client)
         else:
-            print "Authentication required for " + serverURL
+            sys.stderr.write("Authentication required for " + serverURL + "\n")
             Client_Secret = getpass(prompt='Password: ')
         token_data = fetch_access_token(serverURL,API_Client,Client_Secret)
         if token_data is None:
-            print "Authentication failed. Did you mistype the password?"
+            sys.stderr.write("Authentication failed. Did you mistype the password?\n") 
             return None
         set_new_token(API_Client,token_data['access_token'],token_data['expires_in'])
         token = token_data['access_token']
