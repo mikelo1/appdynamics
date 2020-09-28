@@ -263,7 +263,7 @@ def getID(appName):
 
 def getAppName(appID):
     if appID <= 0: return 0
-    if appID in applicationDict:
+    if str(appID) in applicationDict:
         return applicationDict[appID]['name']
     # Request for provided application, although is not in the loaded application list
     return fetch_application(appID)
