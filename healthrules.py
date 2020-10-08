@@ -450,18 +450,26 @@ def generate_health_rules_CSV(app_ID,healthrules=None,fileName=None):
             else: Affects=""
         else: Affects=""
 
-        if healthrule['evalCriterias']['criticalCriteria']['conditionExpression']:
-            CritCondition = healthrule['evalCriterias']['criticalCriteria']['conditionExpression']
-        elif healthrule['evalCriterias']['criticalCriteria']['conditions'][0]['evalDetail']['evalDetailType'] == "METRIC_EXPRESSION":
-            CritCondition = healthrule['evalCriterias']['criticalCriteria']['conditions'][0]['evalDetail']['metricExpression']
-        elif healthrule['evalCriterias']['criticalCriteria']['conditions'][0]['evalDetail']['evalDetailType'] == "SINGLE_METRIC":
-            evalDetail = healthrule['evalCriterias']['criticalCriteria']['conditions'][0]['evalDetail']
-            if evalDetail['metricEvalDetail']['metricEvalDetailType']=="BASELINE_TYPE":
-                metricEvalDetail = evalDetail['metricEvalDetail']
-                CritCondition = evalDetail['metricPath']+" is "+metricEvalDetail['baselineCondition']+" "+metricEvalDetail['baselineName']+" by "+str(metricEvalDetail['compareValue'])+" "+metricEvalDetail['baselineUnit']
-            elif evalDetail['metricEvalDetail']['metricEvalDetailType']=="SPECIFIC_TYPE":
-                CritCondition = evalDetail['metricPath']+" is "+metricEvalDetail['baselineCondition']+" "+str(metricEvalDetail['compareValue'])
-            else: CritCondition = ""
+        if 'criticalCriteria' in healthrule['evalCriterias'] and healthrule['evalCriterias']['criticalCriteria'] is not None:
+            if 'conditionExpression' in healthrule['evalCriterias']['criticalCriteria']:
+                CritCondition = healthrule['evalCriterias']['criticalCriteria']['conditionExpression']
+            elif healthrule['evalCriterias']['criticalCriteria']['conditions'][0]['evalDetail']['evalDetailType'] == "METRIC_EXPRESSION":
+                CritCondition = healthrule['evalCriterias']['criticalCriteria']['conditions'][0]['evalDetail']['metricExpression']
+            elif healthrule['evalCriterias']['criticalCriteria']['conditions'][0]['evalDetail']['evalDetailType'] == "SINGLE_METRIC":
+                evalDetail = healthrule['evalCriterias']['criticalCriteria']['conditions'][0]['evalDetail']
+                if evalDetail['metricEvalDetail']['metricEvalDetailType']=="BASELINE_TYPE":
+                    CritCondition = evalDetail['metricPath']+" is "+ \
+                                    evalDetail['metricEvalDetail']['baselineCondition']+" "+ \
+                                    evalDetail['metricEvalDetail']['baselineName']+" by "+ \
+                                    str(evalDetail['metricEvalDetail']['compareValue'])+" "+ \
+                                    evalDetail['metricEvalDetail']['baselineUnit']
+                elif evalDetail['metricEvalDetail']['metricEvalDetailType']=="SPECIFIC_TYPE":
+                    CritCondition = evalDetail['metricPath']+" is "+ \
+                                    evalDetail['metricEvalDetail']['baselineCondition']+" "+ \
+                                    str(evalDetail['metricEvalDetail']['compareValue'])
+                else: CritCondition = ""
+            else:
+                CritCondition = ""
         else:
             CritCondition = ""
         

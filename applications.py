@@ -251,20 +251,20 @@ def get_application_list():
         if fetch_applications() == 0: return -1
     appList = []
     for appID in applicationDict:
-        appList.append(applicationDict[appID]['name'])
+        appList.append(applicationDict[str(appID)]['name'])
     return appList
 
 def getID(appName):
     for appID in applicationDict:
         if applicationDict[appID]['name'] == appName:
-            return applicationDict[appID]['id']
+            return applicationDict[str(appID)]['id']
     # Request for provided application, although is not in the loaded application list
     return fetch_application(appName)
 
 def getAppName(appID):
     if appID <= 0: return 0
     if str(appID) in applicationDict:
-        return applicationDict[appID]['name']
+        return applicationDict[str(appID)]['name']
     # Request for provided application, although is not in the loaded application list
     return fetch_application(appID)
 
