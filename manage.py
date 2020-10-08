@@ -1,125 +1,22 @@
-#/bin/bash
+#!/usr/bin/env python
+import os
+import sys
 
-###########################################
-### Read credentials from YAML file     ###
-###########################################
-### Script will read from a YAML file   ###
-### with the following format:          ###
-### ----------------------------------- ###
-### <environment>:                      ###
-###     secret:                         ###
-###         username: <user>@<account>  ###
-###         password: <password>        ###
-###         apiclient: <apiClient_name> ###
-###         apisecret: <client_secret>  ###
-###         url: <base_controller_url>  ###
-###         appID: <application_ID>     ###
-###         appName: <application_name> ###
-###########################################
-
-if [ $# -ne 2 ]; then 
-    echo "Syntax: $0 <credentials_yaml_file> <environment>"
-	exit
-fi
-
-CRED_FILE=$1
-ENVIRONMENT=$2
-
-USER=`grep $ENVIRONMENT -A8 $CRED_FILE | grep username | awk -F: '{print $2}' | sed 's/\s//g'`
-PASS=`grep $ENVIRONMENT -A8 $CRED_FILE | grep password | awk -F: '{print $2}' | sed 's/\s//g'`
-APICLIENT=`grep $ENVIRONMENT -A8 $CRED_FILE | grep apiclient | awk -F: '{print $2}' | sed 's/\s//g'`
-APISECRET=`grep $ENVIRONMENT -A8 $CRED_FILE | grep apisecret | awk -F: '{print $2}' | sed 's/\s//g'`
-HOST=`grep $ENVIRONMENT -A8 $CRED_FILE | grep url | awk -F: '{print $3}' | sed 's/\///g'`
-
-GREEN='\033[0;32m'
-NC='\033[0m' # No Color
-
-
-
-#if [ ! -d $ENVIRONMENT ]; then mkdir $ENVIRONMENT; fi
-
-# https://docs.appdynamics.com/display/PRO45/API+Clients#APIClients-using-the-access-token
-# https://docs.appdynamics.com/display/PRO45/API+Clients
-echo_appd_access_token() {
-	curl -s --user "$APICLIENT:$APISECRET" \
-		    -X POST -H "Content-Type: application/vnd.appd.cntrl+protobuf;v=1" \
-		    -d "grant_type=client_credentials&client_id=$APICLIENT&client_secret=$APISECRET" \
-			"https://${HOST}/controller/api/oauth/access_token" | grep -o "\"access_token\": \"[^\"]*\"," | awk -F\" '{print $4}'
-}
-
-echo_appd_applications() {
-	curl -s -H "Authorization:Bearer $ACCESS_TOKEN" "https://${HOST}/controller/rest/applications?output=JSON"
-}
-
-echo_appd_unavailable_agents() {
-	if [ -z $ACCESS_TOKEN -a -z $APP_LIST ]; then exit; fi
-	end_time=`date +%s000`
-	start_time=`expr $end_time - 3600000`
-	nodeIDs="3108604,3108611,3108637,3193950"
-	curl -sL -X POST -H "Authorization:Bearer $ACCESS_TOKEN" -H "Content-Type: application/json" -H "Accept: application/json" \
-				--data '{"requestFilter": ['"$nodeIDs"'], "timeRangeStart": '"$start_time"', "timeRangeEnd": '"$end_time"', "searchFilters": [], "columnSorts": [], "limit": -1, "offset": 0, "resultColumns": ["LAST_APP_SERVER_RESTART_TIME", "VM_RUNTIME_VERSION", "MACHINE_AGENT_STATUS", "APP_AGENT_VERSION", "APP_AGENT_STATUS", "HEALTH"]}' \
-				"https://${HOST}/controller/restui/v1/nodes/list/health/ids"
-}
-
-
-ACCESS_TOKEN=$(echo_appd_access_token)
-if [ -z $ACCESS_TOKEN ]; then echo "Something went wrong with the access token. Exiting..." ; exit; fi
-APP_LIST=$(echo_appd_applications)
-if [ -z $APP_LIST ]; then echo "Something went wrong with the access token. Exiting..." ; exit; fi
-
-#echo_appd_unavailable_agents
-
-echo -ne "AppDynamics Controller version: "
-curl -s -H "Authorization:Bearer $ACCESS_TOKEN" "https://${HOST}/controller/rest/configuration?name=schema.version&output=JSON" | grep value | awk '{print $2}' | sed -e 's/"//g'
-if [ $? -ne 0 ]; then
-	echo "Something went wrong with the cURL command. Exiting..." ; exit
-fi
-
-#APPLICATION_LIST
-curl -s -H "Authorization:Bearer $ACCESS_TOKEN" "https://${HOST}/controller/rest/applications?output=JSON" -o ${ENVIRONMENT}/applications.json
-if [ $? -ne 0 ]; then
-	echo "Something went wrong with the cURL command. Exiting..." ; exit
-else
-	echo -e "$HOST application list downloaded to file ${GREEN}applications.json${NC}"
-fi
-
-#EMAIL TEMPLATES
-curl -s -H "Authorization:Bearer $ACCESS_TOKEN" https://$HOST/controller/actiontemplate/email -o ${ENVIRONMENT}/emailTemplates.json
-if [ $? -ne 0 ]; then
-	echo "Something went wrong with the cURL command. Exiting..." ; exit
-else
-	echo -e "$HOST controller email templates downloaded to file ${GREEN}emailTemplates.xml${NC}"
-fi
-
-#CONFIGURATION
-curl -s -H "Authorization:Bearer $ACCESS_TOKEN" "https://${HOST}/controller/rest/configuration?output=JSON" -o ${ENVIRONMENT}/config.json
-if [ $? -ne 0 ]; then
-	echo "Something went wrong with the cURL command. Exiting..."; exit
-else
-	echo -e "$HOST controller configuration downloaded to file ${GREEN}config.xml${NC}"
-fi
-
-#DASHBOARD_LIST
-DASHBOARDS_BY_TYPE=`curl -s -H "Authorization:Bearer $ACCESS_TOKEN" \
- "https://${HOST}/controller/restui/dashboards/getAllDashboardsByType/false"`
-if [ $? -ne 0 ]; then
-	echo "Something went wrong with the cURL command. Exiting..."; exit
-else
-	echo $DASHBOARDS_BY_TYPE > ${ENVIRONMENT}/dashboards.json
-	echo -e "Dashboard list from $ENVIRONMENT downloaded to file ${GREEN}dashboards.json${NC}"
-fi
-exit
-#DASHBOARD_EXPORT_ALL
- if [ $? ] && [ DASHBOARDS_BY_TYPE != "Failed to authenticate: invalid access token." ]; then 
-	DASHBOARD_LIST=`echo $DASHBOARDS_BY_TYPE | grep -o "\"id\" : [0-9]*," | sed -e 's/[id:",]//g'`
-	for DASHBOARD_ID in $DASHBOARD_LIST; do
-		curl -s -H "Authorization:Bearer $ACCESS_TOKEN" "https://${HOST}/controller/CustomDashboardImportExportServlet?dashboardId=$DASHBOARD_ID" -o ${ENVIRONMENT}/dashboard-${DASHBOARD_ID}-${HOST}.json
-		if [ $? -ne 0 ]; then
-			echo "Something went wrong with the cURL command. Exiting..."; exit
-		else
-			echo -e "Dashboard ${DASHBOARD_ID} from $ENVIRONMENT downloaded to file ${GREEN}dashboard-${DASHBOARD_ID}-${HOST}.json${NC}"
-		fi
-	done
-else
-	echo $DASHBOARDS_BY_TYPE
-fi
+if __name__ == "__main__":
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "appdweb.settings")
+    try:
+        from django.core.management import execute_from_command_line
+    except ImportError:
+        # The above import may fail for some other reason. Ensure that the
+        # issue is really that Django is missing to avoid masking other
+        # exceptions on Python 2.
+        try:
+            import django
+        except ImportError:
+            raise ImportError(
+                "Couldn't import Django. Are you sure it's installed and "
+                "available on your PYTHONPATH environment variable? Did you "
+                "forget to activate a virtual environment?"
+            )
+        raise
+    execute_from_command_line(sys.argv)
