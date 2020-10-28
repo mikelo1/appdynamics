@@ -3,6 +3,7 @@ import json
 import csv
 import sys
 from appdRESTfulAPI import fetch_RESTfulPath, update_RESTful_JSON
+from applications import getAppName
 
 scheduleDict = dict()
 
@@ -144,7 +145,7 @@ def fetch_schedules(app_ID,selectors=None,serverURL=None,userName=None,password=
  # @param token API acccess token
  # @return True if the update was successful. False if no schedule was updated.
 ###
-def update_schedule(app_ID,sched_ID,serverURL=None,userName=None,password=None,token=None):
+def update_schedule(app_ID,sched_ID):
     for schedule in scheduleDict[str(app_ID)]:
         if schedule['id'] == sched_ID: break
     if schedule['id'] != sched_ID:
@@ -154,57 +155,22 @@ def update_schedule(app_ID,sched_ID,serverURL=None,userName=None,password=None,t
     # Updates an existing schedule with a specified JSON payload
     # PUT <controller_url>/controller/alerting/rest/v1/applications/<application_id>/schedules/{schedule-id}
     restfulPath = "/controller/alerting/rest/v1/applications/" + str(app_ID) + "/schedules/" + str(sched_ID)
-    if serverURL and userName and password:
-        return update_RESTful_JSON(restfulPath,schedule,serverURL=serverURL,userName=userName,password=password)
-    else:
-        return update_RESTful_JSON(restfulPath,schedule)
+    return update_RESTful_JSON(restfulPath,schedule)
 
-def schedules_JSON_to_structure(app_ID=None):
-    for schedule in scheduleList:
-        schedConfigData = schedule.data['scheduleConfiguration']
-        if 'scheduleFrequency' in schedConfigData:
-            if schedConfigData['scheduleFrequency'] == "CUSTOM":
-                scheduleConfiguration = ScheduleConfiguration(frequency=schedConfigData['scheduleFrequency'],
-                                             startCron=schedConfigData['startCron'],
-                                             endCron  =schedConfigData['endCron'] )
-            elif schedConfigData['scheduleFrequency'] == "DAILY":
-                scheduleConfiguration = ScheduleConfiguration(frequency=schedConfigData['scheduleFrequency'],
-                                             startTime=schedConfigData['startTime'],
-                                             endTime  =schedConfigData['endTime'] )
-            elif schedConfigData['scheduleFrequency'] == "WEEKLY":
-                dayList = []
-                for day in schedConfigData['days']:
-                    dayList.append(day)
-                scheduleConfiguration = ScheduleConfiguration(frequency=schedConfigData['scheduleFrequency'],
-                                             startTime=schedConfigData['startTime'],
-                                             endTime  =schedConfigData['endTime'],
-                                             days     =dayList )
-            elif schedConfigData['scheduleFrequency'] == "MONTHLY_SPECIFIC_DAY":
-                scheduleConfiguration = ScheduleConfiguration(frequency=schedConfigData['scheduleFrequency'],
-                                             startTime=schedConfigData['startTime'],
-                                             endTime  =schedConfigData['endTime'],
-                                             occurrenc=schedConfigData['occurrence'],
-                                             day      =schedConfigData['day'] )
-            elif schedConfigData['scheduleFrequency'] == "ONE_TIME" or schedConfigData['scheduleFrequency'] == "MONTHLY_SPECIFIC_DATE":
-                scheduleConfiguration = ScheduleConfiguration(frequency=schedConfigData['scheduleFrequency'],
-                                             startTime=schedConfigData['startTime'],
-                                             endTime  =schedConfigData['endTime'],
-                                             startDate=schedConfigData['startDate'],
-                                             endDate  =schedConfigData['endDate'] )
-            else:
-                print "Unknown schedule frequency:" + schedConfigData['scheduleFrequency']
-        schedule.data = Schedule(schedule['id'],schedule['name'],app_ID,schedule['description'],schedule['timezone'],scheduleConfiguration)
-    if 'DEBUG' in locals():
-        print "Number of schedules:" + str(len(scheduleList))
-        for schedule in scheduleList:
-            print str(schedule)
-
-def generate_schedules_CSV(app_ID,schedules=None,fileName=None):
-    if schedules is None and str(app_ID) not in scheduleDict:
-        print "Schedules for application "+str(app_ID)+" not loaded."
+###
+ # Generate CSV output from schedules data, either from the local dictionary or from streamed data
+ # @param appID_List list of application IDs, in order to obtain schedules from local schedules dictionary
+ # @param schedules data stream containing schedules
+ # @param fileName output file name
+ # @return None
+###
+def generate_schedules_CSV(appID_List=None,schedules=None,fileName=None):
+    if appID_List is None and schedules is None:
         return
-    elif schedules is None and str(app_ID) in scheduleDict:
-        schedules = scheduleDict[str(app_ID)]
+    elif schedules is None:
+        schedules = []
+        for appID in appID_List:
+            schedules = schedules + scheduleDict[str(appID)]
 
     if fileName is not None:
         try:
@@ -216,7 +182,7 @@ def generate_schedules_CSV(app_ID,schedules=None,fileName=None):
         csvfile = sys.stdout
 
     # create the csv writer object
-    fieldnames = ['Name', 'Application', 'Description', 'Timezone', 'Frequency', 'Start', 'End']
+    fieldnames = ['Name', 'Description', 'Timezone', 'Frequency', 'Start', 'End']
     filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
     filewriter.writeheader()
 
@@ -245,7 +211,6 @@ def generate_schedules_CSV(app_ID,schedules=None,fileName=None):
 
         try:
             filewriter.writerow({'Name': schedule['name'],
-                                 'Application': str(app_ID),
                                  'Description': schedule['description'],
                                  'Timezone': schedule['timezone'],
                                  'Frequency': scheduleConfig['scheduleFrequency'] if 'scheduleConfig' in locals() else "",
@@ -257,12 +222,20 @@ def generate_schedules_CSV(app_ID,schedules=None,fileName=None):
             return (-1)
     if fileName is not None: csvfile.close()
 
-def generate_schedules_JSON(app_ID,schedules=None,fileName=None):
-    if schedules is None and str(app_ID) not in scheduleDict:
-        print "Schedules for application "+str(app_ID)+" not loaded."
+###
+ # Generate JSON output from schedules data, either from the local dictionary or from streamed data
+ # @param appID_List list of application IDs, in order to obtain schedules from local schedules dictionary
+ # @param schedules data stream containing schedules
+ # @param fileName output file name
+ # @return None
+###
+def generate_schedules_JSON(appID_List=None,schedules=None,fileName=None):
+    if appID_List is None and schedules is None:
         return
-    elif schedules is None and str(app_ID) in scheduleDict:
-        schedules = scheduleDict[str(app_ID)]
+    elif schedules is None:
+        schedules = []
+        for appID in appID_List:
+            schedules = schedules + scheduleDict[str(appID)]
 
     if fileName is not None:
         try:
@@ -275,15 +248,22 @@ def generate_schedules_JSON(app_ID,schedules=None,fileName=None):
     else:
         print json.dumps(schedules)
 
+
 ###### FROM HERE PUBLIC FUNCTIONS ######
 
 
+###
+ # Display schedules from a JSON stream data.
+ # @param streamdata the stream data in JSON format
+ # @param outputFormat output format. Accepted formats are CSV or JSON.
+ # @param outFilename output file name
+ # @return None
+###
 def get_schedules_from_stream(streamData,outputFormat=None,outFilename=None):
-    if 'DEBUG' in locals(): print "Processing file " + inFileName + "..."
     try:
         schedules = json.loads(streamData)
     except:
-        if 'DEBUG' in locals(): print ("Could not process JSON file " + inFileName)
+        if 'DEBUG' in locals(): print ("Could not process JSON data.")
         return 0
 
     if 'loadData' in locals():
@@ -304,30 +284,36 @@ def get_schedules_from_stream(streamData,outputFormat=None,outFilename=None):
             schedules[index] = scheduleJSON
             index = index + 1
     if outputFormat and outputFormat == "JSON":
-        generate_schedules_JSON(app_ID=0,schedules=schedules,fileName=outFilename)
+        generate_schedules_JSON(schedules=schedules,fileName=outFilename)
     else:
-        generate_schedules_CSV(app_ID=0,schedules=schedules,fileName=outFilename)
+        generate_schedules_CSV(schedules=schedules,fileName=outFilename)
 
-def get_schedules(app_ID,selectors=None,outputFormat=None,serverURL=None,userName=None,password=None,token=None):
-    if serverURL and serverURL == "dummyserver":
-        build_test_schedules(app_ID)
-    elif serverURL and userName and password:
-        number = fetch_schedules(app_ID,selectors=selectors,serverURL=serverURL,userName=userName,password=password)
-        if number == 0:
-            print "get_schedules: Failed to retrieve schedules for application " + str(app_ID)
-            return None
-    else:
-        number = fetch_schedules(app_ID,selectors=selectors,token=token)
-        if number == 0:
-            print "get_schedules: Failed to retrieve schedules for application " + str(app_ID)
-            return None
-    if 'DEBUG' in locals(): print "get_schedules: [INFO] Loaded",number,"schedules"
+###
+ # Display schedules for a list of applications.
+ # @param appID_List list of application IDs to fetch schedules
+ # @param selectors fetch only schedules filtered by specified selectors
+ # @param outputFormat output format. Accepted formats are CSV or JSON.
+ # @return the number of fetched schedules. Zero if no schedule was found.
+###
+def get_schedules(appID_List,selectors=None,outputFormat=None):
+    numSchedules = 0
+    for appID in appID_List:
+        sys.stderr.write("get schedules " + getAppName(appID) + "...\n")
+        numSchedules = numSchedules + fetch_schedules(appID,selectors=selectors)
     if outputFormat and outputFormat == "JSON":
-        generate_schedules_JSON(app_ID)
+        generate_schedules_JSON(appID_List)
     elif not outputFormat or outputFormat == "CSV":
-        generate_schedules_CSV(app_ID)
+        generate_schedules_CSV(appID_List)
+    return numSchedules
 
-def patch_schedules(app_ID,source,serverURL=None,userName=None,password=None,token=None):
+###
+ # Patch schedules for a list of applications, using a schedule data input.
+ # @param appID_List list of application IDs to update schedules
+ # @param source schedule data input in JSON format.
+ # @param selectors update only schedules filtered by specified selectors
+ # @return the number of updated schedules. Zero if no schedule was updated.
+###
+def patch_schedules(appID_List,source,selectors=None):
     # Verify if the source is a file or stream JSON data
     try:
         # Load data from stream
@@ -340,33 +326,27 @@ def patch_schedules(app_ID,source,serverURL=None,userName=None,password=None,tok
             json_file.close()
         except IOError:
             print("Could not process source data.")
-            return None
+            return 0
 
     ### TODO: patch for one specific scheduleID (name|description|scheduleConfiguration)
     if 'name' in changesJSON or 'description' in changesJSON or 'scheduleConfiguration' in changesJSON:
         print "Warn: schedule (name|description|scheduleConfiguration) patching not implemented yet."
 
     if 'timezone' not in changesJSON:
-        print "Nothing to be changed."
-        return
+        print "Only timezone patch is currently supported."
+        return 0
 
-    # Load schedules data for provided application
-    if serverURL == "dummyserver":
-        build_test_schedules(app_ID)
-    elif serverURL and userName and password:
-        if fetch_schedules(app_ID,serverURL=serverURL,userName=userName,password=password,loadData=True) == 0:
-            print "update_schedules: Failed to retrieve schedules for application " + str(app_ID)
-            return None
-    else:
-        if fetch_schedules(app_ID,serverURL=serverURL,token=token,loadData=True) == 0:
-            print "update_schedules: Failed to retrieve schedules for application " + str(app_ID)
-            return None
-
-    for schedule in scheduleDict[str(app_ID)]:
-        # Do the replacement in loaded data
-        schedule.update({"timezone": changesJSON['timezone']})
-        # Update controller data
-        if serverURL != "dummyserver":
-            update_schedule(app_ID,schedule['id'],serverURL,userName,password,token)
-        else:
-            generate_schedules_CSV(app_ID)
+    numSchedules = 0
+    for appID in appID_List:
+        # Reload schedules data for provided application
+        if fetch_schedules(appID,selectors=selectors,loadData=True) == 0:
+            sys.stderr.write("update_schedules: Failed to retrieve schedules for application " + str(appID) + "...\n")
+            continue
+        sys.stderr.write("update schedules " + getAppName(appID) + "...\n")
+        for schedule in scheduleDict[str(appID)]:
+            # Do the replacement in loaded data
+            schedule.update({"timezone": changesJSON['timezone']})
+            # Update controller data
+            if update_schedule(appID,schedule['id']) == True:
+                numSchedules = numSchedules + 1
+    return numSchedules

@@ -3,6 +3,7 @@ import json
 import csv
 import sys
 from appdRESTfulAPI import fetch_RESTfulPath, create_RESTful_JSON
+from applications import getAppName
 from datetime import datetime, timedelta
 import time
 
@@ -31,11 +32,13 @@ def fetch_nodes(app_ID,selectors=None,serverURL=None,userName=None,password=None
     else:
         response = fetch_RESTfulPath(restfulPath,params=params)
 
+    if response is None: return 0
+
     try:
         nodes = json.loads(response)
     except:
         print ("fetch_nodes: Could not process JSON content for application"+str(app_ID))
-        return None
+        return 0
 
     if loadData:
         index = 0
@@ -64,12 +67,20 @@ def fetch_nodes(app_ID,selectors=None,serverURL=None,userName=None,password=None
 
     return len(nodes)
 
-def generate_nodes_CSV(app_ID,nodes=None,fileName=None):
-    if nodes is None and str(app_ID) not in nodeDict:
-        print "Nodes for application "+str(app_ID)+" not loaded."
+###
+ # Generate CSV output from nodes data, either from the local dictionary or from streamed data
+ # @param appID_List list of application IDs, in order to obtain nodes from local nodes dictionary
+ # @param nodes data stream containing nodes
+ # @param fileName output file name
+ # @return None
+###
+def generate_nodes_CSV(appID_List=None,nodes=None,fileName=None):
+    if appID_List is None and nodes is None:
         return
-    elif nodes is None and str(app_ID) in nodeDict:
-        nodes = nodeDict[str(app_ID)]
+    elif nodes is None:
+        nodes = []
+        for appID in appID_List:
+            nodes = nodes + nodeDict[str(appID)]
 
     if fileName is not None:
         try:
@@ -80,7 +91,7 @@ def generate_nodes_CSV(app_ID,nodes=None,fileName=None):
     else:
         csvfile = sys.stdout
 
-    fieldnames = ['Node', 'Tier', 'Application', 'AgentVersion', 'MachineName', 'OSType']
+    fieldnames = ['Node', 'Tier', 'AgentVersion', 'MachineName', 'OSType']
     filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
     filewriter.writeheader()
 
@@ -90,7 +101,6 @@ def generate_nodes_CSV(app_ID,nodes=None,fileName=None):
         try:
             filewriter.writerow({'Node': node['name'],
                                  'Tier': node['tierName'],
-                                 'Application': app_ID,
                                  'AgentVersion': node['appAgentVersion'] if node['agentType']=="APP_AGENT" else node['agentType'],
                                  'MachineName': node['machineName'],
                                  'OSType': node['machineOSType']})
@@ -101,12 +111,20 @@ def generate_nodes_CSV(app_ID,nodes=None,fileName=None):
     if 'DEBUG' in locals(): print "generate_nodes_CSV: [INFO] Displayed number of nodes:" + str(len(nodes))
     if fileName is not None: csvfile.close()
 
-def generate_nodes_JSON(app_ID,nodes=None,fileName=None):
-    if nodes is None and str(app_ID) not in nodeDict:
-        print "Nodes for application "+str(app_ID)+" not loaded."
+###
+ # Generate JSON output from nodes data, either from the local dictionary or from streamed data
+ # @param appID_List list of application IDs, in order to obtain nodes from local nodes dictionary
+ # @param nodes data stream containing nodes
+ # @param fileName output file name
+ # @return None
+###
+def generate_nodes_JSON(appID_List=None,nodes=None,fileName=None):
+    if appID_List is None and nodes is None:
         return
-    elif nodes is None and str(app_ID) in nodeDict:
-        nodes = nodeDict[str(app_ID)]
+    elif nodes is None:
+        nodes = []
+        for appID in appID_List:
+            nodes = nodes + nodeDict[str(appID)]
 
     if fileName is not None:
         try:
@@ -161,7 +179,7 @@ def update_availability_nodes(app_ID):
  # @return the number of marked nodes. Zero if no node was marked.
 ###
 def mark_nodes_as_historical(nodeList):
-    DEBUG=True
+    DEBUG=1
     # Mark Nodes as Historical.Pass one or more identifiers of the node to be marked as historical, up to a maximum of 25 nodes.
     # POST /controller/rest/mark-nodes-historical?application-component-node-ids=value
     nodeList_str = ','.join(map(lambda x: str(x),nodeList))
@@ -176,73 +194,98 @@ def mark_nodes_as_historical(nodeList):
 
 ###### FROM HERE PUBLIC FUNCTIONS ######
 
-
+###
+ # Display nodes from a JSON stream data.
+ # @param streamdata the stream data in JSON format
+ # @param outputFormat output format. Accepted formats are CSV or JSON.
+ # @param outFilename output file name
+ # @return None
+###
 def get_nodes_from_stream(streamdata,outputFormat=None,outFilename=None):
-    if 'DEBUG' in locals(): print "Processing file " + inFileName + "..."
     try:
         nodes = json.loads(streamdata)
     except:
-        if 'DEBUG' in locals(): print ("Could not process JSON file " + inFileName)
+        if 'DEBUG' in locals(): print ("Could not process JSON data.")
         return 0
     if outputFormat and outputFormat == "JSON":
-        generate_nodes_JSON(app_ID=0,nodes=nodes,fileName=outFilename)
+        generate_nodes_JSON(nodes=nodes,fileName=outFilename)
     else:
-        generate_nodes_CSV(app_ID=0,nodes=nodes,fileName=outFilename)
+        generate_nodes_CSV(nodes=nodes,fileName=outFilename)
 
-def get_nodes(app_ID,selectors=None,outputFormat=None,serverURL=None,userName=None,password=None,token=None):
-    if serverURL and userName and password:
-        number = fetch_nodes(app_ID,selectors=selectors,serverURL=serverURL,userName=userName,password=password)
-        if number == 0:
-            print "get_nodes: Failed to retrieve nodes for application " + str(app_ID)
-            return None
-    else:
-        number = fetch_nodes(app_ID,selectors=selectors,token=token)
-        if number == 0:
-            print "get_nodes: Failed to retrieve nodes for application " + str(app_ID)
-            return None
-    if 'DEBUG' in locals(): print "get_nodes: [INFO] Loaded",number,"nodes"
+###
+ # Display nodes for a list of applications.
+ # @param appID_List list of application IDs to fetch nodes
+ # @param selectors fetch only nodes filtered by specified selectors
+ # @param outputFormat output format. Accepted formats are CSV or JSON.
+ # @return the number of fetched nodes. Zero if no node was found.
+###
+def get_nodes(appID_List,selectors=None,outputFormat=None):
+    numNodes = 0
+    for appID in appID_List:
+        sys.stderr.write("get nodes " + getAppName(appID) + "...\n")
+        numNodes = numNodes + fetch_nodes(appID,selectors=selectors)
     if outputFormat and outputFormat == "JSON":
-        generate_nodes_JSON(app_ID)
+        generate_nodes_JSON(appID_List)
     elif not outputFormat or outputFormat == "CSV":
-        generate_nodes_CSV(app_ID)
-    return number
+        generate_nodes_CSV(appID_List)
+    return numNodes
 
-def update_nodes(app_ID,selectors=None,outputFormat=None,serverURL=None,userName=None,password=None,token=None):
-    if str(app_ID) not in nodeDict:
-        if get_nodes(app_ID,outputFormat="none") is None: return
-
+###
+ # Update node status for a list of applications.
+ # @param appID_List list of application IDs to fetch nodes
+ # @param selectors fetch only nodes filtered by specified selectors
+ # @param outputFormat output format. Accepted formats are CSV or JSON.
+ # @return the number of updated nodes. Zero if no node was found.
+###
+def update_nodes(appID_List,selectors=None,outputFormat=None):
     disabled = updated = 0
-    unavailNodeList = []
-    update_availability_nodes(app_ID)
-    for node in nodeDict[str(app_ID)]:
-        if node['availability'] == 0.0:
-            unavailNodeList.append(node['id'])
-            if len(unavailNodeList) == 25:
-                disabled = disabled + mark_nodes_as_historical(unavailNodeList)
-                unavailNodeList *= 0
-    if len(unavailNodeList) > 0:
-        disabled = disabled + mark_nodes_as_historical(unavailNodeList)
-        unavailNodeList *= 0
-    if 'DEBUG' in locals():
-        print "update_nodes: [INFO] Disabled nodes in application",app_ID,":",disabled
-        print "update_nodes: [INFO] Updated nodes in application",app_ID,":",updated
-    get_nodes(app_ID,outputFormat="none")
+    for appID in appID_List:
+        sys.stderr.write("update nodes " + getAppName(appID) + "...\n")
+        if str(appID) not in nodeDict:
+            if fetch_nodes(appID,selectors=selectors) == 0: continue
+        unavailNodeList = []
+        update_availability_nodes(appID)
+        for node in nodeDict[str(appID)]:
+            if node['availability'] == 0.0:
+                unavailNodeList.append(node['id'])
+                if len(unavailNodeList) == 25:
+                    disabled = disabled + mark_nodes_as_historical(unavailNodeList)
+                    unavailNodeList *= 0
+        if len(unavailNodeList) > 0:
+            disabled = disabled + mark_nodes_as_historical(unavailNodeList)
+            unavailNodeList *= 0
+        if 'DEBUG' in locals():
+            print "update_nodes: [INFO] Disabled nodes in application",appID,":",disabled
+            print "update_nodes: [INFO] Updated nodes in application",appID,":",updated
+        fetch_nodes(appID,selectors=selectors)
     return disabled+updated
 
+###
+ # Get the name for a tier ID. Fetch tiers data if not loaded yet.
+ # @param appID the ID of the application
+ # @param tierID the ID of the tier
+ # @return the name of the specified tier ID.
+###
 def getTierName(app_ID,tierID):
     if tierID <= 0: return 0
     if str(app_ID) not in nodeDict:
-        fetch_nodes(app_ID)
+        if fetch_nodes(app_ID) == 0: return ""
     for node in nodeDict[str(app_ID)]:
         if node['tierId'] == tierID:
             return node['tierName']
-    return None
+    return ""
 
+###
+ # Get the name for a node ID. Fetch nodes data if not loaded yet.
+ # @param appID the ID of the application
+ # @param nodeID the ID of the node
+ # @return the name of the specified node ID.
+###
 def getNodeName(app_ID,nodeID):
     if nodeID <= 0: return 0
     if str(app_ID) not in nodeDict:
-        fetch_nodes(app_ID)
+        if fetch_nodes(app_ID) == 0: return ""
     for node in nodeDict[str(app_ID)]:
         if node['id'] == nodeID:
             return node['name']
-    return None
+    return ""

@@ -3,6 +3,7 @@ import json
 import csv
 import sys
 from appdRESTfulAPI import fetch_RESTfulPath
+from applications import getAppName
 
 policyDict = dict()
 
@@ -153,32 +154,32 @@ def parse_policy_JSON_legacy(policy):
     else:
         for entTemplate in entityTemplates:
             if entTemplate['matchCriteriaType'] == "AllEntities":
-                EntityDescription = "ALL "+to_entityName(entTemplate['entityType'])
+                EntityDescription = "ALL "+entTemplate['entityType']
             elif entTemplate['matchCriteriaType'] == "RelatedEntities":
-                EntityDescription = to_entityName(entTemplate['entityType'])+" within the Tiers: "
+                EntityDescription = entTemplate['entityType']+" within the Tiers: "
                 for tier in entTemplate['relatedEntityNames']:
                     EntityDescription = EntityDescription + tier['entityName'] + ", "
             elif entTemplate['matchCriteriaType'] == "SpecificEntities":
-                EntityDescription = "These specific "+ to_entityName(entTemplate['entityType'])+": "
+                EntityDescription = "These specific "+ entTemplate['entityType']+": "
                 for entityName in entTemplate['entityNames']:
                     EntityDescription = EntityDescription + entityName['entityName'] + ", "
             elif entTemplate['matchCriteriaType'] == "CustomEntities":
-                EntityDescription = to_entityName(entTemplate['entityType'])+" matching the following criteria: "
+                EntityDescription = entTemplate['entityType']+" matching the following criteria: "
                 EntityDescription = EntityDescription + " " + entTemplate['stringMatchType'] + " " + entTemplate['stringMatchExpression']
             elif entTemplate['entityType'] == "JMX_INSTANCE_NAME":
                 nodeEntCriteria = entTemplate['nodeEntityMatchCriteria']
                 if nodeEntCriteria['matchCriteriaType'] == "AllEntities":
-                    EntityDescription = "JMX Objects from ALL"+to_entityName(nodeEntCriteria['entityType'])
+                    EntityDescription = "JMX Objects from ALL"+nodeEntCriteria['entityType']
                 elif nodeEntCriteria['matchCriteriaType'] == "RelatedEntities":
-                    EntityDescription = to_entityName(nodeEntCriteria['entityType'])+" within the Tiers: "
+                    EntityDescription = nodeEntCriteria['entityType']+" within the Tiers: "
                     for tier in entTemplate['relatedEntityNames']:
                         EntityDescription = EntityDescription + tier['entityName'] + ", "
                 elif nodeEntCriteria['matchCriteriaType'] == "SpecificEntities":
-                    EntityDescription = "These specific "+ to_entityName(nodeEntCriteria['entityType'])+": "
+                    EntityDescription = "These specific "+ nodeEntCriteria['entityType']+": "
                     for entityName in entTemplate['entityNames']:
                         EntityDescription = EntityDescription + entityName['entityName'] + ", "
                 elif nodeEntCriteria['matchCriteriaType'] == "CustomEntities":
-                    EntityDescription = to_entityName(nodeEntCriteria['entityType'])+" matching the following criteria: "
+                    EntityDescription = nodeEntCriteria['entityType']+" matching the following criteria: "
                     EntityDescription = EntityDescription + " " + nodeEntCriteria['stringMatchType'] + " " + nodeEntCriteria['stringMatchExpression']
             Entities.append(EntityDescription)
 
@@ -192,12 +193,20 @@ def parse_policy_JSON_legacy(policy):
 
     return Policy(id=0,name=policy['name'],events=HealthRules,entities=Entities,actions=Actions)
 
-def generate_policies_CSV(app_ID,policies=None,fileName=None):
-    if policies is None and str(app_ID) not in policyDict:
-        print "Policies for application "+str(app_ID)+" not loaded."
+###
+ # Generate CSV output from policies data, either from the local dictionary or from streamed data
+ # @param appID_List list of application IDs, in order to obtain policies from local policies dictionary
+ # @param policies data stream containing policies
+ # @param fileName output file name
+ # @return None
+###
+def generate_policies_CSV(appID_List=None,policies=None,fileName=None):
+    if appID_List is None and policies is None:
         return
-    elif policies is None and str(app_ID) in policyDict:
-        policies = policyDict[str(app_ID)]
+    elif policies is None:
+        policies = []
+        for appID in appID_List:
+            policies = policies + policyDict[str(appID)]
 
     if fileName is not None:
         try:
@@ -209,7 +218,7 @@ def generate_policies_CSV(app_ID,policies=None,fileName=None):
         csvfile = sys.stdout
 
     # create the csv writer object
-    fieldnames = ['Policy', 'Application', 'Events', 'Entities', 'Actions']
+    fieldnames = ['Policy', 'Events', 'Entities', 'Actions']
     filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
     filewriter.writeheader()
 
@@ -225,7 +234,6 @@ def generate_policies_CSV(app_ID,policies=None,fileName=None):
         
         try:
             filewriter.writerow({'Policy': policyData.name,
-                                 'Application': app_ID,
                                  'Events': str(policyData.events),
                                  'Entities': str(policyData.entities),
                                  'Actions': str(policyData.actions)})
@@ -236,12 +244,20 @@ def generate_policies_CSV(app_ID,policies=None,fileName=None):
     if 'DEBUG' in locals(): print "INFO: Displayed number of policies:" + str(len(policies))
     if fileName is not None: csvfile.close()
 
-def generate_policies_JSON(app_ID,policies=None,fileName=None):
-    if policies is None and str(app_ID) not in policyDict:
-        print "Policies for application "+str(app_ID)+" not loaded."
+###
+ # Generate JSON output from policies data, either from the local dictionary or from streamed data
+ # @param appID_List list of application IDs, in order to obtain policies from local policies dictionary
+ # @param policies data stream containing policies
+ # @param fileName output file name
+ # @return None
+###
+def generate_policies_JSON(appID_List=None,policies=None,fileName=None):
+    if appID_List is None and policies is None:
         return
-    elif policies is None and str(app_ID) in policyDict:
-        policies = policyDict[str(app_ID)]
+    elif policies is None:
+        policies = []
+        for appID in appID_List:
+            policies = policies + policyDict[str(appID)]
 
     if fileName is not None:
         try:
@@ -261,48 +277,41 @@ def get_policies_from_stream(streamdata,outputFormat=None,outFilename=None):
     try:
         policies = json.loads(streamdata)
     except:
-        if 'DEBUG' in locals(): print ("Could not process JSON content.")
+        if 'DEBUG' in locals(): print ("get_policies_from_stream: Could not process JSON content.")
         return 0
     if outputFormat and outputFormat == "JSON":
-        generate_policies_JSON(app_ID=0,policies=policies,fileName=outFilename)
+        generate_policies_JSON(policies=policies,fileName=outFilename)
     else:
-        generate_policies_CSV(app_ID=0,policies=policies,fileName=outFilename)
+        generate_policies_CSV(policies=policies,fileName=outFilename)
 
-def get_policies(app_ID,selectors=None,outputFormat=None,serverURL=None,userName=None,password=None,token=None):
-    if serverURL == "dummyserver":
-        build_test_policies(app_ID)
-    elif serverURL and userName and password:
-        number = fetch_policies(app_ID,selectors=selectors,serverURL=serverURL,userName=userName,password=password)
-        if number == 0:
-            print "get_policies: Failed to retrieve policies for application " + str(app_ID)
-            return None
-    else:
-        number =fetch_policies(app_ID,selectors=selectors,token=token)
-        if number == 0:
-            print "get_policies: Failed to retrieve policies for application " + str(app_ID)
-            return None
-    if 'DEBUG' in locals(): print "get_policies: [INFO] Loaded",number,"policies"
+###
+ # Display actions for a list of applications.
+ # @param appID_List list of application IDs to fetch actions
+ # @param selectors fetch only actions filtered by specified selectors
+ # @param outputFormat output format. Accepted formats are CSV or JSON.
+ # @return the number of fetched actions. Zero if no actions was found.
+###
+def get_policies(appID_List,selectors=None,outputFormat=None):
+    numPolicies = 0
+    for appID in appID_List:
+        sys.stderr.write("get policies " + getAppName(appID) + "...\n")
+        numPolicies = numPolicies + fetch_policies(appID,selectors=selectors)
     if outputFormat and outputFormat == "JSON":
-        generate_policies_JSON(app_ID)
+        generate_policies_JSON(appID_List)
     elif not outputFormat or outputFormat == "CSV":
-        generate_policies_CSV(app_ID)
+        generate_policies_CSV(appID_List)
+    return numPolicies
 
-def get_policies_legacy(app_ID,selectors=None,outputFormat=None,serverURL=None,userName=None,password=None,token=None,fileName=None):
-    if serverURL and userName and password:
-        number = fetch_policies_legacy(app_ID,selectors=selectors,serverURL=serverURL,userName=userName,password=password)
-        if number == 0:
-            print "get_policies: Failed to retrieve policies for application " + str(app_ID)
-            return None
-    else:
-        number = fetch_policies_legacy(app_ID,selectors=selectors,token=token)
-        if number == 0:
-            print "get_policies: Failed to retrieve policies for application " + str(app_ID)
-            return None
-    if 'DEBUG' in locals(): print "get_policies: [INFO] Loaded",number,"policies"
+def get_policies_legacy(appID_List,selectors=None,outputFormat=None):
+    numPolicies = 0
+    for appID in appID_List:
+        sys.stderr.write("get policies " + getAppName(appID) + "...\n")
+        numPolicies = numPolicies + fetch_policies_legacy(appID,selectors=selectors)
     if outputFormat and outputFormat == "JSON":
-        generate_policies_JSON(app_ID,fileName=fileName)
+        generate_policies_JSON(appID_List)
     elif not outputFormat or outputFormat == "CSV":
-        generate_policies_CSV(app_ID,fileName=fileName)
+        generate_policies_CSV(appID_List)
+    return numPolicies
 
 def get_policies_matching_action(app_ID,name):
     MatchList = []

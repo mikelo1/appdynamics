@@ -3,9 +3,10 @@ import requests
 import json
 import sys
 from getpass import getpass
-from appdconfig import get_current_context_serverURL, get_current_context_username, get_current_context_token, get_password, create_or_select_user, set_new_token
+from appdconfig import AppD_Configuration
 
 Default_basicAuthFile=None
+appD_Config = AppD_Configuration()
 
 ###
  # Fetch access token from a controller. Provide an username/password.
@@ -42,14 +43,14 @@ def get_access_token(serverURL=None,API_Client=None,basicAuthFile=None):
     global Default_basicAuthFile
     if serverURL is None or API_Client is None:
         # If controller was not provided, try to find in the configuration file
-        serverURL  = get_current_context_serverURL()
-        API_Client = get_current_context_username()
+        serverURL  = appD_Config.get_current_context_serverURL()
+        API_Client = appD_Config.get_current_context_username()
         if serverURL is None or API_Client is None:
-            print "Cannot get context data. Did you login to any controller machine?"
+            if 'DEBUG' in locals(): print "Cannot get context data. Did you login to any controller machine?"
             return None
 
-    create_or_select_user(serverURL,API_Client)
-    token = get_current_context_token()
+    appD_Config.create_or_select_user(serverURL,API_Client)
+    token = appD_Config.get_current_context_token()
     if token is None:
         if basicAuthFile is not None: Default_basicAuthFile = basicAuthFile
         if Default_basicAuthFile is not None:
@@ -61,7 +62,7 @@ def get_access_token(serverURL=None,API_Client=None,basicAuthFile=None):
         if token_data is None:
             sys.stderr.write("Authentication failed. Did you mistype the password?\n") 
             return None
-        set_new_token(API_Client,token_data['access_token'],token_data['expires_in'])
+        appD_Config.set_new_token(API_Client,token_data['access_token'],token_data['expires_in'])
         token = token_data['access_token']
     return token
 
@@ -76,7 +77,7 @@ def get_access_token(serverURL=None,API_Client=None,basicAuthFile=None):
 ###
 def fetch_RESTfulPath(RESTfulPath,params=None,serverURL=None,userName=None,password=None):
     if 'DEBUG' in locals(): print ("Fetching JSON from RESTful path " + RESTfulPath + "with params " + params + " ...")
-    if serverURL is None: serverURL = get_current_context_serverURL()
+    if serverURL is None: serverURL = appD_Config.get_current_context_serverURL()
     if userName and password:
         try:
             response = requests.get(serverURL + RESTfulPath,
@@ -118,7 +119,7 @@ def fetch_RESTfulPath(RESTfulPath,params=None,serverURL=None,userName=None,passw
 ###
 def create_RESTful_JSON(RESTfulPath,JSONdata,serverURL=None,userName=None,password=None):
     if 'DEBUG' in locals(): print ("Creating RESTful path " + RESTfulPath + " with provided JSON data...")
-    if serverURL is None: serverURL = get_current_context_serverURL()
+    if serverURL is None: serverURL = appD_Config.get_current_context_serverURL()
     if userName and password:
         try:
             response = requests.post(serverURL + RESTfulPath,
@@ -161,7 +162,7 @@ def create_RESTful_JSON(RESTfulPath,JSONdata,serverURL=None,userName=None,passwo
 ###
 def update_RESTful_JSON(RESTfulPath,JSONdata,serverURL=None,userName=None,password=None):
     if 'DEBUG' in locals(): print ("Updating RESTful path " + RESTfulPath + " with provided JSON data...")
-    if serverURL is None: serverURL = get_current_context_serverURL()
+    if serverURL is None: serverURL = appD_Config.get_current_context_serverURL()
     if userName and password:
         try:
             response = requests.put(serverURL + RESTfulPath,
@@ -200,7 +201,7 @@ def update_RESTful_JSON(RESTfulPath,JSONdata,serverURL=None,userName=None,passwo
  # @return the controller release version number. Null if no data was received.
 ###
 def get_controller_version(serverURL=None,userName=None,password=None):
-    if serverURL is None: serverURL = get_current_context_serverURL() 
+    if serverURL is None: serverURL = appD_Config.get_current_context_serverURL() 
     if 'DEBUG' in locals(): print ("Fetching controller version for controller " + serverURL + "...")
     if userName and password:
         try:
@@ -271,3 +272,10 @@ def entityXML2JSON(XMLentityType):
         "EUMPAGES": "EUM_BROWSER_APPS"
     }
     return switcher.get(XMLentityType, XMLentityType)
+
+def get_password(basicAuthFile,API_Client):
+    with open(basicAuthFile, mode='r') as csv_file:
+        auth_dict = csv.DictReader(csv_file,fieldnames=['password','apiClient'])
+        for credential in auth_dict:
+            if credential['apiClient'] == API_Client:
+                return credential['password']

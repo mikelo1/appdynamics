@@ -69,8 +69,12 @@ def fetch_health_rules_legacy(app_ID,selectors=None,serverURL=None,userName=None
 
     return len(healthrules)
 
+###
+ # Translate stream containing healthrules in XML format, to JSON format structure
+ # @param streamdata the stream data in XML format
+ # @return stream data in JSON format.
+###
 def parse_healthrules_XML(streamdata):
-    DEBUG=True
     try:
         root = ET.fromstring(streamdata)
     except:
@@ -109,6 +113,12 @@ def parse_healthrules_XML(streamdata):
 
     return healthrules
 
+###
+ # Translate ElementTree XML object containing affected-entities-match-criteria data to JSON data
+ # @param element the ElementTree XML object
+ # @param entityType the type of the ElementTree object
+ # @return stream data in JSON format.
+###
 def load_affects_from_XML(element,entityType):
     affects = {"affectedEntityType": entityXML2JSON(entityType)}
 
@@ -259,6 +269,12 @@ def load_affects_from_XML(element,entityType):
 
     return affects
 
+###
+ # Translate ElementTree XML object containing critical or warning execution-criteria data to JSON data
+ # @param element the ElementTree XML object
+ # @param entityType the type of the ElementTree object
+ # @return stream data in JSON format.
+###
 def load_evalCriterias_from_XML(element):
     def go_over_condition_tree(element):
         if element.find('type').text == 'leaf':
@@ -354,12 +370,20 @@ def load_evalCriterias_from_XML(element):
     return criteria
 
 
-def generate_health_rules_CSV(app_ID,healthrules=None,fileName=None):
-    if healthrules is None and str(app_ID) not in healthruleDict:
-        print "Health rules for application "+str(app_ID)+" not loaded."
+###
+ # Generate CSV output from health rules data, either from the local dictionary or from streamed data
+ # @param appID_List list of application IDs, in order to obtain health rules from local health rules dictionary
+ # @param healthrules data stream containing health rules
+ # @param fileName output file name
+ # @return None
+###
+def generate_health_rules_CSV(appID_List=None,healthrules=None,fileName=None):
+    if appID_List is None and healthrules is None:
         return
-    elif healthrules is None and str(app_ID) in healthruleDict:
-        healthrules = healthruleDict[str(app_ID)]
+    elif healthrules is None:
+        healthrules = []
+        for appID in appID_List:
+            healthrules = healthrules + healthruleDict[str(appID)]
 
     if fileName is not None:
         try:
@@ -371,7 +395,7 @@ def generate_health_rules_CSV(app_ID,healthrules=None,fileName=None):
         csvfile = sys.stdout
 
     # create the csv writer object
-    fieldnames = ['HealthRule', 'Application', 'Duration', 'Wait_Time', 'Schedule', 'Enabled', 'Affects', 'Critical_Condition']
+    fieldnames = ['HealthRule', 'Duration', 'Wait_Time', 'Schedule', 'Enabled', 'Affects', 'Critical_Condition']
     filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
     filewriter.writeheader()
 
@@ -379,7 +403,9 @@ def generate_health_rules_CSV(app_ID,healthrules=None,fileName=None):
         if 'affectedEntityType' not in healthrule and 'useDataFromLastNMinutes' not in healthrule:
             continue
 
-        if healthrule['affects']['affectedEntityType']=="OVERALL_APPLICATION_PERFORMANCE":
+        if 'affects' not in healthrule:
+            Affects=""
+        elif healthrule['affects']['affectedEntityType']=="OVERALL_APPLICATION_PERFORMANCE":
             Affects="Overall application performance"
         elif healthrule['affects']['affectedEntityType']=="BUSINESS_TRANSACTION_PERFORMANCE":
             if healthrule['affects']['affectedBusinessTransactions']['businessTransactionScope']=="ALL_BUSINESS_TRANSACTIONS":
@@ -450,32 +476,30 @@ def generate_health_rules_CSV(app_ID,healthrules=None,fileName=None):
             else: Affects=""
         else: Affects=""
 
-        if 'criticalCriteria' in healthrule['evalCriterias'] and healthrule['evalCriterias']['criticalCriteria'] is not None:
-            if 'conditionExpression' in healthrule['evalCriterias']['criticalCriteria']:
-                CritCondition = healthrule['evalCriterias']['criticalCriteria']['conditionExpression']
-            elif healthrule['evalCriterias']['criticalCriteria']['conditions'][0]['evalDetail']['evalDetailType'] == "METRIC_EXPRESSION":
-                CritCondition = healthrule['evalCriterias']['criticalCriteria']['conditions'][0]['evalDetail']['metricExpression']
-            elif healthrule['evalCriterias']['criticalCriteria']['conditions'][0]['evalDetail']['evalDetailType'] == "SINGLE_METRIC":
-                evalDetail = healthrule['evalCriterias']['criticalCriteria']['conditions'][0]['evalDetail']
-                if evalDetail['metricEvalDetail']['metricEvalDetailType']=="BASELINE_TYPE":
-                    CritCondition = evalDetail['metricPath']+" is "+ \
-                                    evalDetail['metricEvalDetail']['baselineCondition']+" "+ \
-                                    evalDetail['metricEvalDetail']['baselineName']+" by "+ \
-                                    str(evalDetail['metricEvalDetail']['compareValue'])+" "+ \
-                                    evalDetail['metricEvalDetail']['baselineUnit']
-                elif evalDetail['metricEvalDetail']['metricEvalDetailType']=="SPECIFIC_TYPE":
-                    CritCondition = evalDetail['metricPath']+" is "+ \
-                                    evalDetail['metricEvalDetail']['baselineCondition']+" "+ \
-                                    str(evalDetail['metricEvalDetail']['compareValue'])
-                else: CritCondition = ""
-            else:
-                CritCondition = ""
+        if 'evalCriterias' not in healthrule or 'criticalCriteria' not in healthrule['evalCriterias'] or healthrule['evalCriterias']['criticalCriteria'] is None:
+            CritCondition = ""
+        elif 'conditionExpression' in healthrule['evalCriterias']['criticalCriteria']:
+            CritCondition = healthrule['evalCriterias']['criticalCriteria']['conditionExpression']
+        elif healthrule['evalCriterias']['criticalCriteria']['conditions'][0]['evalDetail']['evalDetailType'] == "METRIC_EXPRESSION":
+            CritCondition = healthrule['evalCriterias']['criticalCriteria']['conditions'][0]['evalDetail']['metricExpression']
+        elif healthrule['evalCriterias']['criticalCriteria']['conditions'][0]['evalDetail']['evalDetailType'] == "SINGLE_METRIC":
+            evalDetail = healthrule['evalCriterias']['criticalCriteria']['conditions'][0]['evalDetail']
+            if evalDetail['metricEvalDetail']['metricEvalDetailType']=="BASELINE_TYPE":
+                CritCondition = evalDetail['metricPath']+" is "+ \
+                                evalDetail['metricEvalDetail']['baselineCondition']+" "+ \
+                                evalDetail['metricEvalDetail']['baselineName']+" by "+ \
+                                str(evalDetail['metricEvalDetail']['compareValue'])+" "+ \
+                                evalDetail['metricEvalDetail']['baselineUnit']
+            elif evalDetail['metricEvalDetail']['metricEvalDetailType']=="SPECIFIC_TYPE":
+                CritCondition = evalDetail['metricPath']+" is "+ \
+                                evalDetail['metricEvalDetail']['baselineCondition']+" "+ \
+                                str(evalDetail['metricEvalDetail']['compareValue'])
+            else: CritCondition = ""
         else:
             CritCondition = ""
         
         try:
             filewriter.writerow({'HealthRule': healthrule['name'],
-                                 'Application': app_ID,
                                  'Duration': healthrule['useDataFromLastNMinutes'] if 'useDataFromLastNMinutes' in healthrule else "",
                                  'Wait_Time': healthrule['useDataFromLastNMinutes'] if 'useDataFromLastNMinutes' in healthrule else "",
                                  'Schedule': healthrule['scheduleName'],
@@ -489,13 +513,21 @@ def generate_health_rules_CSV(app_ID,healthrules=None,fileName=None):
     if 'DEBUG' in locals(): print "INFO: Displayed number of health rules:" + str(len(healthrules))
     if fileName is not None: csvfile.close()
 
-# TODO: generate JSON output format
-def generate_health_rules_JSON(app_ID,healthrules=None,fileName=None):
-    if healthrules is None and str(app_ID) not in healthruleDict:
-        print "Health rules for application "+str(app_ID)+" not loaded."
+
+###
+ # Generate JSON output from health rules data, either from the local dictionary or from streamed data
+ # @param appID_List list of application IDs, in order to obtain health rules from local health rules dictionary
+ # @param healthrules data stream containing health rules
+ # @param fileName output file name
+ # @return None
+###
+def generate_health_rules_JSON(appID_List=None,healthrules=None,fileName=None):
+    if appID_List is None and healthrules is None:
         return
-    elif healthrules is None and str(app_ID) in healthruleDict:
-        healthrules = healthruleDict[str(app_ID)]
+    elif healthrules is None:
+        healthrules = []
+        for appID in appID_List:
+            healthrules = healthrules + healthruleDict[str(appID)]
 
     if fileName is not None:
         try:
@@ -508,39 +540,45 @@ def generate_health_rules_JSON(app_ID,healthrules=None,fileName=None):
     else:
         print json.dumps(healthrules)
 
+
 ###### FROM HERE PUBLIC FUNCTIONS ######
 
 
+###
+ # Display health rules from a stream data in JSON or XML format.
+ # @param streamdata the stream data in JSON or XML format
+ # @param outputFormat output format. Accepted formats are CSV or JSON.
+ # @param outFilename output file name
+ # @return None
+###
 def get_health_rules_from_stream(streamdata,outputFormat=None,outFilename=None):
-    DEBUG = True
     healthrules = parse_healthrules_XML(streamdata)
     if len(healthrules) == 0:
         try:
             healthrules = json.loads(streamdata)
         except ValueError:
-            if 'DEBUG' in locals(): print ("Could not process JSON content.")
+            if 'DEBUG' in locals(): print ("get_health_rules_from_stream: Could not process JSON content.")
             return 0
 
     if outputFormat and outputFormat == "JSON":
-        generate_health_rules_JSON(app_ID=0,healthrules=healthrules,fileName=outFilename)
+        generate_health_rules_JSON(healthrules=healthrules,fileName=outFilename)
     else:
-        generate_health_rules_CSV(app_ID=0,healthrules=healthrules,fileName=outFilename)
+        generate_health_rules_CSV(healthrules=healthrules,fileName=outFilename)
 
-def get_health_rules(app_ID,selectors=None,outputFormat=None,serverURL=None,userName=None,password=None,token=None):
-    if serverURL and serverURL == "dummyserver":
-        build_test_health_rules(app_ID)
-    elif serverURL and userName and password:
-        number = fetch_health_rules(app_ID,selectors=selectors,serverURL=serverURL,userName=userName,password=password)
-        if number == 0:
-            print "get_health_rules: Failed to retrieve health rules for application " + str(app_ID)
-            return None
-    else:
-        number = fetch_health_rules_legacy(app_ID,selectors=selectors,token=token)
-        if number == 0:
-            print "get_health_rules: Failed to retrieve health rules for application " + str(app_ID)
-            return None
-    if 'DEBUG' in locals(): print "get_health_rules: [INFO] Loaded",number,"health rules"
+###
+ # Display health rules for a list of applications.
+ # @param appID_List list of application IDs to fetch health rules
+ # @param selectors fetch only health rules filtered by specified selectors
+ # @param outputFormat output format. Accepted formats are CSV or JSON.
+ # @return the number of fetched health rules. Zero if no health rule was found.
+###
+def get_health_rules(appID_List,selectors=None,outputFormat=None):
+    numHealthRules = 0
+    for appID in appID_List:
+        sys.stderr.write("get health-rules " + getAppName(appID) + "...\n")
+        numHealthRules = numHealthRules + fetch_health_rules_legacy(appID,selectors=selectors)
     if outputFormat and outputFormat == "JSON":
-        generate_health_rules_JSON(app_ID)
+        generate_health_rules_JSON(appID_List)
     elif not outputFormat or outputFormat == "CSV":
-        generate_health_rules_CSV(app_ID)
+        generate_health_rules_CSV(appID_List)
+    return numHealthRules

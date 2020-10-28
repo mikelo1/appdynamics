@@ -4,6 +4,7 @@ import json
 import csv
 import sys
 from appdRESTfulAPI import fetch_RESTfulPath
+from applications import getAppName
 
 detectionruleDict = dict()
 class DetectionRule:
@@ -96,6 +97,12 @@ def fetch_transactiondetection(app_ID,selectors=None,serverURL=None,userName=Non
 
     return len(root.find("rule-list").getchildren())
 
+###
+ # Load JSON object containing tx-match-rule data to local DetectionRule class
+ # @param ruleName the name of the rule
+ # @param txMatchRuleData tx-match-rule data in JSON format
+ # @return DetectionRule object
+###
 def parse_tx_match_rule(ruleName,txMatchRuleData):
     mRuleList = []
     httpSplit = []
@@ -194,7 +201,18 @@ def parse_tx_match_rule(ruleName,txMatchRuleData):
 
     return DetectionRule(ruleName,mRuleList,httpSplit)
 
-def generate_transactiondetection_CSV(app_ID,detectionRules=None,fileName=None):
+###
+ # Generate CSV output from transaction detection rules data, either from the local dictionary or from streamed data
+ # @param appID_List list of application IDs, in order to obtain transaction detection rules from local transaction detection rules dictionary
+ # @param detectionRules data stream containing transaction detection rules
+ # @param fileName output file name
+ # @return None
+###
+def generate_transactiondetection_CSV(appID_List=None,detectionRules=None,fileName=None):
+    print "generate_transactiondetection_CSV: feature not finished yet."
+    return
+    # TODO: generate CSV output format
+
     if detectionRules is None and str(app_ID) not in detectionruleDict:
         print "Detection Rules for application "+str(app_ID)+" not loaded."
         return
@@ -236,7 +254,7 @@ def generate_transactiondetection_CSV(app_ID,detectionRules=None,fileName=None):
             try:
                 txMatchRuleData = json.loads(txMatchRule.text)
             except:
-                print ("Could not process JSON content:\n"+txMatchRule.text)
+                print ("generate_transactiondetection_CSV: Could not process JSON content:\n"+txMatchRule.text)
                 continue
             match_rule = parse_tx_match_rule(ruleName,txMatchRuleData)
         else:
@@ -266,46 +284,63 @@ def generate_transactiondetection_CSV(app_ID,detectionRules=None,fileName=None):
             exit(1)
     if fileName is not None: csvfile.close()
 
-# TODO: generate JSON output format
+###
+ # Generate JSON output from transaction detection rules data, either from the local dictionary or from streamed data
+ # @param appID_List list of application IDs, in order to obtain transaction detection rules from local transaction detection rules dictionary
+ # @param detectionRules data stream containing transaction detection rules
+ # @param fileName output file name
+ # @return None
+###
 def generate_transactiondetection_JSON(app_ID,detectionRules=None,fileName=None):
     print "generate_transactiondetection_JSON: feature not implemented yet."
+# TODO: generate JSON output format
 
 
 ###### FROM HERE PUBLIC FUNCTIONS ######
 
 
+###
+ # Display transaction detection rules from a stream data in JSON or XML format.
+ # @param streamdata the stream data in JSON or XML format
+ # @param outputFormat output format. Accepted formats are CSV or JSON.
+ # @param outFilename output file name
+ # @return None
+###
 def get_detection_rules_from_stream(streamdata,outputFormat=None,outFilename=None):
-    if 'DEBUG' in locals(): print "Processing file " + inFileName + "..."
     try:
         root = ET.fromstring(streamdata)
     except:
-        if 'DEBUG' in locals(): print ("Could not process XML file " + inFileName)
+        if 'DEBUG' in locals(): print ("Could not process XML data.")
         return 0
     if outputFormat and outputFormat == "JSON":
-        generate_transactiondetection_JSON(app_ID=0,detectionRules=root,fileName=outFilename)
+        generate_transactiondetection_JSON(detectionRules=root,fileName=outFilename)
     else:
-        generate_transactiondetection_CSV(app_ID=0,detectionRules=root,fileName=outFilename)
+        generate_transactiondetection_CSV(detectionRules=root,fileName=outFilename)
 
-def get_detection_rules(app_ID,selectors=None,outputFormat=None,serverURL=None,userName=None,password=None,token=None):
-    if serverURL and serverURL == "dummyserver":
-        build_test_transactiondetections(app_ID)
-    elif serverURL and userName and password:
-        number = fetch_transactiondetection(app_ID,selectors=selectors,serverURL=serverURL,userName=userName,password=password)
-        if number == 0:
-            print "get_detection_rules: Failed to retrieve transaction detection rules for application " + str(app_ID)
-            return None
-    else:
-        number = fetch_transactiondetection(app_ID,selectors=selectors,token=token)
-        if number == 0:
-            print "get_detection_rules: Failed to retrieve transaction detection rules for application " + str(app_ID)
-            return None
-    if 'DEBUG' in locals(): print "get_detection_rules: [INFO] Loaded",number,"transaction detection rules"
+###
+ # Display transaction detection rules for a list of applications.
+ # @param appID_List list of application IDs to fetch transaction detection rules
+ # @param selectors fetch only transaction detection rules filtered by specified selectors
+ # @param outputFormat output format. Accepted formats are CSV or JSON.
+ # @return the number of fetched transaction detection rules. Zero if no transaction detection rule was found.
+###
+def get_detection_rules(appID_List,selectors=None,outputFormat=None):
+    numTransactionRules = 0
+    for appID in appID_List:
+        sys.stderr.write("get transaction-rules " + getAppName(appID) + "...\n")
+        numTransactionRules = numTransactionRules + fetch_transactiondetection(appID,selectors=selectors)
     if outputFormat and outputFormat == "JSON":
-        generate_transactiondetection_JSON(app_ID)
+        generate_transactiondetection_JSON(appID_List)
     elif not outputFormat or outputFormat == "CSV":
-        generate_transactiondetection_CSV(app_ID)
+        generate_transactiondetection_CSV(appID_List)
+    return numTransactionRules
 
-def get_transactiondetections_matching_URL(URL):
+###
+ # Get transaction detection rules matching a given URL. Fetch transaction detection data if not loaded yet.
+ # @param app_ID the ID of the application
+ # @return a list of transaction detection names.
+###
+def get_transactiondetections_matching_URL(app_ID,URL):
     pass 
     TD_List = []
     if len(detectionruleList) > 0:

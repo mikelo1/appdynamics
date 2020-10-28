@@ -4,8 +4,8 @@ import os.path
 import re
 from datetime import datetime, timedelta
 from appdRESTfulAPI import get_access_token
-from appdconfig import get_current_context_serverURL, get_current_context_username
-from applications import get_applications, getID, get_application_list, get_applications_from_stream
+from appdconfig import AppD_Configuration
+from applications import get_applications, getAppID, get_application_ID_list, get_applications_from_stream
 from dashboards import get_dashboards, get_dashboards_from_stream
 from nodes import get_nodes, get_nodes_from_stream, update_nodes
 from transactiondetection import get_detection_rules, get_detection_rules_from_stream
@@ -91,14 +91,15 @@ if COMMAND.lower() == "login":
     username = options.apiClient
   else:
     server = None
-    current_server = get_current_context_serverURL()
+    appD_Config = AppD_Configuration()
+    current_server = appD_Config.get_current_context_serverURL()
     if current_server is None: current_server = "https://localhost:8090"
     server = raw_input("AppDynamics Controller server [" + current_server + "]: ")
     if len(server) == 0: server = current_server
     if not server.startswith("http"):
       sys.stderr.write("Missing HTTP protocol in the URL. Please try login again.\n")
       exit()
-    current_user = get_current_context_username()
+    current_user = appD_Config.get_current_context_username()
     if current_user is None: current_user = "APIClient@customer1"
     username = raw_input("API Client username [" + current_user + "]: ")
     if len(username) == 0: username = current_user
@@ -158,11 +159,6 @@ elif COMMAND.lower() == "get":
     optParser.error("incorrect entity \""+ENTITY+"\"")
     exit()
 
-  server = get_current_context_serverURL()
-  username = get_current_context_username()
-  token=get_access_token(server,username)
-  if token is None: exit()
-
   # create the application list, if applies
   if ENTITY == "applications":
     get_applications(outputFormat=options.outFormat,includeNodes=False)
@@ -174,10 +170,17 @@ elif COMMAND.lower() == "get":
       optParser.error("Missing application (use -A for all applications)")
       exit()
   elif options.applications:
-    applicationList = options.applications.split(',')
-    if len(applicationList) > 1: get_application_list()
+    #applicationList = map(lambda x: str(getID(x)), options.applications.split(',') )
+    applicationList = []
+    for appName in options.applications.split(','):
+      appID = getAppID(appName)
+      applicationList.append(appID) if appID is not None else sys.stderr.write("WARN: Application " + appName + " does not exist.\n")
   else: # if options.allApplications:
-    applicationList = get_application_list()
+    applicationList = get_application_ID_list()
+
+  if 'applicationList' not in locals() or len(applicationList) == 0:
+    sys.stderr.write("No application was selected.\n")
+    exit()
 
   # create the filters list, if applies
   selectors = {}
@@ -197,33 +200,27 @@ elif COMMAND.lower() == "get":
                 'get_snapshots':get_snapshots
           }
 
-  for application in applicationList:
-    sys.stderr.write(COMMAND + " " + ENTITY + " " + application + "...\n")
-    appID = getID(application)
-    if appID > 0:
-      if ENTITY in ['policies','actions','schedules','health-rules','detection-rules','businesstransactions','backends','nodes']:
-        functions["get_"+ENTITY](appID,selectors,outputFormat=options.outFormat)
-      elif ENTITY in ['healthrule-violations','snapshots','allothertraffic']:
-        if options.since is None:
-          optParser.error("No duration was specified. (use --since=0 for all events)")
-          exit()
-        max_duration = 14*24*60
-        minutes = time_to_minutes(options.since) if options.since != "0" else max_duration
-        if minutes > max_duration: minutes = max_duration
-        if minutes == 0:
-          optParser.error("Specified duration not correctly formatted. (use --since=<days>d<hours>h<minutes>m format)")
-          exit()
-        if ENTITY == "allothertraffic":
-          AllOtherTraffic_ID = get_business_transaction_ID(appID,"_APPDYNAMICS_DEFAULT_TX_")
-          if AllOtherTraffic_ID == 0:
-            sys.stderr.write("All Other Traffic transaction not found in application "+str(appID)+"\n")
-            exit()
-          selectors.update({"business-transaction-ids": ''+str(AllOtherTraffic_ID)+''})
-          ENTITY="snapshots"
-        functions["get_"+ENTITY](appID,minutes,selectors,outputFormat=options.outFormat)
-    else:
-      sys.stderr.write("WARN: Application " + application + " does not exist.\n")
-  if 'application' not in locals(): sys.stderr.write("No application was selected.\n")
+  if ENTITY in ['policies','actions','schedules','health-rules','detection-rules','businesstransactions','backends','nodes']:
+    functions["get_"+ENTITY](applicationList,selectors,outputFormat=options.outFormat)
+  elif ENTITY in ['healthrule-violations','snapshots','allothertraffic']:
+    if options.since is None:
+      optParser.error("No duration was specified. (use --since=0 for all events)")
+      exit()
+    max_duration = 14*24*60
+    minutes = time_to_minutes(options.since) if options.since != "0" else max_duration
+    if minutes > max_duration: minutes = max_duration
+    if minutes == 0:
+      optParser.error("Specified duration not correctly formatted. (use --since=<days>d<hours>h<minutes>m format)")
+      exit()
+    if ENTITY == "allothertraffic":
+      AllOtherTraffic_ID = get_business_transaction_ID(appID,"_APPDYNAMICS_DEFAULT_TX_")
+      if AllOtherTraffic_ID == 0:
+        sys.stderr.write("All Other Traffic transaction not found in application "+str(appID)+"\n")
+        exit()
+      selectors.update({"business-transaction-ids": ''+str(AllOtherTraffic_ID)+''})
+      ENTITY="snapshots"
+    functions["get_"+ENTITY](applicationList,minutes,selectors,outputFormat=options.outFormat)
+
 
 #######################################
 ########### UPDATE COMMAND ############
@@ -242,23 +239,21 @@ elif COMMAND.lower() == "update":
       optParser.error("Missing application (use -A for all applications)")
       exit()
   elif options.applications:
-    applicationList = options.applications.split(',')
-    if len(applicationList) > 1: get_application_list()
+    #applicationList = map(lambda x: str(getID(x)), options.applications.split(',') )
+    applicationList = []
+    for appName in options.applications.split(','):
+      appID = getAppID(appName)
+      applicationList.append(appID) if appID is not None else sys.stderr.write("WARN: Application " + appName + " does not exist.\n")
   else: # if options.allApplications:
-    applicationList = get_application_list()
+    applicationList = get_application_ID_list()
   #if not options.patchJSON:
   #  optParser.error("Missing patch JSON.")
   #  exit()
 
-  for application in applicationList:
-    sys.stderr.write(COMMAND + " " + ENTITY + " " + application + "...\n")
-    appID = getID(application)
-    if appID > 0:
-      if ENTITY == "nodes":
-        update_nodes(app_ID=appID)
-    else:
-      sys.stderr.write("WARN: Application " + application + " does not exist.\n")
-  if 'application' not in locals(): sys.stderr.write("No application was selected.\n")
+  if 'applicationList' in locals() and len(applicationList)>0 and ENTITY in ['nodes']:
+    update_nodes(appID_List=applicationList)
+  elif 'applicationList' not in locals() or len(applicationList) == 0:
+    sys.stderr.write("No application was selected.\n")
 
 
 #######################################
@@ -278,23 +273,21 @@ elif COMMAND.lower() == "patch":
       optParser.error("Missing application (use -A for all applications)")
       exit()
   elif options.applications:
-    applicationList = options.applications.split(',')
-    if len(applicationList) > 1: get_application_list()
+    #applicationList = map(lambda x: str(getID(x)), options.applications.split(',') )
+    applicationList = []
+    for appName in options.applications.split(','):
+      appID = getAppID(appName)
+      applicationList.append(appID) if appID is not None else sys.stderr.write("WARN: Application " + appName + " does not exist.\n")
   else: # if options.allApplications:
-    applicationList = get_application_list()
+    applicationList = get_application_ID_list()
   if not options.patchJSON:
     optParser.error("Missing patch JSON.")
     exit()
 
-  for application in applicationList:
-    sys.stderr.write(COMMAND + " " + ENTITY + " " + application + "...\n")
-    appID = getID(application)
-    if appID > 0:
-      if ENTITY == "schedules":
-        patch_schedules(app_ID=appID,source=options.patchJSON)
-    else:
-      sys.stderr.write("WARN: Application " + application + " does not exist.\n")
-  if 'application' not in locals(): sys.stderr.write("No application was selected.\n")
+  if 'applicationList' in locals() and len(applicationList)>0 and ENTITY in ['schedules']:
+    patch_schedules(appID_List=applicationList,source=options.patchJSON)
+  elif 'applicationList' not in locals() or len(applicationList) == 0:
+    sys.stderr.write("No application was selected.\n")
 
 
 else:

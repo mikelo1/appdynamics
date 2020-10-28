@@ -1,11 +1,26 @@
 # AppDynamics control tool
+
 AppDCTL is aimed to control and maintain an AppDynamics controller configuration.
 In order to establish a connection to an AppDynamics controller, please login first.
 
+
 # Required packages
+
 	python python-requests python-libxml2
 
+
+
+# Authentication to the AppDynamics API
+
+AppDCTL is using [API Clients](https://docs.appdynamics.com/display/PRO45/API+Clients) to authenticate to the AppDynamics API.
+
+First time login needs to be done through the login command, which will create a new context in the appdconfig.yaml file. The login command can be used to create a new context or to change the current context to another existing one.
+
+One context will include an username, a servername and an authentication token, which duration is defined in the AppDynamics API Client user. During the validity of the token, the user will be able to run any commands without having to input any credentials. Once the token has expired, API Client password will be requested.
+
+
 # appdconfig.yaml file format
+
 contexts:
 - context:
     server: <protocol>://<ip>:<port>
@@ -18,7 +33,9 @@ users:
     expire: <yyyy-MM-dd hh:mm:ss.xxxxxx>
     token: <token_string>
 
+
 # Add a new connection
+
 To add a new connection, follow these steps:
 1. $ ./appdctl.py login
 2. Input your controller full hostname, including protocol and port
@@ -26,6 +43,7 @@ To add a new connection, follow these steps:
 3. Input the API Client user name
 4. Input the API Client user password
 This will add a new pair of context and user in the **appdconfig.yaml** file, and will set it as the current-context.
+
 
 # Help
 
@@ -39,7 +57,9 @@ Advanced Commands:
 Usage:
    appdctl.py [flags] [options]
 
+
 # Examples:
+
 Basic Commands (Basic):
  * Get applications list
    $ appdctl.py get applications

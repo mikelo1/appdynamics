@@ -57,6 +57,12 @@ def fetch_dashboards(selectors=None,serverURL=None,userName=None,password=None,t
 
     return len(dashboards)
 
+###
+ # Generate CSV output from dashboards data, either from the local dictionary or from streamed data
+ # @param dashbDict dictionary of dashboards, containing dashboard data
+ # @param fileName output file name
+ # @return None
+###
 def generate_dashboards_CSV(dashbDict=None,fileName=None):
     if dashbDict is None and len(dashboardDict) == 0:
         print "generate_dashboards_CSV: Dahsboards not loaded."
@@ -93,9 +99,15 @@ def generate_dashboards_CSV(dashbDict=None,fileName=None):
             return (-1)
     if fileName is not None: csvfile.close()
 
+###
+ # Generate JSON output from dashboards data, either from the local dictionary or from streamed data
+ # @param dashbDict dictionary of dashboards, containing dashboard data
+ # @param fileName output file name
+ # @return None
+###
 def generate_dashboards_JSON(dashbDict=None,fileName=None):
     if dashbDict is None and len(dashboardDict) == 0:
-        print "generate_dashboards_CSV: Dahsboards not loaded."
+        print "generate_dashboards_JSON: Dahsboards not loaded."
         return
     elif dashbDict is None:
         dashbDict = dashboardDict
@@ -119,12 +131,18 @@ def generate_dashboards_JSON(dashbDict=None,fileName=None):
 ###### FROM HERE PUBLIC FUNCTIONS ######
 
 
+###
+ # Display dashboards from a JSON stream data.
+ # @param streamdata the stream data in JSON format
+ # @param outputFormat output format. Accepted formats are CSV or JSON.
+ # @param outFilename output file name
+ # @return None
+###
 def get_dashboards_from_stream(streamdata,outputFormat=None,outFilename=None):
-    if 'DEBUG' in locals(): print "Processing file " + inFileName + "..."
     try:
         dashboards = json.loads(streamdata)
     except:
-        if 'DEBUG' in locals(): print ("Could not process JSON file " + inFileName)
+        if 'DEBUG' in locals(): print ("get_dashboards_from_stream: Could not process JSON data.")
         return 0
 
     dashbDict = dict()
@@ -139,19 +157,19 @@ def get_dashboards_from_stream(streamdata,outputFormat=None,outFilename=None):
     else:
         generate_dashboards_CSV(dashbDict=dashbDict)
 
-def get_dashboards(outputFormat=None,serverURL=None,userName=None,password=None,token=None):
-    if serverURL and userName and password:
-        number = fetch_dashboards(serverURL=serverURL,userName=userName,password=password)
-        if number == 0:
-            print "get_dashboards: Failed to retrieve policies for application " + str(app_ID)
-            return None
-    else:
-        number = fetch_dashboards(token=token)
-        if number == 0:
-            print "get_dashboards: Failed to retrieve policies for application " + str(app_ID)
-            return None
-    if 'DEBUG' in locals(): print "get_dashboards: [INFO] Loaded",number,"dashboards"
+###
+ # Display dashboards for a list of applications.
+ # @param selectors fetch only dashboards filtered by specified selectors
+ # @param outputFormat output format. Accepted formats are CSV or JSON.
+ # @return the number of fetched dashboards. Zero if no dashboard was found.
+###
+def get_dashboards(selectors=None,outputFormat=None):
+    numDashboards = fetch_dashboards(selectors=selectors)
+    if numDashboards == 0:
+        print "get_dashboards: Failed to retrieve dashboards."
+        return 0
     if outputFormat and outputFormat == "JSON":
         generate_dashboards_JSON()
     elif not outputFormat or outputFormat == "CSV":
         generate_dashboards_CSV()
+    return numDashboards
