@@ -3,9 +3,9 @@ import requests
 import json
 import sys
 from getpass import getpass
-from appdconfig import AppD_Configuration
+from appdconfig import AppD_Configuration, BasicAuth
 
-Default_basicAuthFile=None
+basicAuth=None
 appD_Config = AppD_Configuration()
 
 ###
@@ -40,7 +40,7 @@ def fetch_access_token(serverURL,API_username,API_password):
  # @return the access token string. Null if there was a problem getting the access token.
 ###
 def get_access_token(serverURL=None,API_Client=None,basicAuthFile=None):
-    global Default_basicAuthFile
+    global basicAuth
     if serverURL is None or API_Client is None:
         # If controller was not provided, try to find in the configuration file
         serverURL  = appD_Config.get_current_context_serverURL()
@@ -52,9 +52,9 @@ def get_access_token(serverURL=None,API_Client=None,basicAuthFile=None):
     appD_Config.create_or_select_user(serverURL,API_Client)
     token = appD_Config.get_current_context_token()
     if token is None:
-        if basicAuthFile is not None: Default_basicAuthFile = basicAuthFile
-        if Default_basicAuthFile is not None:
-            Client_Secret = get_password(Default_basicAuthFile,API_Client)
+        if basicAuthFile is not None: basicAuth = BasicAuth(basicAuthFile)
+        if basicAuth is not None:
+            Client_Secret = basicAuth.get_password(API_Client)
         else:
             sys.stderr.write("Authentication required for " + serverURL + "\n")
             Client_Secret = getpass(prompt='Password: ')
@@ -272,10 +272,3 @@ def entityXML2JSON(XMLentityType):
         "EUMPAGES": "EUM_BROWSER_APPS"
     }
     return switcher.get(XMLentityType, XMLentityType)
-
-def get_password(basicAuthFile,API_Client):
-    with open(basicAuthFile, mode='r') as csv_file:
-        auth_dict = csv.DictReader(csv_file,fieldnames=['password','apiClient'])
-        for credential in auth_dict:
-            if credential['apiClient'] == API_Client:
-                return credential['password']

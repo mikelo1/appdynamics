@@ -21,7 +21,6 @@ class AppD_Configuration:
         except IOError as exc:
             print(exc)
             return None
-
         with open(self.configFile, 'r') as stream:
             try:
                 self.data = yaml.safe_load(stream)
@@ -103,3 +102,30 @@ class AppD_Configuration:
             if 'DEBUG' in locals(): print "Saving changes..."
             with open(self.configFile, "w") as outfile:
                 yaml.dump(self.data, outfile, default_flow_style=False, allow_unicode=True)
+
+class BasicAuth:
+    authFile  = ""
+
+    def __init__(self,basicAuthFile=None):
+        if basicAuthFile is not None:
+            try:
+                stream = open(self.authFile)
+            except IOError as exc:
+                print(exc)
+                return None
+            self.authFile = basicAuthFile
+
+    def __str__(self):
+        return "({0})".format(self.authFile)
+
+    def get_password(self,API_Client):
+        auth_dict = dict()
+        print self.authFile
+        with open(self.authFile, mode='r') as csv_file:
+            try:
+                auth_dict = csv.DictReader(csv_file,fieldnames=['password','apiClient'])
+            except IOError as exc:
+                print(exc)
+            for credential in auth_dict:
+                if credential['apiClient'] == API_Client:
+                    return credential['password']
