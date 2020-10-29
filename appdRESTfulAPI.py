@@ -52,7 +52,8 @@ def get_access_token(serverURL=None,API_Client=None,basicAuthFile=None):
     appD_Config.create_or_select_user(serverURL,API_Client)
     token = appD_Config.get_current_context_token()
     if token is None:
-        if basicAuthFile is not None: basicAuth = BasicAuth(basicAuthFile)
+        if basicAuthFile is not None:
+            basicAuth = BasicAuth(basicAuthFile=basicAuthFile)
         if basicAuth is not None:
             Client_Secret = basicAuth.get_password(API_Client)
         else:

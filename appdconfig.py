@@ -109,18 +109,20 @@ class BasicAuth:
     def __init__(self,basicAuthFile=None):
         if basicAuthFile is not None:
             try:
-                stream = open(self.authFile)
+                stream = open(basicAuthFile)
             except IOError as exc:
-                print(exc)
+                print("BasicAuth init: "+str(exc))
                 return None
             self.authFile = basicAuthFile
 
     def __str__(self):
         return "({0})".format(self.authFile)
 
+    def get_authFileName(self):
+        return self.authFile
+
     def get_password(self,API_Client):
         auth_dict = dict()
-        print self.authFile
         with open(self.authFile, mode='r') as csv_file:
             try:
                 auth_dict = csv.DictReader(csv_file,fieldnames=['password','apiClient'])
