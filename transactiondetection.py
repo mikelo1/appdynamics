@@ -7,32 +7,6 @@ from appdRESTfulAPI import fetch_RESTfulPath
 from applications import getAppName
 
 detectionruleDict = dict()
-class DetectionRule:
-    name         = ""
-    matchRuleList= []
-    httpSplitList= []
-    def __init__(self,name,matchRuleList,httpSplitList):
-        self.name         = name
-        self.matchRuleList= matchRuleList
-        self.httpSplitList= httpSplitList
-    def __str__(self):
-        return "({0},{1},{2},{3})".format(self.name,self.matchRuleList,self.httpSplitList)
-
-class MatchCriteria:
-    dataType= ""   # Method|URI|HTTP_Parameter|Header|Hostname|Port|Class_Name|Servlet_Name|Cookie
-    criteria= ""   # Equals|Starts_With|Ends_With|Contains|Matches_Regex|Is_In_List|Is_Not_Empty
-    strings = []   # Match criteria strings
-    field   = None # data field (only for HTTP_Parameter|Header|Cookie)
-    def __init__(self,dataType,criteria,strings,field=None):
-        self.dataType = dataType
-        self.criteria = criteria
-        self.strings  = strings
-        self.field    = field
-    def __str__(self):
-        if self.field is None:
-            return "({0},{1},{2})".format(self.dataType,self.criteria,self.strings)
-        else:
-            return "({0},{1},{2},{3})".format(self.dataType,self.field,self.criteria,self.strings)
 
 ###
  # Fetch transaction detection rules from a controller then add them to the detectionrule dictionary. Provide either an username/password or an access token.

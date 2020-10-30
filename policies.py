@@ -122,37 +122,19 @@ def fetch_policies_legacy(app_ID,selectors=None,serverURL=None,userName=None,pas
 
     return len(policies)
 
-def parse_policy_JSON(policy):
-    Events = []
-    if len(policy['events']['healthRuleEvents']) > 0:
-        Events.append(policy['events']['healthRuleEvents']['healthRuleScopeType'])
-    # TODO elif len(policy['events']['customEvents']) > 0:
-    # TODO elif len(policy['events']['anomalyEvents']) > 0:
-    # TODO elif len(policy['events']['otherEvents']) > 0:
-    Entities = []
-    Actions = []
-    for action in policy['actions']:
-        Actions.append(action['actionName'])
-
-    return Policy(policy['id'],policy['name'],Events,Entities,Actions)
-
-def parse_policy_JSON_legacy(policy):
-    Name = policy['name']
-    AppName = policy['applicationName']
-    HealthRules = []
-    evTemplate = policy['eventFilterTemplate']
-    if evTemplate['healthRuleNames'] is not None:
-        for healthRule in evTemplate['healthRuleNames']:
-            HealthRules.append(healthRule['entityName'])
+def get_policy_healthrules(policy):
+    if 'eventFilterTemplate' in policy and policy['eventFilterTemplate']['healthRuleNames'] is not None:
+        for healthRule in policy['eventFilterTemplate']['healthRuleNames']:
+            healthrules = healthrules + "," + healthRule['entityName'] if 'healthrules' in locals() else healthRule['entityName']
+        return healthrules
+    elif 'events' in policy and policy['events']['healthRuleEvents']['healthRuleScope']['healthRuleScopeType'] == "SPECIFIC_HEALTH_RULES":
+        return ",".join(policy['events']['healthRuleEvents']['healthRuleScope']['healthRules'])
     else:
-        HealthRules = "ANY"
+        return "ANY"
 
-    Entities = []
-    entityTemplates = policy['entityFilterTemplates']
-    if entityTemplates is None:
-        Entities = ["ANY"]
-    else:
-        for entTemplate in entityTemplates:
+def get_policy_entities(policy):
+    if 'entityFilterTemplates' in policy:
+        for entTemplate in policy['entityFilterTemplates']:
             if entTemplate['matchCriteriaType'] == "AllEntities":
                 EntityDescription = "ALL "+entTemplate['entityType']
             elif entTemplate['matchCriteriaType'] == "RelatedEntities":
@@ -181,17 +163,24 @@ def parse_policy_JSON_legacy(policy):
                 elif nodeEntCriteria['matchCriteriaType'] == "CustomEntities":
                     EntityDescription = nodeEntCriteria['entityType']+" matching the following criteria: "
                     EntityDescription = EntityDescription + " " + nodeEntCriteria['stringMatchType'] + " " + nodeEntCriteria['stringMatchExpression']
-            Entities.append(EntityDescription)
-
-    Actions = []
-    actTemplate = policy['actionWrapperTemplates']
-    if actTemplate is not None:
-        for action in actTemplate:
-            Actions.append(action['actionTag'])
+            entities = entities + " " + EntityDescription if 'entities' in locals() else EntityDescription
+        if 'entities' in locals(): return entities
+        else: return "ANY"
+    elif 'selectedEntities' in policy:
+        return "Output not implemented yet."
     else:
-        Actions = ["ANY"]
+        return "ANY"
 
-    return Policy(id=0,name=policy['name'],events=HealthRules,entities=Entities,actions=Actions)
+def get_policy_actions(policy):
+    if 'actionWrapperTemplates' in policy:
+        for action in policy['actionWrapperTemplates']:
+            actions = actions + " " + action['actionTag'] if 'actions' in locals() else action['actionTag']
+        if 'actions' in locals(): return actions
+        else: return "ANY"
+    elif 'actions' in policy:
+        return "Output not implemented yet."
+    else:
+        return "ANY"
 
 ###
  # Generate CSV output from policies data, either from the local dictionary or from streamed data
@@ -207,6 +196,8 @@ def generate_policies_CSV(appID_List=None,policies=None,fileName=None):
         policies = []
         for appID in appID_List:
             policies = policies + policyDict[str(appID)]
+    elif type(policies) is dict:
+        policies = [policies]
 
     if fileName is not None:
         try:
@@ -223,20 +214,14 @@ def generate_policies_CSV(appID_List=None,policies=None,fileName=None):
     filewriter.writeheader()
 
     for policy in policies:
-        if 'reactorType' in policy:
-            if 'DEBUG' in locals(): print "Policy found in legacy JSON format."
-            policyData = parse_policy_JSON_legacy(policy)
-        elif 'selectedEntityType' in policy:
-            if 'DEBUG' in locals(): print "Policy found in JSON format."
-            policyData = parse_policy_JSON(policy)
-        else: # Data does not belong to a policy
-            continue
+        # Check if data belongs to a policy
+        if 'reactorType' not in policy and 'selectedEntities' not in policy: continue
         
         try:
-            filewriter.writerow({'Policy': policyData.name,
-                                 'Events': str(policyData.events),
-                                 'Entities': str(policyData.entities),
-                                 'Actions': str(policyData.actions)})
+            filewriter.writerow({'Policy': policy['name'],
+                                 'Events': get_policy_healthrules(policy),
+                                 'Entities': get_policy_entities(policy),
+                                 'Actions': get_policy_actions(policy)})
         except:
             print ("Could not write to the output.")
             if fileName is not None: csvfile.close()
