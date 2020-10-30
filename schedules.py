@@ -137,12 +137,8 @@ def fetch_schedules(app_ID,selectors=None,serverURL=None,userName=None,password=
 
 ###
  # Update application schedule from a controller. Provide either an username/password or an access token.
- # @param serverURL Full hostname of the Appdynamics controller. i.e.: https://demo1.appdynamics.com:443
  # @param app_ID the ID number of the application schedule to update
  # @param sched_ID the ID number of the schedule to update
- # @param userName Full username, including account. i.e.: myuser@customer1
- # @param password password for the specified user and host. i.e.: mypassword
- # @param token API acccess token
  # @return True if the update was successful. False if no schedule was updated.
 ###
 def update_schedule(app_ID,sched_ID):
