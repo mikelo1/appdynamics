@@ -82,10 +82,27 @@ if len(args) < 1:
 
 COMMAND = args[0]
 
+if COMMAND.lower() == "help":
+  sys.stderr.write("Usage: appdctl [get|login|update|patch] [options]\n\n")
+
 #######################################
 ############ LOGIN COMMAND ############
 #######################################
-if COMMAND.lower() == "login":
+elif COMMAND.lower() == "login":
+
+  if args[1] == "help":
+    sys.stderr.write("Login can be done with manual keyboard input or with a basic authentication file in CSV format\n" + \
+                     "Either way, if the context doesn't exist in the **appdconfig.yaml** file, it will create a new entry and set it as the current-context.\n\n" + \
+                     "To login with a manual input of the credentials, follow these steps:\n" + \
+                     "1. $ ./appdctl.py login\n" + \
+                     "2. Input your controller full hostname, including protocol and port\n" + \
+                     "   i.e.: https://demo1.appdynamics.com:443\n" + \
+                     "3. Input the API Client user name\n" + \
+                     "4. Input the API Client user password\n\n" + \
+                     "In case of having a basic authentication file, follow this syntax:\n" + \
+                     "1. $ ./appdctl.py login --api-client <my_APIClient_username>@<my_account_name1> --basic-auth-file <path_to_auth_file>\n\n")
+    exit()
+
   if options.controllerURL and options.apiClient:
     server = options.controllerURL
     username = options.apiClient
@@ -155,12 +172,18 @@ elif COMMAND.lower() == "get":
   if ENTITY not in ['policies','actions','schedules','health-rules',
                     'detection-rules','businesstransactions','backends',
                     'healthrule-violations','snapshots','allothertraffic',
-                    'applications','dashboards','nodes']:
+                    'applications','dashboards','nodes','help']:
     optParser.error("incorrect entity \""+ENTITY+"\"")
     exit()
 
   # create the application list, if applies
-  if ENTITY == "applications":
+  if ENTITY == "help":
+    sys.stderr.write("Usage: appdctl get [policies|actions|schedules|health-rules|\n" + \
+                     "                    detection-rules|businesstransactions|backends|\n" + \
+                     "                    healthrule-violations|snapshots|allothertraffic|\n" + \
+                     "                    applications|dashboards|nodes] [options]\n\n")
+    exit()
+  elif ENTITY == "applications":
     get_applications(outputFormat=options.outFormat,includeNodes=False)
     exit()
   elif ENTITY == "dashboards":
@@ -231,7 +254,10 @@ elif COMMAND.lower() == "update":
       exit()
 
   ENTITY = args[1]
-  if ENTITY not in ['nodes']:
+  if ENTITY == "help":
+    sys.stderr.write("Usage: appdctl update nodes [options]\n\n")
+    exit()
+  elif ENTITY not in ['nodes']:
     optParser.error("incorrect entity \""+ENTITY+"\"")
     exit()
 
@@ -265,7 +291,10 @@ elif COMMAND.lower() == "patch":
       exit()
 
   ENTITY = args[1]
-  if ENTITY not in ['policies','schedules']:
+  if ENTITY == "help":
+    sys.stderr.write("Usage: appdctl patch [policies|schedules] [options]\n\n")
+    exit()
+  elif ENTITY not in ['policies','schedules']:
     optParser.error("incorrect entity \""+ENTITY+"\"")
     exit()
 

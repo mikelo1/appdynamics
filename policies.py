@@ -7,24 +7,6 @@ from applications import getAppName
 
 policyDict = dict()
 
-class Policy:
-    id      = 0
-    name    = ""
-    appID   = 0
-    events  =[]
-    entities=[]
-    actions =[]
-    def __init__(self,id,name,events,entities,actions,appID=0):
-        self.id      = id
-        self.name    = name
-        self.events  = events
-        self.entities= entities
-        self.actions = actions
-        self.appID   = appID
-    def __str__(self):
-        return "({0},{1},{2},{3},{4},{5})".format(self.id,self.name,self.events,self.entities,self.actions,self.appID)
-
-
 def build_test_policies(app_ID):
     policies1=json.loads('[{"id":1854,"name":"POLICY_SANDBOX","enabled":true,"executeActionsInBatch":true,"frequency":null,"actions":[{"actionName":"gogs@acme.com","actionType":"EMAIL","notes":""}],"events":{"healthRuleEvents":null,"otherEvents":[],"anomalyEvents":["ANOMALY_OPEN_CRITICAL"],"customEvents":[]},"selectedEntities":{"selectedEntityType":"ANY_ENTITY"}]')
     policies2=json.loads('[{"id":1855,"name":"POLICY_SANDBOX","enabled":true,"executeActionsInBatch":true,"frequency":null,"actions":[{"actionName":"gogs@acme.com","actionType":"EMAIL","notes":""}],"events":{"healthRuleEvents":null,"otherEvents":[],"anomalyEvents":["ANOMALY_OPEN_CRITICAL"],"customEvents":[]},"selectedEntities":{"selectedEntityType":"ANY_ENTITY"}]')
@@ -122,7 +104,12 @@ def fetch_policies_legacy(app_ID,selectors=None,serverURL=None,userName=None,pas
 
     return len(policies)
 
-def get_policy_healthrules(policy):
+###
+ # toString method, extracts healthrules from policy
+ # @param policy JSON data containing a policy
+ # @return string with a comma separated list of health rule names
+###
+def str_policy_healthrules(policy):
     if 'eventFilterTemplate' in policy and policy['eventFilterTemplate']['healthRuleNames'] is not None:
         for healthRule in policy['eventFilterTemplate']['healthRuleNames']:
             healthrules = healthrules + "," + healthRule['entityName'] if 'healthrules' in locals() else healthRule['entityName']
@@ -132,7 +119,12 @@ def get_policy_healthrules(policy):
     else:
         return "ANY"
 
-def get_policy_entities(policy):
+###
+ # toString method, extracts entities from policy
+ # @param policy JSON data containing a policy
+ # @return string with a comma separated list of entity names
+###
+def str_policy_entities(policy):
     if 'entityFilterTemplates' in policy:
         for entTemplate in policy['entityFilterTemplates']:
             if entTemplate['matchCriteriaType'] == "AllEntities":
@@ -164,14 +156,40 @@ def get_policy_entities(policy):
                     EntityDescription = nodeEntCriteria['entityType']+" matching the following criteria: "
                     EntityDescription = EntityDescription + " " + nodeEntCriteria['stringMatchType'] + " " + nodeEntCriteria['stringMatchExpression']
             entities = entities + " " + EntityDescription if 'entities' in locals() else EntityDescription
-        if 'entities' in locals(): return entities
-        else: return "ANY"
-    elif 'selectedEntities' in policy:
-        return "Output not implemented yet."
+    elif 'selectedEntities' in policy and policy['selectedEntities']['selectedEntityType'] == "SPECIFIC_ENTITIES":
+        for entity in policy['selectedEntities']['entities']:
+            entities = entities + "\n" if 'entities' in locals() else ""
+            if entity['entityType']   == "BUSINESS_TRANSACTION":
+                if entity['selectedBusinessTransactions']['businessTransactionScope'] == "ALL_BUSINESS_TRANSACTIONS":
+                    entities = entities + "\nAll Business Transactions" if 'entities' in locals() else "All Business Transactions"
+                elif entity['selectedBusinessTransactions']['businessTransactionScope'] == "SPECIFIC_BUSINESS_TRANSACTIONS":
+                    entities = entities + ",".join(entity['selectedBusinessTransactions']['businessTransactions'])
+                else:
+                    pass
+            # TO DO: print out rest of entities
+            elif entity['entityType'] == "DATABASES_IN_APPLICATION":
+                entities = entities + "\n" + entity['entityType'] + " Output not implemented yet."
+            elif entity['entityType'] == "TIER_NODE":
+                entities = entities + "\n" + entity['entityType'] + " Output not implemented yet."
+            elif entity['entityType'] == "INFORMATION_POINTS":
+                entities = entities + "\n" + entity['entityType'] + " Output not implemented yet."
+            elif entity['entityType'] == "SERVERS_IN_APPLICATION":
+                entities = entities + "\n" + entity['entityType'] + " Output not implemented yet."
+            elif entity['entityType'] == "ERRORS":
+                entities = entities + "\n" + entity['entityType'] + " Output not implemented yet."
+            elif entity['entityType'] == "PAGE":
+                entities = entities + "\n" + entity['entityType'] + " Output not implemented yet."
     else:
         return "ANY"
+    if 'entities' in locals(): return entities
+    else: return "ANY"
 
-def get_policy_actions(policy):
+###
+ # toString method, extracts actions from policy
+ # @param policy JSON data containing a policy
+ # @return string with a comma separated list of action names
+###
+def str_policy_actions(policy):
     if 'actionWrapperTemplates' in policy:
         for action in policy['actionWrapperTemplates']:
             actions = actions + " " + action['actionTag'] if 'actions' in locals() else action['actionTag']
@@ -217,15 +235,15 @@ def generate_policies_CSV(appID_List=None,policies=None,fileName=None):
         # Check if data belongs to a policy
         if 'reactorType' not in policy and 'selectedEntities' not in policy: continue
         
-        try:
-            filewriter.writerow({'Policy': policy['name'],
-                                 'Events': get_policy_healthrules(policy),
-                                 'Entities': get_policy_entities(policy),
-                                 'Actions': get_policy_actions(policy)})
-        except:
-            print ("Could not write to the output.")
-            if fileName is not None: csvfile.close()
-            return (-1)
+        #try:
+        filewriter.writerow({'Policy': policy['name'],
+                                 'Events': str_policy_healthrules(policy),
+                                 'Entities': str_policy_entities(policy),
+                                 'Actions': str_policy_actions(policy)})
+        #except:
+        #    print ("Could not write to the output.")
+        #    if fileName is not None: csvfile.close()
+        #    return (-1)
     if 'DEBUG' in locals(): print "INFO: Displayed number of policies:" + str(len(policies))
     if fileName is not None: csvfile.close()
 

@@ -14,12 +14,25 @@ In order to establish a connection to an AppDynamics controller, please login fi
 
 AppDCTL is using [API Clients](https://docs.appdynamics.com/display/PRO45/API+Clients) to authenticate to the AppDynamics API.
 
-First time login needs to be done through the login command, which will create a new context in the appdconfig.yaml file. The login command can be used to create a new context or to change the current context to another existing one.
+First time authentication needs to be done through the **login** command, which will create a new context in the **appdconfig.yaml** file. The login command can be used to create a new context or to change the current context to another existing one.
 
-One context will include an username, a servername and an authentication token, which duration is defined in the AppDynamics API Client user. During the validity of the token, the user will be able to run any commands without having to input any credentials. Once the token has expired, API Client password will be requested.
+One context will include an username, a servername and an authentication token -which duration is defined in the AppDynamics API Client user. During the validity of the token, the user will be able to run any commands without having to input any credentials. Once the token has expired, API Client password will be requested.
 
+## Login to a controller context
+Login can be done with manual keyboard input or with a basic authentication file in CSV format
+Either way, if the context doesn't exist in the **appdconfig.yaml** file, it will create a new entry and set it as the current-context.
 
-# appdconfig.yaml file format
+To login with a manual input of the credentials, follow these steps:
+1. $ ./appdctl.py login
+2. Input your controller full hostname, including protocol and port
+   i.e.: https://demo1.appdynamics.com:443
+3. Input the API Client user name
+4. Input the API Client user password
+
+In case of having a basic authentication file, follow this syntax:
+1. $ ./appdctl.py login --api-client <my_APIClient_username>@<my_account_name1> --basic-auth-file <path_to_auth_file>
+
+## appdconfig.yaml file format
 
 contexts:
 - context:
@@ -33,16 +46,10 @@ users:
     expire: <yyyy-MM-dd hh:mm:ss.xxxxxx>
     token: <token_string>
 
+## basicAuth file format
+<password1>,<my_APIClient_username1>@<my_account_name1>
+<password2>,<my_APIClient_username2>@<my_account_name2>
 
-# Add a new connection
-
-To add a new connection, follow these steps:
-1. $ ./appdctl.py login
-2. Input your controller full hostname, including protocol and port
-   i.e.: https://demo1.appdynamics.com:443
-3. Input the API Client user name
-4. Input the API Client user password
-This will add a new pair of context and user in the **appdconfig.yaml** file, and will set it as the current-context.
 
 
 # Help
@@ -53,6 +60,7 @@ Basic Commands (Intermediate):
 
 Advanced Commands:
    patch         Update field(s) of a resource using strategic merge patch
+   update        Update status of a resource
 
 Usage:
    appdctl.py [flags] [options]

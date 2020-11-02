@@ -28,7 +28,7 @@ class AppD_Configuration:
                 print(exc)
 
     def __str__(self):
-        return "({0})".format(self.data)
+        return "({0},{1})".format(self.configFile,self.data)
 
     def get_current_context_serverURL(self):
         if 'current-context' in self.data and len(self.data['current-context']) > 0:
