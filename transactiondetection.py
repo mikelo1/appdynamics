@@ -91,31 +91,136 @@ def update_transactiondetection(app_ID,detectRule_ID):
     restfulPath = "/controller/alerting/rest/v1/applications/" + str(app_ID) + "/schedules/" + str(sched_ID)
     return update_RESTful_JSON(restfulPath,detectionrule)
 
+
+
+###
+ # toString method, extracts Match Rule List from transaction detection rule
+ # @param txMatchRuleData JSON data containing match rules
+ # @return string with a comma separated list of Match Rules
+###
+def str_transactiondetection_matchrules(txMatchRuleData):
+    mRuleList = ""
+    if txMatchRuleData['type'] == "CUSTOM":
+        for mCondition in txMatchRuleData['txcustomrule']['matchconditions']:
+            if mCondition['type'] == "HTTP":
+                httpmatch = mCondition['httpmatch']
+                for HTTPRequestCriteria in httpmatch:
+                    if len(mRuleList) > 0: mRuleList = mRuleList + "\n"
+                    if HTTPRequestCriteria == 'httpmethod':
+                        criteria = httpmatch['httpmethod']
+                        strings  = ""
+                        mRuleList = mRuleList + HTTPRequestCriteria + " " + criteria + " " + strings
+                    elif HTTPRequestCriteria in ['uri','hostname','port','servlet']:
+                        criteria = httpmatch[HTTPRequestCriteria]['type']
+                        if 'isnot' in httpmatch[HTTPRequestCriteria] and httpmatch[HTTPRequestCriteria]['isnot'] == True:
+                            criteria = "NOT_"+criteria
+                        strings = " ".join(httpmatch['uri']['matchstrings'])
+                        mRuleList = mRuleList + HTTPRequestCriteria + " " + criteria + " " + strings
+                    elif HTTPRequestCriteria == 'classmatch':
+                        criteria = httpmatch['classmatch']['type']
+                        if 'isnot' in httpmatch['classmatch']['classnamecondition'] and httpmatch['classmatch']['classnamecondition']['isnot'] == True:
+                            criteria = criteria +"_NOT_"+httpmatch['classmatch']['classnamecondition']['type']
+                        else:
+                            criteria = criteria +"_"+httpmatch['classmatch']['classnamecondition']['type']
+                        strings = " ".join(httpmatch['classmatch']['classnamecondition']['matchstrings'])
+                        mRuleList = mRuleList + HTTPRequestCriteria + " " + criteria + " " + strings
+                    elif HTTPRequestCriteria in ['parameters','headers','cookies']:
+                        addNewLine = False
+                        for parameter in httpmatch[HTTPRequestCriteria]:
+                            if not addNewLine: addNewLine = True
+                            else: mRuleList = mRuleList + "\n"
+                            criteria = parameter['comparisontype']
+                            strings  = "name " + parameter['name']['type'] + " " + " ".join(parameter['name']['matchstrings'])
+                            if parameter['comparisontype'] == "CHECK_VALUE" and 'isnot' in parameter['value'] and parameter['value']['isnot'] == True:
+                                strings = strings + " AND value NOT " + parameter['value']['type'] + " " + " ".join(parameter['value']['matchstrings'])
+                            elif parameter['comparisontype'] == "CHECK_VALUE":
+                                strings = strings + " AND value " + parameter['value']['type'] + " " + " ".join(parameter['value']['matchstrings'])
+                            mRuleList = mRuleList + HTTPRequestCriteria + " " + criteria + " " + strings
+                    else:
+                        print ("HTTP Request Match criteria unknown: " + HTTPRequestCriteria)
+            elif mCondition['type'] == "INSTRUMENTATION_PROBE":
+                #### TO DO: POJO instrumentation parsing
+                return "INSTRUMENTATION_PROBE not supported yet"
+            else:
+                return "Match condition "+mCondition['type']+" not implemented yet."
+    elif txMatchRuleData['type'] == "AUTOMATIC_DISCOVERY":
+        #### TO DO: Automatic discovery rules
+        return "Automatic discovery rules not supported yet"
+    else:
+        return "Uknown rule type: "+txMatchRuleData['type']
+
+    return mRuleList
+
+###
+ # toString method, extracts actions from transaction detection rule
+ # @param txMatchRuleData JSON data containing transaction detection rule actions
+ # @return string with a comma separated list of actions
+###
+def str_transactiondetection_actions(txMatchRuleData):
+    httpSplit = ""
+    if txMatchRuleData['type'] == "CUSTOM":
+        for action in txMatchRuleData['txcustomrule']['actions']:
+            if action['type'] == "HTTP_SPLIT":
+                if not action['httpsplit']: # HTTPSplit definition is empty
+                    continue
+                elif 'httpsplitonreqdata' in action['httpsplit']:
+                    if len(httpSplit) > 0: httpSplit = httpSplit + "\n"
+                    httpsplitonreqdata = action['httpsplit']['httpsplitonreqdata']
+                    if 'customexpression' in httpsplitonreqdata:
+                        httpSplit = httpSplit + "Split Transactions using custom expression: "+httpsplitonreqdata['customexpression']['stringvalue']
+                    elif 'segments' in httpsplitonreqdata:
+                        if httpsplitonreqdata['segments']['type'] == "FIRST":
+                            httpSplit = httpSplit + "Split Transactions using first "+str(httpsplitonreqdata['segments']['numsegments'])+" URI segments"
+                        elif httpsplitonreqdata['segments']['type'] == "LAST":
+                            httpSplit = httpSplit + "Split Transactions using last "+str(httpsplitonreqdata['segments']['numsegments'])+" URI segments"
+                        elif httpsplitonreqdata['segments']['type'] == "SELECTED":
+                            httpSplit = httpSplit + "Split Transactions using URI segments " + str(httpsplitonreqdata['segments']['selectedsegments'])
+                    elif 'parametername' in httpsplitonreqdata:
+                        httpSplit = httpSplit + "Split Transactions using parameter value "+httpsplitonreqdata['parametername']
+                    elif 'headername' in httpsplitonreqdata:
+                        httpSplit = httpSplit + "Split Transactions using header value "+httpsplitonreqdata['headername']
+                    elif 'cookiename' in httpsplitonreqdata:
+                        httpSplit = httpSplit + "Split Transactions using cookie value "+httpsplitonreqdata['cookiename']
+                    elif 'sessionattributename' in httpsplitonreqdata:
+                        httpSplit = httpSplit + "Split Transactions using session attribute value "+httpsplitonreqdata['sessionattributename']
+                    elif 'usehttpmethod' in httpsplitonreqdata and httpsplitonreqdata['usehttpmethod'] == True:
+                        httpSplit = httpSplit + "Split Transactions using the request method (GET/POST/PUT)"
+                    elif 'usehost' in httpsplitonreqdata and httpsplitonreqdata['usehost'] == True:
+                        httpSplit = httpSplit + "Split Transactions using the request host"
+                    elif 'useoriginatingaddr' in httpsplitonreqdata and httpsplitonreqdata['useoriginatingaddr'] == True:
+                        httpSplit = httpSplit + "Split Transactions using the request originating address"
+                    else:
+                        print ("Request data split criteria unknown.")
+                elif 'httpsplitonpayload' in action['httpsplit']:
+                    #### TO DO: Actions (Split Using Payload)
+                    print ("httpsplitonpayload not supported yet")
+                else:
+                    print action['httpsplit']
+            elif action['type'] == "POJO_SPLIT":
+                #### TO DO: POJO split
+                print ("POJO split not supported yet")
+                pass
+            else:
+                print action['type']
+                print action['httpsplit']
+    elif txMatchRuleData['type'] == "AUTOMATIC_DISCOVERY":
+        #### TO DO: Automatic discovery rules
+        return "Automatic discovery rules not supported yet"
+    else:
+        return "Uknown rule type: "+txMatchRuleData['type']
+    return httpSplit
 ###
  # Generate CSV output from transaction detection rules data, either from the local dictionary or from streamed data
  # @param appID_List list of application IDs, in order to obtain transaction detection rules from local transaction detection rules dictionary
- # @param detectionRules data stream containing transaction detection rules
+ # @param custom_detectruleDict dictionary containing transaction detection rules
  # @param fileName output file name
  # @return None
 ###
-def generate_transactiondetection_CSV(appID_List=None,detectionRules=None,fileName=None):
-    if appID_List is None and detectionRules is None:
+def generate_transactiondetection_CSV(appID_List,custom_detectruleDict=None,fileName=None):
+    if appID_List is None and custom_detectruleDict is None:
         return
-    elif detectionRules is None:
-        for appID in appID_List:
-            if detectionRules is None:
-                detectionRules = detectionruleDict[str(appID)]
-            else:
-                # Merge detection rules
-                for rule in detectionruleDict[str(appID)].find("rule-list"):
-                    detectionRules.find("rule-list").append(rule)
-
-    # Verify this ElementTree contains transaction detection rule data
-    if detectionRules.find('rule-list') is None: return 0
-
-    # for child in detectionRules:
-    #    print(child.tag, child.attrib, child.text)
-    #    print ("\n")
+    elif custom_detectruleDict is None:
+        custom_detectruleDict = detectionruleDict
 
     if fileName is not None:
         try:
@@ -127,140 +232,45 @@ def generate_transactiondetection_CSV(appID_List=None,detectionRules=None,fileNa
         csvfile = sys.stdout
 
     # create the csv writer object
-    fieldnames = ['Name', 'MatchRuleList', 'HttpSplit']
+    fieldnames = ['Name', 'Application', 'MatchRuleList', 'HttpSplit']
     filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
     filewriter.writeheader()
 
-    for detectrule in detectionRules.find('rule-list').findall('rule'):
 
-        # for child in detectrule:
-        #    print(child.tag, child.attrib, child.text)
-        # print ("\n")
+    for appID in appID_List:
+        detectionRules = custom_detectruleDict[str(appID)]
 
-        ruleName = detectrule.attrib['rule-name'].encode('ASCII', 'ignore')
-        ruleType = detectrule.attrib['rule-type']
+        # Verify this ElementTree contains transaction detection rule data
+        if detectionRules.find('rule-list') is None: return 0
 
-        if ruleType == "TX_MATCH_RULE":
-            txMatchRule = detectrule.find('tx-match-rule')
-            try:
-                txMatchRuleData = json.loads(txMatchRule.text)
-            except:
-                print ("generate_transactiondetection_CSV: Could not process JSON content:\n"+txMatchRule.text)
+        for detectrule in detectionRules.find('rule-list').findall('rule'):
+            # for child in detectrule:
+            #    print(child.tag, child.attrib, child.text)
+            #    print ("\n")
+            ruleName = detectrule.attrib['rule-name'].encode('ASCII', 'ignore')
+            ruleType = detectrule.attrib['rule-type']
+
+            if ruleType == "TX_MATCH_RULE":
+                txMatchRule = detectrule.find('tx-match-rule')
+                try:
+                    txMatchRuleData = json.loads(txMatchRule.text)
+                except:
+                    print ("generate_transactiondetection_CSV: Could not process JSON content:\n"+txMatchRule.text)
+                    continue
+            else:
+                print ("Uknown rule type: "+ruleType)
                 continue
-        else:
-            print ("Uknown rule type: "+ruleType)
-            continue
 
-        mRuleList = ""
-        httpSplit = ""
-        matchRuleType = txMatchRuleData['type']
+            try:
+                filewriter.writerow({'Name': ruleName,
+                                     'Application': getAppName(appID),
+                                     'MatchRuleList': str_transactiondetection_matchrules(txMatchRuleData),
+                                     'HttpSplit': str_transactiondetection_actions(txMatchRuleData)})
+            except ValueError as valError:
+                print (valError)
+                if fileName is not None: csvfile.close()
+                exit(1)
 
-        if matchRuleType == "CUSTOM":
-            matchconditions = txMatchRuleData['txcustomrule']['matchconditions']
-            for mCondition in matchconditions:
-                if mCondition['type'] == "HTTP":
-                    httpmatch = mCondition['httpmatch']
-                    for HTTPRequestCriteria in httpmatch:
-                        if len(mRuleList) > 0: mRuleList = mRuleList + "\n"
-                        if HTTPRequestCriteria == 'httpmethod':
-                            criteria = httpmatch['httpmethod']
-                            strings  = ""
-                            mRuleList = mRuleList + HTTPRequestCriteria + " " + criteria + " " + strings
-                        elif HTTPRequestCriteria in ['uri','hostname','port','servlet']:
-                            criteria = httpmatch[HTTPRequestCriteria]['type']
-                            if 'isnot' in httpmatch[HTTPRequestCriteria] and httpmatch[HTTPRequestCriteria]['isnot'] == True:
-                                criteria = "NOT_"+criteria
-                            strings = " ".join(httpmatch['uri']['matchstrings'])
-                            mRuleList = mRuleList + HTTPRequestCriteria + " " + criteria + " " + strings
-                        elif HTTPRequestCriteria == 'classmatch':
-                            criteria = httpmatch['classmatch']['type']
-                            if 'isnot' in httpmatch['classmatch']['classnamecondition'] and httpmatch['classmatch']['classnamecondition']['isnot'] == True:
-                                criteria = criteria +"_NOT_"+httpmatch['classmatch']['classnamecondition']['type']
-                            else:
-                                criteria = criteria +"_"+httpmatch['classmatch']['classnamecondition']['type']
-                            strings = " ".join(httpmatch['classmatch']['classnamecondition']['matchstrings'])
-                            mRuleList = mRuleList + HTTPRequestCriteria + " " + criteria + " " + strings
-                        elif HTTPRequestCriteria in ['parameters','headers','cookies']:
-                            addNewLine = False
-                            for parameter in httpmatch[HTTPRequestCriteria]:
-                                if not addNewLine: addNewLine = True
-                                else: mRuleList = mRuleList + "\n"
-                                criteria = parameter['comparisontype']
-                                strings  = "name " + parameter['name']['type'] + " " + " ".join(parameter['name']['matchstrings'])
-                                if parameter['comparisontype'] == "CHECK_VALUE" and 'isnot' in parameter['value'] and parameter['value']['isnot'] == True:
-                                    strings = strings + " AND value NOT " + parameter['value']['type'] + " " + " ".join(parameter['value']['matchstrings'])
-                                elif parameter['comparisontype'] == "CHECK_VALUE":
-                                    strings = strings + " AND value " + parameter['value']['type'] + " " + " ".join(parameter['value']['matchstrings'])
-                                mRuleList = mRuleList + HTTPRequestCriteria + " " + criteria + " " + strings
-                        else:
-                            print ("HTTP Request Match criteria unknown: " + HTTPRequestCriteria)
-                elif mCondition['type'] == "INSTRUMENTATION_PROBE":
-                    #### TO DO: POJO instrumentation parsing
-                    print ("INSTRUMENTATION_PROBE not supported yet")
-                else:
-                    print ("Match condition "+mCondition['type']+" not implemented yet.")
-            
-            actions = txMatchRuleData['txcustomrule']['actions']
-            for action in actions:
-                if action['type'] == "HTTP_SPLIT":
-                    if not action['httpsplit']: # HTTPSplit definition is empty
-                        continue
-                    elif 'httpsplitonreqdata' in action['httpsplit']:
-                        if len(httpSplit) > 0: httpSplit = httpSplit + "\n"
-
-                        httpsplitonreqdata = action['httpsplit']['httpsplitonreqdata']
-                        if 'customexpression' in httpsplitonreqdata:
-                            httpSplit = httpSplit + "Split Transactions using custom expression: "+httpsplitonreqdata['customexpression']['stringvalue']
-                        elif 'segments' in httpsplitonreqdata:
-                            if httpsplitonreqdata['segments']['type'] == "FIRST":
-                                httpSplit = httpSplit + "Split Transactions using first "+str(httpsplitonreqdata['segments']['numsegments'])+" URI segments"
-                            elif httpsplitonreqdata['segments']['type'] == "LAST":
-                                httpSplit = httpSplit + "Split Transactions using last "+str(httpsplitonreqdata['segments']['numsegments'])+" URI segments"
-                            elif httpsplitonreqdata['segments']['type'] == "SELECTED":
-                                httpSplit = httpSplit + "Split Transactions using URI segments " + str(httpsplitonreqdata['segments']['selectedsegments'])
-                        elif 'parametername' in httpsplitonreqdata:
-                            httpSplit = httpSplit + "Split Transactions using parameter value "+httpsplitonreqdata['parametername']
-                        elif 'headername' in httpsplitonreqdata:
-                            httpSplit = httpSplit + "Split Transactions using header value "+httpsplitonreqdata['headername']
-                        elif 'cookiename' in httpsplitonreqdata:
-                            httpSplit = httpSplit + "Split Transactions using cookie value "+httpsplitonreqdata['cookiename']
-                        elif 'sessionattributename' in httpsplitonreqdata:
-                            httpSplit = httpSplit + "Split Transactions using session attribute value "+httpsplitonreqdata['sessionattributename']
-                        elif 'usehttpmethod' in httpsplitonreqdata and httpsplitonreqdata['usehttpmethod'] == True:
-                            httpSplit = httpSplit + "Split Transactions using the request method (GET/POST/PUT)"
-                        elif 'usehost' in httpsplitonreqdata and httpsplitonreqdata['usehost'] == True:
-                            httpSplit = httpSplit + "Split Transactions using the request host"
-                        elif 'useoriginatingaddr' in httpsplitonreqdata and httpsplitonreqdata['useoriginatingaddr'] == True:
-                            httpSplit = httpSplit + "Split Transactions using the request originating address"
-                        else: 
-                            print ("Request data split criteria unknown.")
-                    elif 'httpsplitonpayload' in action['httpsplit']:
-                        #### TO DO: Actions (Split Using Payload)
-                        print ("httpsplitonpayload not supported yet")
-                    else: 
-                        print action['httpsplit']
-                elif action['type'] == "POJO_SPLIT":
-                    #### TO DO: POJO split
-                    print ("POJO split not supported yet")
-                    pass
-                else: 
-                    print action['type']
-                    print action['httpsplit']
-
-        elif matchRuleType == "AUTOMATIC_DISCOVERY":
-            #### TO DO: Automatic discovery rules
-            print ("Automatic discovery rules not supported yet")
-        else:
-            print ("Uknown rule type: "+matchRuleType)
-
-        try:
-            filewriter.writerow({'Name': ruleName,
-                                 'MatchRuleList': mRuleList,
-                                 'HttpSplit': httpSplit})
-        except:
-            print ("Could not write to the output.")
-            if fileName is not None: csvfile.close()
-            exit(1)
     if fileName is not None: csvfile.close()
 
 ###
@@ -270,7 +280,7 @@ def generate_transactiondetection_CSV(appID_List=None,detectionRules=None,fileNa
  # @param fileName output file name
  # @return None
 ###
-def generate_transactiondetection_JSON(app_ID,detectionRules=None,fileName=None):
+def generate_transactiondetection_JSON(appID_List,custom_detectruleDict=None,fileName=None):
     print "generate_transactiondetection_JSON: feature not implemented yet."
 # TODO: generate JSON output format
 
@@ -291,10 +301,11 @@ def get_detection_rules_from_stream(streamdata,outputFormat=None,outFilename=Non
     except:
         if 'DEBUG' in locals(): print ("Could not process XML data.")
         return 0
+    custom_detectruleDict = {"0":root}
     if outputFormat and outputFormat == "JSON":
-        generate_transactiondetection_JSON(detectionRules=root,fileName=outFilename)
+        generate_transactiondetection_JSON(appID_List=[0],custom_detectruleDict=custom_detectruleDict,fileName=outFilename)
     else:
-        generate_transactiondetection_CSV(detectionRules=root,fileName=outFilename)
+        generate_transactiondetection_CSV(appID_List=[0],custom_detectruleDict=custom_detectruleDict,fileName=outFilename)
 
 ###
  # Display transaction detection rules for a list of applications.
