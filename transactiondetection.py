@@ -190,19 +190,19 @@ def str_transactiondetection_actions(txMatchRuleData):
                     elif 'useoriginatingaddr' in httpsplitonreqdata and httpsplitonreqdata['useoriginatingaddr'] == True:
                         httpSplit = httpSplit + "Split Transactions using the request originating address"
                     else:
-                        print ("Request data split criteria unknown.")
+                        return "Request data split criteria unknown."
                 elif 'httpsplitonpayload' in action['httpsplit']:
                     #### TO DO: Actions (Split Using Payload)
-                    print ("httpsplitonpayload not supported yet")
+                    return "httpsplitonpayload not supported yet"
                 else:
                     print action['httpsplit']
             elif action['type'] == "POJO_SPLIT":
                 #### TO DO: POJO split
-                print ("POJO split not supported yet")
+                return "POJO split not supported yet"
                 pass
             else:
-                print action['type']
-                print action['httpsplit']
+                return action['type']
+                return action['httpsplit']
     elif txMatchRuleData['type'] == "AUTOMATIC_DISCOVERY":
         #### TO DO: Automatic discovery rules
         return "Automatic discovery rules not supported yet"
@@ -255,17 +255,20 @@ def generate_transactiondetection_CSV(appID_List,custom_detectruleDict=None,file
                 try:
                     txMatchRuleData = json.loads(txMatchRule.text)
                 except:
-                    print ("generate_transactiondetection_CSV: Could not process JSON content:\n"+txMatchRule.text)
-                    continue
+                    matchRuleList = "Could not process JSON content"
+                    httpSplit     = "Could not process JSON content"
+                else:
+                    matchRuleList = str_transactiondetection_matchrules(txMatchRuleData)
+                    httpSplit     = str_transactiondetection_actions(txMatchRuleData)
             else:
-                print ("Uknown rule type: "+ruleType)
-                continue
+                matchRuleList = "Uknown rule type: " + ruleType
+                httpSplit     = "Uknown rule type: " + ruleType
 
             try:
                 filewriter.writerow({'Name': ruleName,
                                      'Application': getAppName(appID),
-                                     'MatchRuleList': str_transactiondetection_matchrules(txMatchRuleData),
-                                     'HttpSplit': str_transactiondetection_actions(txMatchRuleData)})
+                                     'MatchRuleList': matchRuleList,
+                                     'HttpSplit': httpSplit})
             except ValueError as valError:
                 print (valError)
                 if fileName is not None: csvfile.close()
