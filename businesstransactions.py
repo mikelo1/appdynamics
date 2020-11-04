@@ -10,7 +10,7 @@ BTDict = dict()
 ###
  # Fetch application business transactions from a controller then add them to the business transactions dictionary. Provide either an username/password or an access token.
  # @param app_ID the ID number of the application business transactions to fetch
- # @param selectors fetch only snapshots filtered by specified selectors
+ # @param selectors fetch only business transactions filtered by specified selectors
  # @param serverURL Full hostname of the Appdynamics controller. i.e.: https://demo1.appdynamics.com:443
  # @param userName Full username, including account. i.e.: myuser@customer1
  # @param password password for the specified user and host. i.e.: mypassword
@@ -50,17 +50,15 @@ def fetch_business_transactions(app_ID,selectors=None,serverURL=None,userName=No
 ###
  # Generate CSV output from business transactions data, either from the local dictionary or from streamed data
  # @param appID_List list of application IDs, in order to obtain business transactions from local business transactions dictionary
- # @param transactions data stream containing business transactions
+ # @param custom_transactionDict dictionary containing business transactions
  # @param fileName output file name
  # @return None
 ###
-def generate_business_transactions_CSV(appID_List=None,transactions=None,fileName=None):
-    if appID_List is None and transactions is None:
+def generate_business_transactions_CSV(appID_List,custom_transactionDict=None,fileName=None):
+    if appID_List is None and custom_transactionDict is None:
         return
-    elif transactions is None:
-        transactions = []
-        for appID in appID_List:
-            transactions = transactions + BTDict[str(appID)]
+    elif custom_transactionDict is None:
+        custom_transactionDict = BTDict
 
     if fileName is not None:
         try:
@@ -72,38 +70,42 @@ def generate_business_transactions_CSV(appID_List=None,transactions=None,fileNam
         csvfile = sys.stdout
 
     # create the csv writer object
-    fieldnames = ['name', 'entryPointType', 'tierName']
+    fieldnames = ['name', 'Application', 'entryPointType', 'tierName']
     filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
     filewriter.writeheader()
 
-    for BT in transactions:
-        if 'entryPointType' not in BT:
-            continue
+    for appID in appID_List:
+        for BT in custom_transactionDict[str(appID)]:
+            # Check if data belongs to a business transaction
+            if 'entryPointType' not in BT: continue
 
-        try:
-            filewriter.writerow({'name': BT['name'].encode('ASCII', 'ignore'),
-                                 'entryPointType': BT['entryPointType'],
-                                 'tierName': BT['tierName']})
-        except:
-            print ("Could not write to the output file.")
-            if fileName is not None: csvfile.close()
-            exit(1)
-    if fileName is not None: csvfile.close()
+            try:
+                filewriter.writerow({'name': BT['name'].encode('ASCII', 'ignore'),
+                                     'Application': getAppName(appID),
+                                     'entryPointType': BT['entryPointType'],
+                                     'tierName': BT['tierName']})
+            except ValueError as valError:
+                print (valError)
+                if fileName is not None: csvfile.close()
+                exit(1)
+        if fileName is not None: csvfile.close()
 
 ###
  # Generate JSON output from business transactions data, either from the local dictionary or from streamed data
  # @param appID_List list of application IDs, in order to obtain business transactions from local business transactions dictionary
- # @param transactions data stream containing business transactions
+ # @param custom_transactionDict dictionary containing business transactions
  # @param fileName output file name
  # @return None
 ###
-def generate_business_transactions_JSON(appID_List=None,transactions=None,fileName=None):
-    if appID_List is None and transactions is None:
+def generate_business_transactions_JSON(appID_List=None,custom_transactionDict=None,fileName=None):
+    if appID_List is None and custom_transactionDict is None:
         return
-    elif transactions is None:
-        transactions = []
-        for appID in appID_List:
-            transactions = transactions + BTDict[str(appID)]
+    elif custom_transactionDict is None:
+        custom_transactionDict = BTDict
+
+    transactions = []
+    for appID in appID_List:
+        transactions = transactions + custom_transactionDict[str(appID)]
 
     if fileName is not None:
         try:
@@ -129,14 +131,15 @@ def generate_business_transactions_JSON(appID_List=None,transactions=None,fileNa
 ###
 def get_business_transactions_from_stream(streamdata,outputFormat=None,outFilename=None):
     try:
-        BTs = json.loads(streamdata)
+        transactions = json.loads(streamdata)
     except:
         if 'DEBUG' in locals(): print ("Could not process JSON file data.")
         return 0
+    custom_transactionDict = {"0":[transactions]} if type(transactions) is dict else {"0":transactions}
     if outputFormat and outputFormat == "JSON":
-        generate_business_transactions_JSON(transactions=BTs,fileName=outFilename)
+        generate_business_transactions_JSON(appID_List=[0],custom_transactionDict=custom_transactionDict,fileName=outFilename)
     else:
-        generate_business_transactions_CSV(transactions=BTs,fileName=outFilename)
+        generate_business_transactions_CSV(appID_List=[0],custom_transactionDict=custom_transactionDict,fileName=outFilename)
 
 ###
  # Display business transactions for a list of applications.

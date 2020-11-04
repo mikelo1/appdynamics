@@ -70,17 +70,15 @@ def fetch_nodes(app_ID,selectors=None,serverURL=None,userName=None,password=None
 ###
  # Generate CSV output from nodes data, either from the local dictionary or from streamed data
  # @param appID_List list of application IDs, in order to obtain nodes from local nodes dictionary
- # @param nodes data stream containing nodes
+ # @param custom_nodeDict dictionary containing nodes
  # @param fileName output file name
  # @return None
 ###
-def generate_nodes_CSV(appID_List=None,nodes=None,fileName=None):
-    if appID_List is None and nodes is None:
+def generate_nodes_CSV(appID_List,custom_nodeDict=None,fileName=None):
+    if appID_List is None and custom_nodeDict is None:
         return
-    elif nodes is None:
-        nodes = []
-        for appID in appID_List:
-            nodes = nodes + nodeDict[str(appID)]
+    elif custom_nodeDict is None:
+        custom_nodeDict = nodeDict
 
     if fileName is not None:
         try:
@@ -91,40 +89,45 @@ def generate_nodes_CSV(appID_List=None,nodes=None,fileName=None):
     else:
         csvfile = sys.stdout
 
-    fieldnames = ['Node', 'Tier', 'AgentVersion', 'MachineName', 'OSType']
+    fieldnames = ['Node', 'Tier', 'Application', 'AgentVersion', 'MachineName', 'OSType']
     filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
     filewriter.writeheader()
 
-    for node in nodes:
-        if 'nodeUniqueLocalId' not in node: continue
-        
-        try:
-            filewriter.writerow({'Node': node['name'],
-                                 'Tier': node['tierName'],
-                                 'AgentVersion': node['appAgentVersion'] if node['agentType']=="APP_AGENT" else node['agentType'],
-                                 'MachineName': node['machineName'],
-                                 'OSType': node['machineOSType']})
-        except:
-            print ("Could not write to the output.")
-            if fileName is not None: csvfile.close()
-            return (-1)
+    for appID in appID_List:
+        for node in custom_nodeDict[str(appID)]:
+            # Check if data belongs to a node
+            if 'nodeUniqueLocalId' not in node: continue
+
+            try:
+                filewriter.writerow({'Node': node['name'],
+                                     'Tier': node['tierName'],
+                                     'Application': getAppName(appID),
+                                     'AgentVersion': node['appAgentVersion'] if node['agentType']=="APP_AGENT" else node['agentType'],
+                                     'MachineName': node['machineName'],
+                                     'OSType': node['machineOSType']})
+            except ValueError as valError:
+                print (valError)
+                if fileName is not None: csvfile.close()
+                return (-1)
     if 'DEBUG' in locals(): print "generate_nodes_CSV: [INFO] Displayed number of nodes:" + str(len(nodes))
     if fileName is not None: csvfile.close()
 
 ###
  # Generate JSON output from nodes data, either from the local dictionary or from streamed data
  # @param appID_List list of application IDs, in order to obtain nodes from local nodes dictionary
- # @param nodes data stream containing nodes
+ # @param custom_nodeDict dictionary containing nodes
  # @param fileName output file name
  # @return None
 ###
-def generate_nodes_JSON(appID_List=None,nodes=None,fileName=None):
-    if appID_List is None and nodes is None:
+def generate_nodes_JSON(appID_List,custom_nodeDict=None,fileName=None):
+    if appID_List is None and custom_nodeDict is None:
         return
-    elif nodes is None:
-        nodes = []
-        for appID in appID_List:
-            nodes = nodes + nodeDict[str(appID)]
+    elif custom_nodeDict is None:
+        custom_nodeDict = nodeDict
+
+    nodes = []
+    for appID in appID_List:
+        nodes = nodes + custom_nodeDict[str(appID)]
 
     if fileName is not None:
         try:
@@ -207,10 +210,11 @@ def get_nodes_from_stream(streamdata,outputFormat=None,outFilename=None):
     except:
         if 'DEBUG' in locals(): print ("Could not process JSON data.")
         return 0
+    custom_nodeDict = {"0":[nodes]} if type(nodes) is dict else {"0":nodes}
     if outputFormat and outputFormat == "JSON":
-        generate_nodes_JSON(nodes=nodes,fileName=outFilename)
+        generate_nodes_JSON(appID_List=[0],custom_nodeDict=custom_nodeDict,fileName=outFilename)
     else:
-        generate_nodes_CSV(nodes=nodes,fileName=outFilename)
+        generate_nodes_CSV(appID_List=[0],custom_nodeDict=custom_nodeDict,fileName=outFilename)
 
 ###
  # Display nodes for a list of applications.

@@ -7,60 +7,6 @@ from applications import getAppName
 
 scheduleDict = dict()
 
-class ScheduleElement:
-    appID  = 0
-    schedID= 0
-    data   = None
-    def __init__(self,appID,schedID,data=None):
-        self.appID  = appID
-        self.schedID= schedID
-        self.data   = data
-    def __str__(self):
-        return "({0},{1},{2})".format(self.appID,self.schedID,self.data)
-
-class Schedule:
-    Id         = 0
-    name       = "" # i.e.: "End of Business Hour: 5pm-6pm, Mon-Fri"
-    appName    = "" 
-    description= "" # i.e.: "This schedule is active Monday through Friday, during end of business hour"
-    timezone   = "" # i.e.: "Asia/Kolkata"
-    config     = None
-    def __init__(self,Id,name,appName,description,timezone,config=None):
-        self.Id         = Id
-        self.name       = name
-        self.appName    = appName
-        self.description= description
-        self.timezone   = timezone
-        self.config     = config
-    def __str__(self):
-        return "({0},{1},{2},{3},{4},{5})".format(self.Id,self.name,self.appName,self.description,self.timezone,self.config)
-
-class ScheduleConfiguration:
-    frequency= "" # i.e.: "WEEKLY", "ONE_TIME" or "CUSTOM"
-    startTime= "" # i.e.: "06:00"
-    endTime  = "" # i.e.: "18:00"
-    startCron= "" # i.e.: "0 0 8 ? * 2-6"
-    endCron  = "" # i.e.: "0 0 12 ? * 2-6"
-    startDate= "" # i.e.: "01/01/2019"
-    endDate  = "" # i.e.: "01/01/2019"
-    occurrenc= "" # i.e.: "FIRST"
-    day      = "" # i.e.: "SUNDAY"
-    days     = [] # i.e.: ["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY"]
-    def __init__(self,frequency,startTime=None,endTime=None,startCron=None,endCron=None,startDate=None,endDate=None,occurrenc=None,day=None,days=None):
-        self.frequency= frequency
-        self.startTime= startTime
-        self.endTime  = endTime
-        self.startCron= startCron
-        self.endCron  = endCron
-        self.startDate= startDate
-        self.endDate  = endDate
-        self.occurrenc= occurrenc
-        self.day      = day
-        self.days     = days
-    def __str__(self):
-        return "({0},{1},{2},{3},{4},{5})".format(self.frequency,self.startTime,self.endTime,self.startCron,self.endCron,self.startDate,self.endDate,self.occurrenc,self.day,self.days)
-
-
 def build_test_schedules(app_ID):
     schedules1=json.loads('[{"timezone":"Europe/Brussels","description":"This schedule is active Monday through Friday, during business hours","id":30201,"scheduleConfiguration":{"scheduleFrequency":"WEEKLY","endTime":"17:00","days":["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY"],"startTime":"08:00"},"name":"Weekdays:8am-5pm,Mon-Fri"}]')
     schedules2=json.loads('[{"timezone":"Europe/Brussels","description":"This schedule is active Monday through Friday, during business hours","id":30201,"scheduleConfiguration":{"scheduleFrequency":"WEEKLY","endTime":"17:00","days":["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY"],"startTime":"08:00"},"name":"Weekdays:8am-5pm,Mon-Fri"}]')
@@ -154,19 +100,53 @@ def update_schedule(app_ID,sched_ID):
     return update_RESTful_JSON(restfulPath,schedule)
 
 ###
+ # toString method, extracts start time from schedule
+ # @param schedule JSON data containing a schedule
+ # @return string with a start time
+###
+def str_schedule_start(schedule):
+    if 'scheduleConfiguration' in schedule:
+        scheduleConfig = schedule['scheduleConfiguration']
+        if 'startCron' in scheduleConfig:
+            return scheduleConfig['startCron']
+        elif 'startDate' in scheduleConfig:
+            return scheduleConfig['startDate']+" "+scheduleConfig['startTime']
+        elif 'occurrence' in scheduleConfig:
+            return scheduleConfig['occurrence']+" "+scheduleConfig['day']+" "+scheduleConfig['startTime']
+        elif 'startTime' in scheduleConfig:
+            return scheduleConfig['startTime']
+    return ""
+
+###
+ # toString method, extracts end time from schedule
+ # @param schedule JSON data containing a schedule
+ # @return string with a end time
+###
+def str_schedule_end(schedule):
+    if 'scheduleConfiguration' in schedule:
+        scheduleConfig = schedule['scheduleConfiguration']
+        if 'endCron' in scheduleConfig:
+            return scheduleConfig['endCron']
+        elif 'endDate' in scheduleConfig:
+            return scheduleConfig['endDate']+" "+scheduleConfig['endTime']
+        elif 'occurrence' in scheduleConfig:
+            return scheduleConfig['occurrence']+" "+scheduleConfig['day']+" "+scheduleConfig['endTime']
+        elif 'endTime' in scheduleConfig:
+            return scheduleConfig['endTime']
+    return ""
+
+###
  # Generate CSV output from schedules data, either from the local dictionary or from streamed data
  # @param appID_List list of application IDs, in order to obtain schedules from local schedules dictionary
  # @param schedules data stream containing schedules
  # @param fileName output file name
  # @return None
 ###
-def generate_schedules_CSV(appID_List=None,schedules=None,fileName=None):
-    if appID_List is None and schedules is None:
+def generate_schedules_CSV(appID_List,custom_scheduleDict=None,fileName=None):
+    if appID_List is None and custom_scheduleDict is None:
         return
-    elif schedules is None:
-        schedules = []
-        for appID in appID_List:
-            schedules = schedules + scheduleDict[str(appID)]
+    elif custom_scheduleDict is None:
+        custom_scheduleDict = scheduleDict
 
     if fileName is not None:
         try:
@@ -178,44 +158,26 @@ def generate_schedules_CSV(appID_List=None,schedules=None,fileName=None):
         csvfile = sys.stdout
 
     # create the csv writer object
-    fieldnames = ['Name', 'Description', 'Timezone', 'Frequency', 'Start', 'End']
+    fieldnames = ['Name', 'Description', 'Application', 'Timezone', 'Frequency', 'Start', 'End']
     filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
     filewriter.writeheader()
 
-    for schedule in schedules:
-        if 'timezone' not in schedule: continue
-        if 'scheduleConfiguration' in schedule:
-            scheduleConfig = schedule['scheduleConfiguration']
-
-            if 'startCron' in scheduleConfig:
-                start=scheduleConfig['startCron']
-            elif 'startDate' in scheduleConfig:
-                start=scheduleConfig['startDate']+" "+scheduleConfig['startTime']
-            elif 'occurrence' in scheduleConfig:
-                start=scheduleConfig['occurrence']+" "+scheduleConfig['day']+" "+scheduleConfig['startTime']
-            elif 'startTime' in scheduleConfig:
-                start=scheduleConfig['startTime']
-
-            if 'endCron' in scheduleConfig:
-                end=scheduleConfig['endCron']
-            elif 'endDate' in scheduleConfig:
-                end=scheduleConfig['endDate']+" "+scheduleConfig['endTime']
-            elif 'occurrence' in scheduleConfig:
-                end=scheduleConfig['occurrence']+" "+scheduleConfig['day']+" "+scheduleConfig['endTime']
-            elif 'endTime' in scheduleConfig:
-                end=scheduleConfig['endTime']
-
-        try:
-            filewriter.writerow({'Name': schedule['name'],
-                                 'Description': schedule['description'],
-                                 'Timezone': schedule['timezone'],
-                                 'Frequency': scheduleConfig['scheduleFrequency'] if 'scheduleConfig' in locals() else "",
-                                 'Start': start if 'start' in locals() else "",
-                                 'End':  end if 'end' in locals() else "" })
-        except:
-            print ("Could not write to the output.")
-            if fileName is not None: csvfile.close()
-            return (-1)
+    for appID in appID_List:
+        for schedule in custom_scheduleDict[str(appID)]:
+            # Check if data belongs to a schedule
+            if 'timezone' not in schedule: continue
+            try:
+                filewriter.writerow({'Name': schedule['name'],
+                                     'Description': schedule['description'],
+                                     'Application': getAppName(appID),
+                                     'Timezone': schedule['timezone'],
+                                     'Frequency': schedule['scheduleConfiguration']['scheduleFrequency'] if 'scheduleConfiguration' in schedule else "",
+                                     'Start': str_schedule_start(schedule),
+                                     'End':  str_schedule_end(schedule) })
+            except ValueError as valError:
+                print (valError)
+                if fileName is not None: csvfile.close()
+                return (-1)
     if fileName is not None: csvfile.close()
 
 ###
@@ -225,13 +187,15 @@ def generate_schedules_CSV(appID_List=None,schedules=None,fileName=None):
  # @param fileName output file name
  # @return None
 ###
-def generate_schedules_JSON(appID_List=None,schedules=None,fileName=None):
-    if appID_List is None and schedules is None:
+def generate_schedules_JSON(appID_List,custom_scheduleDict=None,fileName=None):
+    if appID_List is None and custom_scheduleDict is None:
         return
-    elif schedules is None:
-        schedules = []
-        for appID in appID_List:
-            schedules = schedules + scheduleDict[str(appID)]
+    elif custom_scheduleDict is None:
+        custom_scheduleDict = scheduleDict
+
+    schedules = []
+    for appID in appID_List:
+        schedules = schedules + custom_scheduleDict[str(appID)]
 
     if fileName is not None:
         try:
@@ -279,10 +243,11 @@ def get_schedules_from_stream(streamData,outputFormat=None,outFilename=None):
                 continue
             schedules[index] = scheduleJSON
             index = index + 1
+    custom_scheduleDict = {"0":[schedules]} if type(schedules) is dict else {"0":schedules}
     if outputFormat and outputFormat == "JSON":
-        generate_schedules_JSON(schedules=schedules,fileName=outFilename)
+        generate_schedules_JSON(appID_List=[0],custom_scheduleDict=custom_scheduleDict,fileName=outFilename)
     else:
-        generate_schedules_CSV(schedules=schedules,fileName=outFilename)
+        generate_schedules_CSV(appID_List=[0],custom_scheduleDict=custom_scheduleDict,fileName=outFilename)
 
 ###
  # Display schedules for a list of applications.

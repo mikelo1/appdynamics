@@ -10,21 +10,19 @@ backendDict = dict()
 ###
  # Fetch application backends from a controller then add them to the backends dictionary. Provide either an username/password or an access token.
  # @param app_ID the ID number of the application backends to fetch
- # @param selectors fetch only snapshots filtered by specified selectors
  # @param serverURL Full hostname of the Appdynamics controller. i.e.: https://demo1.appdynamics.com:443
  # @param userName Full username, including account. i.e.: myuser@customer1
  # @param password password for the specified user and host. i.e.: mypassword
  # @param token API acccess token
  # @return the number of fetched backends. Zero if no backend was found.
 ###
-def fetch_backends(app_ID,selectors=None,serverURL=None,userName=None,password=None,token=None):
+def fetch_backends(app_ID,serverURL=None,userName=None,password=None,token=None):
     if 'DEBUG' in locals(): print ("Fetching business transactions for App " + str(app_ID) + "...")
 
     # Retrieve All Registered Backends in a Business Application With Their Properties
     # GET /controller/rest/applications/application_name/backends
     restfulPath = "/controller/rest/applications/" + str(app_ID) + "/backends"
     params = {"output": "JSON"}
-    if selectors: params.update(selectors)
 
     if serverURL and userName and password:
         response = fetch_RESTfulPath(restfulPath,params=params,serverURL=serverURL,userName=userName,password=password)
@@ -50,17 +48,15 @@ def fetch_backends(app_ID,selectors=None,serverURL=None,userName=None,password=N
 ###
  # Generate CSV output from backends data, either from the local dictionary or from streamed data
  # @param appID_List list of application IDs, in order to obtain backends from local backends dictionary
- # @param events data stream containing backends
+ # @param custom_backendDict dictionary containing backends
  # @param fileName output file name
  # @return None
 ###
-def generate_backends_CSV(appID_List=None,backends=None,fileName=None):
-    if appID_List is None and backends is None:
+def generate_backends_CSV(appID_List,custom_backendDict=None,fileName=None):
+    if appID_List is None and custom_backendDict is None:
         return
-    elif backends is None:
-        backends = []
-        for appID in appID_List:
-            backends = backends + backendDict[str(appID)]
+    elif custom_backendDict is None:
+        custom_backendDict = backendDict
 
     if fileName is not None:
         try:
@@ -71,35 +67,40 @@ def generate_backends_CSV(appID_List=None,backends=None,fileName=None):
     else:
         csvfile = sys.stdout
 
-    fieldnames = ['name', 'exitPointType']
+    fieldnames = ['name', 'Application', 'exitPointType']
     filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
     filewriter.writeheader()
 
-    for BE in backends:
-        if 'exitPointType' not in BE: continue
-        try:
-            filewriter.writerow({'name': BE['name'].encode('ASCII', 'ignore'),
-                                 'exitPointType': BE['exitPointType']})
-        except:
-            print ("generate_backends_CSV: Could not write to the output file.")
-            if fileName is not None: csvfile.close()
-            exit(1)
+    for appID in appID_List:
+        for BE in custom_backendDict[str(appID)]:
+            # Check if data belongs to a backend
+            if 'exitPointType' not in BE: continue
+            try:
+                filewriter.writerow({'name': BE['name'].encode('ASCII', 'ignore'),
+                                     'Application': getAppName(appID),
+                                     'exitPointType': BE['exitPointType']})
+            except ValueError as valError:
+                print (valError)
+                if fileName is not None: csvfile.close()
+                exit(1)
     if fileName is not None: csvfile.close()
 
 ###
  # Generate CSV output from backends data, either from the local dictionary or from streamed data
  # @param appID_List list of application IDs, in order to obtain backends from local backends dictionary
- # @param events data stream containing backends
+ # @param custom_backendDict dictionary containing backends
  # @param fileName output file name
  # @return None
 ###
-def generate_backends_JSON(appID_List=None,backends=None,fileName=None):
-    if appID_List is None and backends is None:
+def generate_backends_JSON(appID_List,custom_backendDict=None,fileName=None):
+    if appID_List is None and custom_backendDict is None:
         return
-    elif backends is None:
-        backends = []
-        for appID in appID_List:
-            backends = backends + backendDict[str(appID)]
+    elif custom_backendDict is None:
+        custom_backendDict = backendDict
+
+    backends = []
+    for appID in appID_List:
+        backends = backends + custom_backendDict[str(appID)]
 
     if fileName is not None:
         try:
@@ -125,14 +126,15 @@ def generate_backends_JSON(appID_List=None,backends=None,fileName=None):
 ###
 def get_backends_from_stream(streamdata,outputFormat=None,outFilename=None):
     try:
-        BEs = json.loads(streamdata)
+        backends = json.loads(streamdata)
     except:
         if 'DEBUG' in locals(): print ("get_backends_from_stream: Could not process JSON data.")
         return 0
+    custom_backendDict = {"0":[backends]} if type(backends) is dict else {"0":backends}
     if outputFormat and outputFormat == "JSON":
-        generate_backends_JSON(backends=BEs,fileName=outFilename)
+        generate_backends_JSON(appID_List=[0],custom_backendDict=custom_backendDict,fileName=outFilename)
     else:
-        generate_backends_CSV(backends=BEs,fileName=outFilename)
+        generate_backends_CSV(appID_List=[0],custom_backendDict=custom_backendDict,fileName=outFilename)
 
 ###
  # Display backends for a list of applications.
@@ -145,7 +147,7 @@ def get_backends(appID_List,selectors=None,outputFormat=None):
     numBackends = 0
     for appID in appID_List:
         sys.stderr.write("get backends " + getAppName(appID) + "...\n")
-        numBackends = numBackends + fetch_backends(appID,selectors=selectors)
+        numBackends = numBackends + fetch_backends(appID)
     if outputFormat and outputFormat == "JSON":
         generate_backends_JSON(appID_List)
     elif not outputFormat or outputFormat == "CSV":

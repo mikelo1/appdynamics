@@ -11,7 +11,7 @@ healthruleDict = dict()
 ###
  # Fetch health rules from a controller then add them to the healthrule dictionary. Provide either an username/password or an access token.
  # @param app_ID the ID number of the health rules to fetch
- # @param selectors fetch only snapshots filtered by specified selectors
+ # @param selectors fetch only health rules filtered by specified selectors
  # @param serverURL Full hostname of the Appdynamics controller. i.e.: https://demo1.appdynamics.com:443
  # @param userName Full username, including account. i.e.: myuser@customer1
  # @param password password for the specified user and host. i.e.: mypassword
@@ -101,12 +101,12 @@ def parse_healthrules_XML(streamdata):
         entityType = element.find('type').text
         healthrule.update({"affectedEntityType": entityXML2JSON(entityType)})
 
-        healthrule.update({"affects": load_affects_from_XML(element.find('affected-entities-match-criteria'),entityType)})
+        healthrule.update({"affects": parse_affects_from_XML(element.find('affected-entities-match-criteria'),entityType)})
 
         cec = element.find('critical-execution-criteria')
-        criticalCriteria = load_evalCriterias_from_XML(cec) if cec is not None else None
+        criticalCriteria = parse_evalCriterias_from_XML(cec) if cec is not None else None
         wec  = element.find('warning-execution-criteria')
-        warningCriteria = load_evalCriterias_from_XML(wec) if wec is not None else None
+        warningCriteria = parse_evalCriterias_from_XML(wec) if wec is not None else None
         healthrule.update({"evalCriterias": { "criticalCriteria": criticalCriteria, "warningCriteria": warningCriteria }})
 
         healthrules.append(healthrule)
@@ -119,7 +119,7 @@ def parse_healthrules_XML(streamdata):
  # @param entityType the type of the ElementTree object
  # @return stream data in JSON format.
 ###
-def load_affects_from_XML(element,entityType):
+def parse_affects_from_XML(element,entityType):
     affects = {"affectedEntityType": entityXML2JSON(entityType)}
 
     # 1) Overall Application Performance (load,response time,num slow calls)
@@ -275,7 +275,7 @@ def load_affects_from_XML(element,entityType):
  # @param entityType the type of the ElementTree object
  # @return stream data in JSON format.
 ###
-def load_evalCriterias_from_XML(element):
+def parse_evalCriterias_from_XML(element):
     def go_over_condition_tree(element):
         if element.find('type').text == 'leaf':
             criteria['conditions'].append(parse_condition(element))
@@ -371,19 +371,126 @@ def load_evalCriterias_from_XML(element):
 
 
 ###
+ # toString method, extracts affects from health rule
+ # @param healthrule JSON data containing a health rule
+ # @return string with a comma separated list of affects
+###
+def str_healthrule_affects(healthrule):
+    if 'affects' not in healthrule:
+        Affects=""
+    elif healthrule['affects']['affectedEntityType']=="OVERALL_APPLICATION_PERFORMANCE":
+        Affects="Overall application performance"
+    elif healthrule['affects']['affectedEntityType']=="BUSINESS_TRANSACTION_PERFORMANCE":
+        if healthrule['affects']['affectedBusinessTransactions']['businessTransactionScope']=="ALL_BUSINESS_TRANSACTIONS":
+            Affects="All Business Transactions"
+        elif healthrule['affects']['affectedBusinessTransactions']['businessTransactionScope']=="BUSINESS_TRANSACTIONS_IN_SPECIFIC_TIERS":
+            tierList = healthrule['affects']['affectedBusinessTransactions']['SpecificTiers']
+            tiers = ','.join(map(lambda x: str(x),tierList)) if (len(tierList) > 0) else ""
+            Affects = "Business Transactions in Tiers " + tiers
+        elif healthrule['affects']['affectedBusinessTransactions']['businessTransactionScope']=="SPECIFIC_BUSINESS_TRANSACTIONS":
+            BTList = healthrule['affects']['affectedBusinessTransactions']['businessTransactions']
+            BTs = ','.join(map(lambda x: str(x),BTList)) if (len(BTList) > 0) else ""
+            Affects = "Business Transactions in Tiers " + BTs
+        elif healthrule['affects']['affectedBusinessTransactions']['businessTransactionScope']=="BUSINESS_TRANSACTIONS_MATCHING_PATTERN":
+            patternMatcher = healthrule['affects']['affectedBusinessTransactions']['patternMatcher']
+            if patternMatcher['shouldNot'] == "true":
+                Affects = "Business Transactions " + "NOT" + patternMatcher['matchTo'] + " " + patternMatcher['matchValue']
+            else:
+                Affects = "Business Transactions " + patternMatcher['matchTo'] + " " + patternMatcher['matchValue']
+        else: Affects=""
+    elif healthrule['affects']['affectedEntityType'] in ["TIER_NODE_TRANSACTION_PERFORMANCE","TIER_NODE_HARDWARE","ADVANCED_NETWORK"]:
+        if healthrule['affects']['affectedEntities']['tierOrNode']=="TIER_AFFECTED_ENTITIES":
+            if healthrule['affects']['affectedEntities']['affectedTiers']['affectedTierScope']=="ALL_TIERS":
+                Affects = "All Tiers"
+            elif healthrule['affects']['affectedEntities']['affectedTiers']['affectedTierScope']=="SPECIFIC_TIERS":
+                tierList = healthrule['affects']['affectedEntities']['affectedTiers']['tiers']
+                tiers = ','.join(map(lambda x: str(x),tierList)) if (len(tierList) > 0) else ""
+                Affects = "Specific Tiers " + tiers
+        elif healthrule['affects']['affectedEntities']['tierOrNode']=="NODE_AFFECTED_ENTITIES":
+            if healthrule['affects']['affectedEntities']['affectedNodes']['affectedNodeScope']=="ALL_NODES":
+                Affects = "All Nodes"
+            elif healthrule['affects']['affectedEntities']['affectedNodes']['affectedNodeScope']=="NODES_OF_SPECIFIC_TIERS":
+                tierList = healthrule['affects']['affectedEntities']['affectedNodes']['specificTiers']
+                tiers = ','.join(map(lambda x: str(x),tierList)) if (len(tierList) > 0) else ""
+                Affects = "All nodes from Tiers " + tiers
+            elif healthrule['affects']['affectedEntities']['affectedNodes']['affectedNodeScope']=="SPECIFIC_NODES":
+                nodeList = healthrule['affects']['affectedEntities']['affectedNodes']['nodes']
+                nodes = ','.join(map(lambda x: str(x),nodeList)) if (len(nodeList) > 0) else ""
+                Affects = "Specific Nodes " + nodes
+            elif healthrule['affects']['affectedEntities']['affectedNodes']['affectedNodeScope']=="NODES_MATCHING_PATTERN":
+                patternMatcher = healthrule['affects']['affectedEntities']['affectedNodes']['patternMatcher']
+                if patternMatcher['shouldNot'] == "true":
+                    Affects = "Nodes " + "NOT" + patternMatcher['matchTo'] + " " + patternMatcher['matchValue']
+                else:
+                    Affects = "Nodes " + patternMatcher['matchTo'] + " " + patternMatcher['matchValue']
+            elif healthrule['affects']['affectedEntities']['affectedNodes']['affectedNodeScope']=="NODES_MATCHING_PROPERTY":
+                    patternDict = healthrule['affects']['affectedEntities']['affectedNodes']['patternMatcher']
+                    patterns = ','.join(map(lambda x: str(x),patternDict.items())) if (len(patternDict) > 0) else ""
+                    Affects = "Nodes matching " + patterns
+            else: Affects=""
+        else: Affects=""
+    elif healthrule['affects']['affectedEntityType']=="ERRORS":
+        if healthrule['affects']['affectedErrors']['errorScope']=="ALL_ERRORS":
+            Affects = "All Errors"
+        elif healthrule['affects']['affectedErrors']['errorScope']=="ERRORS_OF_SPECIFIC_TIERS":
+            tierList = healthrule['affects']['affectedErrors']['specificTiers']
+            tiers = ','.join(map(lambda x: str(x),tierList)) if (len(tierList) > 0) else ""
+            Affects = "Errors from specific Tiers " + tiers
+        elif healthrule['affects']['affectedErrors']['errorScope']=="SPECIFIC_ERRORS":
+            errorList = healthrule['affects']['affectedErrors']['errors']
+            errors = ','.join(map(lambda x: str(x),errorList)) if (len(errorList) > 0) else ""
+            Affects = "Specific errors " + errors
+        elif healthrule['affects']['affectedErrors']['errorScope']=="ERRORS_MATCHING_PATTERN":
+            patternMatcher = healthrule['affects']['affectedErrors']['patternMatcher']
+            if patternMatcher['shouldNot'] == "true":
+                Affects = "Errors " + "NOT" + patternMatcher['matchTo'] + " " + patternMatcher['matchValue']
+            else:
+                Affects = "Errors " + patternMatcher['matchTo'] + " " + patternMatcher['matchValue']
+        else: Affects=""
+    else: Affects=""
+    return Affects
+
+###
+ # toString method, extracts critical conditions from health rule
+ # @param healthrule JSON data containing a health rule
+ # @return string with a comma separated list of critical conditions
+###
+def str_healthrule_critical_conditions(healthrule):
+    if 'evalCriterias' not in healthrule or 'criticalCriteria' not in healthrule['evalCriterias'] or healthrule['evalCriterias']['criticalCriteria'] is None:
+        CritCondition = ""
+    elif 'conditionExpression' in healthrule['evalCriterias']['criticalCriteria']:
+        CritCondition = healthrule['evalCriterias']['criticalCriteria']['conditionExpression']
+    elif healthrule['evalCriterias']['criticalCriteria']['conditions'][0]['evalDetail']['evalDetailType'] == "METRIC_EXPRESSION":
+        CritCondition = healthrule['evalCriterias']['criticalCriteria']['conditions'][0]['evalDetail']['metricExpression']
+    elif healthrule['evalCriterias']['criticalCriteria']['conditions'][0]['evalDetail']['evalDetailType'] == "SINGLE_METRIC":
+        evalDetail = healthrule['evalCriterias']['criticalCriteria']['conditions'][0]['evalDetail']
+        if evalDetail['metricEvalDetail']['metricEvalDetailType']=="BASELINE_TYPE":
+            CritCondition = evalDetail['metricPath']+" is "+ \
+                            evalDetail['metricEvalDetail']['baselineCondition']+" "+ \
+                            evalDetail['metricEvalDetail']['baselineName']+" by "+ \
+                            str(evalDetail['metricEvalDetail']['compareValue'])+" "+ \
+                            evalDetail['metricEvalDetail']['baselineUnit']
+        elif evalDetail['metricEvalDetail']['metricEvalDetailType']=="SPECIFIC_TYPE":
+            CritCondition = evalDetail['metricPath']+" is "+ \
+                            evalDetail['metricEvalDetail']['baselineCondition']+" "+ \
+                            str(evalDetail['metricEvalDetail']['compareValue'])
+        else: CritCondition = ""
+    else:
+        CritCondition = ""
+    return CritCondition
+
+###
  # Generate CSV output from health rules data, either from the local dictionary or from streamed data
  # @param appID_List list of application IDs, in order to obtain health rules from local health rules dictionary
- # @param healthrules data stream containing health rules
+ # @param custom_healthruleDict dictionary containing health rules
  # @param fileName output file name
  # @return None
 ###
-def generate_health_rules_CSV(appID_List=None,healthrules=None,fileName=None):
-    if appID_List is None and healthrules is None:
+def generate_health_rules_CSV(appID_List,custom_healthruleDict=None,fileName=None):
+    if appID_List is None and custom_healthruleDict is None:
         return
-    elif healthrules is None:
-        healthrules = []
-        for appID in appID_List:
-            healthrules = healthrules + healthruleDict[str(appID)]
+    elif custom_healthruleDict is None:
+        custom_healthruleDict = healthruleDict
 
     if fileName is not None:
         try:
@@ -395,121 +502,27 @@ def generate_health_rules_CSV(appID_List=None,healthrules=None,fileName=None):
         csvfile = sys.stdout
 
     # create the csv writer object
-    fieldnames = ['HealthRule', 'Duration', 'Wait_Time', 'Schedule', 'Enabled', 'Affects', 'Critical_Condition']
+    fieldnames = ['HealthRule', 'Application', 'Duration', 'Wait_Time', 'Schedule', 'Enabled', 'Affects', 'Critical_Condition']
     filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
     filewriter.writeheader()
 
-    for healthrule in healthrules:
-        if 'affectedEntityType' not in healthrule and 'useDataFromLastNMinutes' not in healthrule:
-            continue
-
-        if 'affects' not in healthrule:
-            Affects=""
-        elif healthrule['affects']['affectedEntityType']=="OVERALL_APPLICATION_PERFORMANCE":
-            Affects="Overall application performance"
-        elif healthrule['affects']['affectedEntityType']=="BUSINESS_TRANSACTION_PERFORMANCE":
-            if healthrule['affects']['affectedBusinessTransactions']['businessTransactionScope']=="ALL_BUSINESS_TRANSACTIONS":
-                Affects="All Business Transactions"
-            elif healthrule['affects']['affectedBusinessTransactions']['businessTransactionScope']=="BUSINESS_TRANSACTIONS_IN_SPECIFIC_TIERS":
-                tierList = healthrule['affects']['affectedBusinessTransactions']['SpecificTiers']
-                tiers = ','.join(map(lambda x: str(x),tierList)) if (len(tierList) > 0) else ""
-                Affects = "Business Transactions in Tiers " + tiers
-            elif healthrule['affects']['affectedBusinessTransactions']['businessTransactionScope']=="SPECIFIC_BUSINESS_TRANSACTIONS":
-                BTList = healthrule['affects']['affectedBusinessTransactions']['businessTransactions']
-                BTs = ','.join(map(lambda x: str(x),BTList)) if (len(BTList) > 0) else ""
-                Affects = "Business Transactions in Tiers " + BTs
-            elif healthrule['affects']['affectedBusinessTransactions']['businessTransactionScope']=="BUSINESS_TRANSACTIONS_MATCHING_PATTERN":
-                patternMatcher = healthrule['affects']['affectedBusinessTransactions']['patternMatcher']
-                if patternMatcher['shouldNot'] == "true":
-                    Affects = "Business Transactions " + "NOT" + patternMatcher['matchTo'] + " " + patternMatcher['matchValue']
-                else:
-                    Affects = "Business Transactions " + patternMatcher['matchTo'] + " " + patternMatcher['matchValue']
-            else: Affects=""
-        elif healthrule['affects']['affectedEntityType'] in ["TIER_NODE_TRANSACTION_PERFORMANCE","TIER_NODE_HARDWARE","ADVANCED_NETWORK"]:
-            if healthrule['affects']['affectedEntities']['tierOrNode']=="TIER_AFFECTED_ENTITIES":
-                if healthrule['affects']['affectedEntities']['affectedTiers']['affectedTierScope']=="ALL_TIERS":
-                    Affects = "All Tiers"
-                elif healthrule['affects']['affectedEntities']['affectedTiers']['affectedTierScope']=="SPECIFIC_TIERS":
-                    tierList = healthrule['affects']['affectedEntities']['affectedTiers']['tiers']
-                    tiers = ','.join(map(lambda x: str(x),tierList)) if (len(tierList) > 0) else ""
-                    Affects = "Specific Tiers " + tiers
-            elif healthrule['affects']['affectedEntities']['tierOrNode']=="NODE_AFFECTED_ENTITIES":
-                if healthrule['affects']['affectedEntities']['affectedNodes']['affectedNodeScope']=="ALL_NODES":
-                    Affects = "All Nodes"
-                elif healthrule['affects']['affectedEntities']['affectedNodes']['affectedNodeScope']=="NODES_OF_SPECIFIC_TIERS":
-                    tierList = healthrule['affects']['affectedEntities']['affectedNodes']['specificTiers']
-                    tiers = ','.join(map(lambda x: str(x),tierList)) if (len(tierList) > 0) else ""
-                    Affects = "All nodes from Tiers " + tiers
-                elif healthrule['affects']['affectedEntities']['affectedNodes']['affectedNodeScope']=="SPECIFIC_NODES":
-                    nodeList = healthrule['affects']['affectedEntities']['affectedNodes']['nodes']
-                    nodes = ','.join(map(lambda x: str(x),nodeList)) if (len(nodeList) > 0) else ""
-                    Affects = "Specific Nodes " + nodes
-                elif healthrule['affects']['affectedEntities']['affectedNodes']['affectedNodeScope']=="NODES_MATCHING_PATTERN":
-                    patternMatcher = healthrule['affects']['affectedEntities']['affectedNodes']['patternMatcher']
-                    if patternMatcher['shouldNot'] == "true":
-                        Affects = "Nodes " + "NOT" + patternMatcher['matchTo'] + " " + patternMatcher['matchValue']
-                    else:
-                        Affects = "Nodes " + patternMatcher['matchTo'] + " " + patternMatcher['matchValue']
-                elif healthrule['affects']['affectedEntities']['affectedNodes']['affectedNodeScope']=="NODES_MATCHING_PROPERTY":
-                        patternDict = healthrule['affects']['affectedEntities']['affectedNodes']['patternMatcher']
-                        patterns = ','.join(map(lambda x: str(x),patternDict.items())) if (len(patternDict) > 0) else ""
-                        Affects = "Nodes matching " + patterns
-                else: Affects=""
-            else: Affects=""
-        elif healthrule['affects']['affectedEntityType']=="ERRORS":
-            if healthrule['affects']['affectedErrors']['errorScope']=="ALL_ERRORS":
-                Affects = "All Errors"
-            elif healthrule['affects']['affectedErrors']['errorScope']=="ERRORS_OF_SPECIFIC_TIERS":
-                tierList = healthrule['affects']['affectedErrors']['specificTiers']
-                tiers = ','.join(map(lambda x: str(x),tierList)) if (len(tierList) > 0) else ""
-                Affects = "Errors from specific Tiers " + tiers
-            elif healthrule['affects']['affectedErrors']['errorScope']=="SPECIFIC_ERRORS":
-                errorList = healthrule['affects']['affectedErrors']['errors']
-                errors = ','.join(map(lambda x: str(x),errorList)) if (len(errorList) > 0) else ""
-                Affects = "Specific errors " + errors
-            elif healthrule['affects']['affectedErrors']['errorScope']=="ERRORS_MATCHING_PATTERN":
-                patternMatcher = healthrule['affects']['affectedErrors']['patternMatcher']
-                if patternMatcher['shouldNot'] == "true":
-                    Affects = "Errors " + "NOT" + patternMatcher['matchTo'] + " " + patternMatcher['matchValue']
-                else:
-                    Affects = "Errors " + patternMatcher['matchTo'] + " " + patternMatcher['matchValue']
-            else: Affects=""
-        else: Affects=""
-
-        if 'evalCriterias' not in healthrule or 'criticalCriteria' not in healthrule['evalCriterias'] or healthrule['evalCriterias']['criticalCriteria'] is None:
-            CritCondition = ""
-        elif 'conditionExpression' in healthrule['evalCriterias']['criticalCriteria']:
-            CritCondition = healthrule['evalCriterias']['criticalCriteria']['conditionExpression']
-        elif healthrule['evalCriterias']['criticalCriteria']['conditions'][0]['evalDetail']['evalDetailType'] == "METRIC_EXPRESSION":
-            CritCondition = healthrule['evalCriterias']['criticalCriteria']['conditions'][0]['evalDetail']['metricExpression']
-        elif healthrule['evalCriterias']['criticalCriteria']['conditions'][0]['evalDetail']['evalDetailType'] == "SINGLE_METRIC":
-            evalDetail = healthrule['evalCriterias']['criticalCriteria']['conditions'][0]['evalDetail']
-            if evalDetail['metricEvalDetail']['metricEvalDetailType']=="BASELINE_TYPE":
-                CritCondition = evalDetail['metricPath']+" is "+ \
-                                evalDetail['metricEvalDetail']['baselineCondition']+" "+ \
-                                evalDetail['metricEvalDetail']['baselineName']+" by "+ \
-                                str(evalDetail['metricEvalDetail']['compareValue'])+" "+ \
-                                evalDetail['metricEvalDetail']['baselineUnit']
-            elif evalDetail['metricEvalDetail']['metricEvalDetailType']=="SPECIFIC_TYPE":
-                CritCondition = evalDetail['metricPath']+" is "+ \
-                                evalDetail['metricEvalDetail']['baselineCondition']+" "+ \
-                                str(evalDetail['metricEvalDetail']['compareValue'])
-            else: CritCondition = ""
-        else:
-            CritCondition = ""
-        
-        try:
-            filewriter.writerow({'HealthRule': healthrule['name'],
-                                 'Duration': healthrule['useDataFromLastNMinutes'] if 'useDataFromLastNMinutes' in healthrule else "",
-                                 'Wait_Time': healthrule['useDataFromLastNMinutes'] if 'useDataFromLastNMinutes' in healthrule else "",
-                                 'Schedule': healthrule['scheduleName'],
-                                 'Enabled': healthrule['enabled'],
-                                 'Affects': Affects,
-                                 'Critical_Condition': CritCondition })
-        except:
-            print ("Could not write to the output.")
-            if fileName is not None: csvfile.close()
-            return (-1)
+    for appID in appID_List:
+        for healthrule in custom_healthruleDict[str(appID)]:
+            # Check if data belongs to a health rule
+            if 'affectedEntityType' not in healthrule and 'useDataFromLastNMinutes' not in healthrule: continue
+            try:
+                filewriter.writerow({'HealthRule': healthrule['name'],
+                                     'Application': getAppName(appID),
+                                     'Duration': healthrule['useDataFromLastNMinutes'] if 'useDataFromLastNMinutes' in healthrule else "",
+                                     'Wait_Time': healthrule['useDataFromLastNMinutes'] if 'useDataFromLastNMinutes' in healthrule else "",
+                                     'Schedule': healthrule['scheduleName'] if 'scheduleName' in healthrule else "",
+                                     'Enabled': healthrule['enabled'],
+                                     'Affects': str_healthrule_affects(healthrule),
+                                     'Critical_Condition': str_healthrule_critical_conditions(healthrule) })
+            except ValueError as valError:
+                print (valError)
+                if fileName is not None: csvfile.close()
+                return (-1)
     if 'DEBUG' in locals(): print "INFO: Displayed number of health rules:" + str(len(healthrules))
     if fileName is not None: csvfile.close()
 
@@ -517,17 +530,19 @@ def generate_health_rules_CSV(appID_List=None,healthrules=None,fileName=None):
 ###
  # Generate JSON output from health rules data, either from the local dictionary or from streamed data
  # @param appID_List list of application IDs, in order to obtain health rules from local health rules dictionary
- # @param healthrules data stream containing health rules
+ # @param custom_healthruleDict dict contaionaryining health rules
  # @param fileName output file name
  # @return None
 ###
-def generate_health_rules_JSON(appID_List=None,healthrules=None,fileName=None):
-    if appID_List is None and healthrules is None:
+def generate_health_rules_JSON(appID_List,custom_healthruleDict=None,fileName=None):
+    if appID_List is None and custom_healthruleDict is None:
         return
-    elif healthrules is None:
-        healthrules = []
-        for appID in appID_List:
-            healthrules = healthrules + healthruleDict[str(appID)]
+    elif custom_healthruleDict is None:
+        custom_healthruleDict = healthruleDict
+
+    healthrules = []
+    for appID in appID_List:
+        healthrules = healthrules + custom_healthruleDict[str(appID)]
 
     if fileName is not None:
         try:
@@ -559,11 +574,11 @@ def get_health_rules_from_stream(streamdata,outputFormat=None,outFilename=None):
         except ValueError:
             if 'DEBUG' in locals(): print ("get_health_rules_from_stream: Could not process JSON content.")
             return 0
-
+    custom_healthruleDict = {"0":[healthrules]} if type(healthrules) is dict else {"0":healthrules}
     if outputFormat and outputFormat == "JSON":
-        generate_health_rules_JSON(healthrules=healthrules,fileName=outFilename)
+        generate_health_rules_JSON(appID_List=[0],custom_healthruleDict=custom_healthruleDict,fileName=outFilename)
     else:
-        generate_health_rules_CSV(healthrules=healthrules,fileName=outFilename)
+        generate_health_rules_CSV(appID_List=[0],custom_healthruleDict=custom_healthruleDict,fileName=outFilename)
 
 ###
  # Display health rules for a list of applications.

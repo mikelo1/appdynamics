@@ -21,21 +21,18 @@ def build_test_policies(app_ID):
 ###
  # Fetch application policies from a controller then add them to the policies dictionary. Provide either an username/password or an access token.
  # @param app_ID the ID number of the application policies to fetch
- # @param selectors fetch only snapshots filtered by specified selectors
  # @param serverURL Full hostname of the Appdynamics controller. i.e.: https://demo1.appdynamics.com:443
  # @param userName Full username, including account. i.e.: myuser@customer1
  # @param password password for the specified user and host. i.e.: mypassword
  # @param token API acccess token
  # @return the number of fetched policies. Zero if no policy was found.
 ###
-def fetch_policies(app_ID,selectors=None,serverURL=None,userName=None,password=None,token=None,loadData=False):
+def fetch_policies(app_ID,serverURL=None,userName=None,password=None,token=None,loadData=False):
     if 'DEBUG' in locals(): print ("Fetching policies for App " + str(app_ID) + "...")
     # Retrieve a list of Policies associated with an Application
     # GET <controller_url>/controller/alerting/rest/v1/applications/<application_id>/policies
     restfulPath = "/controller/alerting/rest/v1/applications/" + str(app_ID) + "/policies"
     params = {"output": "JSON"}
-    if selectors: params.update(selectors)
-
     if serverURL and userName and password:
         response = fetch_RESTfulPath(restfulPath,params=params,serverURL=serverURL,userName=userName,password=password)
     else:
@@ -74,15 +71,13 @@ def fetch_policies(app_ID,selectors=None,serverURL=None,userName=None,password=N
 
     return len(policies)
 
-def fetch_policies_legacy(app_ID,selectors=None,serverURL=None,userName=None,password=None,token=None):
+def fetch_policies_legacy(app_ID,serverURL=None,userName=None,password=None,token=None):
     if 'DEBUG' in locals(): print ("Fetching policies for App " + str(app_ID) + "...")
     # https://docs.appdynamics.com/display/PRO44/Configuration+Import+and+Export+API#ConfigurationImportandExportAPI-ExportPolicies
     # export policies to a JSON file.
     # GET /controller/policies/application_id
     restfulPath = "/controller/policies/" + str(app_ID)
     params = {"output": "JSON"}
-    if selectors: params.update(selectors)
-
     if serverURL and userName and password:
         response = fetch_RESTfulPath(restfulPath,params=params,serverURL=serverURL,userName=userName,password=password)
     else:
@@ -203,19 +198,15 @@ def str_policy_actions(policy):
 ###
  # Generate CSV output from policies data, either from the local dictionary or from streamed data
  # @param appID_List list of application IDs, in order to obtain policies from local policies dictionary
- # @param policies data stream containing policies
+ # @param custom_policyDict dictionary containing policies
  # @param fileName output file name
  # @return None
 ###
-def generate_policies_CSV(appID_List=None,policies=None,fileName=None):
-    if appID_List is None and policies is None:
+def generate_policies_CSV(appID_List,custom_policyDict=None,fileName=None):
+    if appID_List is None and custom_policyDict is None:
         return
-    elif policies is None:
-        policies = []
-        for appID in appID_List:
-            policies = policies + policyDict[str(appID)]
-    elif type(policies) is dict:
-        policies = [policies]
+    elif custom_policyDict is None:
+        custom_policyDict = policyDict
 
     if fileName is not None:
         try:
@@ -227,40 +218,43 @@ def generate_policies_CSV(appID_List=None,policies=None,fileName=None):
         csvfile = sys.stdout
 
     # create the csv writer object
-    fieldnames = ['Policy', 'Events', 'Entities', 'Actions']
+    fieldnames = ['Policy', 'Application', 'Events', 'Entities', 'Actions']
     filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
     filewriter.writeheader()
 
-    for policy in policies:
-        # Check if data belongs to a policy
-        if 'reactorType' not in policy and 'selectedEntities' not in policy: continue
-        
-        #try:
-        filewriter.writerow({'Policy': policy['name'],
-                                 'Events': str_policy_healthrules(policy),
-                                 'Entities': str_policy_entities(policy),
-                                 'Actions': str_policy_actions(policy)})
-        #except:
-        #    print ("Could not write to the output.")
-        #    if fileName is not None: csvfile.close()
-        #    return (-1)
+    for appID in appID_List:
+        for policy in custom_policyDict[str(appID)]:
+            # Check if data belongs to a policy
+            if 'reactorType' not in policy and 'selectedEntities' not in policy: continue
+            try:
+                filewriter.writerow({'Policy': policy['name'],
+                                     'Application': getAppName(appID),
+                                     'Events': str_policy_healthrules(policy),
+                                     'Entities': str_policy_entities(policy),
+                                     'Actions': str_policy_actions(policy)})
+            except ValueError as valError:
+                print (valError)
+                if fileName is not None: csvfile.close()
+                return (-1)
     if 'DEBUG' in locals(): print "INFO: Displayed number of policies:" + str(len(policies))
     if fileName is not None: csvfile.close()
 
 ###
  # Generate JSON output from policies data, either from the local dictionary or from streamed data
  # @param appID_List list of application IDs, in order to obtain policies from local policies dictionary
- # @param policies data stream containing policies
+ # @param custom_policyDict dictionary containing policies
  # @param fileName output file name
  # @return None
 ###
-def generate_policies_JSON(appID_List=None,policies=None,fileName=None):
-    if appID_List is None and policies is None:
+def generate_policies_JSON(appID_List,custom_policyDict=None,fileName=None):
+    if appID_List is None and custom_policyDict is None:
         return
-    elif policies is None:
-        policies = []
-        for appID in appID_List:
-            policies = policies + policyDict[str(appID)]
+    elif custom_policyDict is None:
+        custom_policyDict = policyDict
+
+    policies = []
+    for appID in appID_List:
+        policies = policies + custom_policyDict[str(appID)]
 
     if fileName is not None:
         try:
@@ -282,10 +276,12 @@ def get_policies_from_stream(streamdata,outputFormat=None,outFilename=None):
     except:
         if 'DEBUG' in locals(): print ("get_policies_from_stream: Could not process JSON content.")
         return 0
+
+    custom_policyDict = {"0":[policies]} if type(policies) is dict else {"0":policies}
     if outputFormat and outputFormat == "JSON":
-        generate_policies_JSON(policies=policies,fileName=outFilename)
+        generate_policies_JSON(appID_List=[0],custom_policyDict=custom_policyDict,fileName=outFilename)
     else:
-        generate_policies_CSV(policies=policies,fileName=outFilename)
+        generate_policies_CSV(appID_List=[0],custom_policyDict=custom_policyDict,fileName=outFilename)
 
 ###
  # Display actions for a list of applications.
@@ -298,7 +294,7 @@ def get_policies(appID_List,selectors=None,outputFormat=None):
     numPolicies = 0
     for appID in appID_List:
         sys.stderr.write("get policies " + getAppName(appID) + "...\n")
-        numPolicies = numPolicies + fetch_policies(appID,selectors=selectors)
+        numPolicies = numPolicies + fetch_policies(appID)
     if outputFormat and outputFormat == "JSON":
         generate_policies_JSON(appID_List)
     elif not outputFormat or outputFormat == "CSV":
@@ -309,7 +305,7 @@ def get_policies_legacy(appID_List,selectors=None,outputFormat=None):
     numPolicies = 0
     for appID in appID_List:
         sys.stderr.write("get policies " + getAppName(appID) + "...\n")
-        numPolicies = numPolicies + fetch_policies_legacy(appID,selectors=selectors)
+        numPolicies = numPolicies + fetch_policies_legacy(appID)
     if outputFormat and outputFormat == "JSON":
         generate_policies_JSON(appID_List)
     elif not outputFormat or outputFormat == "CSV":
