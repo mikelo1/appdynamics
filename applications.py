@@ -27,13 +27,13 @@ def fetch_application(key,serverURL=None,userName=None,password=None,token=None,
     else:
         response = fetch_RESTfulPath(restfulPath,params=params)
 
-    if response is None: return None
+    if response is None: return 0
 
     try:
         application = json.loads(response)
     except:
         print "fetch_application: Could not process JSON content."
-        return None
+        return 0
 
     if includeNodes:
         # Add tiers and nodes to the application data

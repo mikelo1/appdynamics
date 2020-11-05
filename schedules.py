@@ -3,7 +3,7 @@ import json
 import csv
 import sys
 from appdRESTfulAPI import fetch_RESTfulPath, update_RESTful_JSON
-from applications import getAppName
+from applications import getAppName, getAppID
 
 scheduleDict = dict()
 
@@ -20,7 +20,7 @@ def build_test_schedules(app_ID):
 
 ###
  # Fetch application schedules from a controller then add them to the policies dictionary. Provide either an username/password or an access token.
- # @param app_ID the ID number of the application schedules to fetch
+ # @param app_key the ID number or name of the application schedules to fetch
  # @param selectors fetch only snapshots filtered by specified selectors
  # @param serverURL Full hostname of the Appdynamics controller. i.e.: https://demo1.appdynamics.com:443
  # @param userName Full username, including account. i.e.: myuser@customer1
@@ -28,8 +28,9 @@ def build_test_schedules(app_ID):
  # @param token API acccess token
  # @return the number of fetched schedules. Zero if no schedule was found.
 ###
-def fetch_schedules(app_ID,selectors=None,serverURL=None,userName=None,password=None,token=None,loadData=False):
-    if 'DEBUG' in locals(): print ("Fetching schedules for App " + str(app_ID) + "...")
+def fetch_schedules(app_key,selectors=None,serverURL=None,userName=None,password=None,token=None,loadData=False):
+    if 'DEBUG' in locals(): print ("Fetching schedules for App " + str(app_key) + "...")
+    app_ID = app_key if type(app_key) is int else getAppID(app_key)
     # Retrieve a List of Schedules for a Given Application
     # GET <controller_url>/controller/alerting/rest/v1/applications/<application_id>/schedules
     restfulPath = "/controller/alerting/rest/v1/applications/" + str(app_ID) + "/schedules"
@@ -50,7 +51,7 @@ def fetch_schedules(app_ID,selectors=None,serverURL=None,userName=None,password=
     if loadData:
         index = 0
         for schedule in schedules:
-            if 'DEBUG' in locals(): print ("Fetching schedule "+str(schedule['id'])+" for App " + str(app_ID) + "...")
+            if 'DEBUG' in locals(): print ("Fetching schedule "+str(schedule['id'])+" for App " + str(app_key) + "...")
             # Retrieve the Details of a Specified Schedule with a specified ID
             # GET <controller_url>/controller/alerting/rest/v1/applications/<application_id>/schedules/{schedule-id}
             restfulPath = "/controller/alerting/rest/v1/applications/" + str(app_ID) + "/schedules/" + str(schedule['id'])
@@ -61,7 +62,7 @@ def fetch_schedules(app_ID,selectors=None,serverURL=None,userName=None,password=
                 response = fetch_RESTfulPath(restfulPath,params=params)
 
             if response is None:
-                "fetch_schedules: Failed to retrieve schedule " + str(schedule['id']) + " for application " + str(app_ID)
+                "fetch_schedules: Failed to retrieve schedule " + str(schedule['id']) + " for application " + str(app_key)
                 continue
             try:
                 scheduleData = json.loads(response)
@@ -72,7 +73,7 @@ def fetch_schedules(app_ID,selectors=None,serverURL=None,userName=None,password=
             index = index + 1
     
     # Add loaded schedules to the schedule dictionary
-    scheduleDict.update({str(app_ID):schedules})
+    scheduleDict.update({str(app_key):schedules})
 
     if 'DEBUG' in locals():
         print "fetch_schedules: Loaded " + str(len(schedules)) + " schedules:"
@@ -83,17 +84,18 @@ def fetch_schedules(app_ID,selectors=None,serverURL=None,userName=None,password=
 
 ###
  # Update application schedule from a controller. Provide either an username/password or an access token.
- # @param app_ID the ID number of the application schedule to update
+ # @param app_key the ID number or name of the application schedule to update
  # @param sched_ID the ID number of the schedule to update
  # @return True if the update was successful. False if no schedule was updated.
 ###
-def update_schedule(app_ID,sched_ID):
-    for schedule in scheduleDict[str(app_ID)]:
+def update_schedule(app_key,sched_ID):
+    app_ID = app_key if type(app_key) is int else getAppID(app_key)
+    for schedule in scheduleDict[str(app_key)]:
         if schedule['id'] == sched_ID: break
     if schedule['id'] != sched_ID:
-        print "No schedule " + str(sched_ID) + " was found in application " + str(app_ID)
+        print "No schedule " + str(sched_ID) + " was found in application " + str(app_key)
         return False 
-    if 'DEBUG' in locals(): print ("Updating schedule " + str(sched_ID) + " for App " + str(app_ID) + "...")
+    if 'DEBUG' in locals(): print ("Updating schedule " + str(sched_ID) + " for App " + str(app_key) + "...")
     # Updates an existing schedule with a specified JSON payload
     # PUT <controller_url>/controller/alerting/rest/v1/applications/<application_id>/schedules/{schedule-id}
     restfulPath = "/controller/alerting/rest/v1/applications/" + str(app_ID) + "/schedules/" + str(sched_ID)

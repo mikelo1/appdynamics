@@ -90,7 +90,7 @@ if COMMAND.lower() == "help":
 #######################################
 elif COMMAND.lower() == "login":
 
-  if args[1] == "help":
+  if len(args) == 2  and args[1] == "help":
     sys.stderr.write("Login can be done with manual keyboard input or with a basic authentication file in CSV format\n" + \
                      "Either way, if the context doesn't exist in the **appdconfig.yaml** file, it will create a new entry and set it as the current-context.\n\n" + \
                      "To login with a manual input of the credentials, follow these steps:\n" + \
