@@ -44,7 +44,8 @@ def fetch_schedules(app_key,selectors=None,serverURL=None,userName=None,password
 
     try:
         schedules = json.loads(response)
-    except JSONDecodeError:
+    except ValueError as valError:
+        print (valError)
         print ("fetch_schedules: Could not process JSON content.")
         return None
 
