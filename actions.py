@@ -285,7 +285,9 @@ def get_actions(appID_List,selectors=None,outputFormat=None):
     for appID in appID_List:
         sys.stderr.write("get actions " + getAppName(appID) + "...\n")
         numActions = numActions + fetch_actions(appID)
-    if outputFormat and outputFormat == "JSON":
+    if numActions == 0:
+        sys.stderr.write("get_actions: Could not fetch any actions.\n")
+    elif outputFormat and outputFormat == "JSON":
         generate_actions_JSON(appID_List)
     elif not outputFormat or outputFormat == "CSV":
         generate_actions_CSV(appID_List)
@@ -296,7 +298,9 @@ def get_actions_legacy(appID_List,selectors=None,outputFormat=None,serverURL=Non
     for appID in appID_List:
         sys.stderr.write("get actions " + getAppName(appID) + "...\n")
         numActions = numActions + fetch_actions_legacy(appID)
-    if outputFormat and outputFormat == "JSON":
+    if numActions == 0:
+        sys.stderr.write("get_actions: Could not fetch any actions.\n")
+    elif outputFormat and outputFormat == "JSON":
         generate_actions_JSON(appID_List)
     elif not outputFormat or outputFormat == "CSV":
         generate_actions_CSV(appID_List)

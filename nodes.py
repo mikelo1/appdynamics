@@ -228,7 +228,9 @@ def get_nodes(appID_List,selectors=None,outputFormat=None):
     for appID in appID_List:
         sys.stderr.write("get nodes " + getAppName(appID) + "...\n")
         numNodes = numNodes + fetch_nodes(appID,selectors=selectors)
-    if outputFormat and outputFormat == "JSON":
+    if numNodes == 0:
+        sys.stderr.write("get_nodes: Could not fetch any nodes.\n")
+    elif outputFormat and outputFormat == "JSON":
         generate_nodes_JSON(appID_List)
     elif not outputFormat or outputFormat == "CSV":
         generate_nodes_CSV(appID_List)

@@ -168,7 +168,9 @@ def get_dashboards(selectors=None,outputFormat=None):
     if numDashboards == 0:
         print "get_dashboards: Failed to retrieve dashboards."
         return 0
-    if outputFormat and outputFormat == "JSON":
+    if numDashboards == 0:
+        sys.stderr.write("get_dashboards: Could not fetch any dashboards.\n")
+    elif outputFormat and outputFormat == "JSON":
         generate_dashboards_JSON()
     elif not outputFormat or outputFormat == "CSV":
         generate_dashboards_CSV()

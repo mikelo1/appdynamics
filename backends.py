@@ -148,7 +148,9 @@ def get_backends(appID_List,selectors=None,outputFormat=None):
     for appID in appID_List:
         sys.stderr.write("get backends " + getAppName(appID) + "...\n")
         numBackends = numBackends + fetch_backends(appID)
-    if outputFormat and outputFormat == "JSON":
+    if numBackends == 0:
+        sys.stderr.write("get_backends: Could not fetch any backends.\n")
+    elif outputFormat and outputFormat == "JSON":
         generate_backends_JSON(appID_List)
     elif not outputFormat or outputFormat == "CSV":
         generate_backends_CSV(appID_List)

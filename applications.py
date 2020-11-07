@@ -13,7 +13,7 @@ applicationDict = dict()
  # @param userName Full username, including account. i.e.: myuser@customer1
  # @param password password for the specified user and host. i.e.: mypassword
  # @param token API acccess token
- # @return the id of the fetched application. Zero if no application was found.
+ # @return the id of the fetched application. None if the application was not found.
 ###
 def fetch_application(key,serverURL=None,userName=None,password=None,token=None,includeNodes=False):
     if 'DEBUG' in locals(): print ("Fetching application "+str(key)+"...")
@@ -27,13 +27,13 @@ def fetch_application(key,serverURL=None,userName=None,password=None,token=None,
     else:
         response = fetch_RESTfulPath(restfulPath,params=params)
 
-    if response is None: return 0
+    if response is None: return None
 
     try:
         application = json.loads(response)
     except:
         print "fetch_application: Could not process JSON content."
-        return 0
+        return None
 
     if includeNodes:
         # Add tiers and nodes to the application data
@@ -282,7 +282,9 @@ def get_applications(outputFormat=None,includeNodes=False):
     if numApplications == 0:
         print "get_applications: Failed to retrieve policies for application " + str(app_ID)
         return 0
-    if outputFormat and outputFormat == "JSON":
+    if numApplications == 0:
+        sys.stderr.write("get_applications: Could not fetch any applications.\n")
+    elif outputFormat and outputFormat == "JSON":
         generate_applications_JSON()
     elif not outputFormat or outputFormat == "CSV":
         generate_applications_CSV()
@@ -317,7 +319,7 @@ def get_application_ID_list():
 ###
  # Get the ID for an application name. Fetch applications data if not loaded yet.
  # @param appName the name of the application
- # @return the ID of the specified application name.
+ # @return the ID of the specified application name. None if the application was not found.
 ###
 def getAppID(appName):
     for appID in applicationDict:
@@ -332,7 +334,7 @@ def getAppID(appName):
  # @return the name of the specified application ID.
 ###
 def getAppName(appID):
-    if appID is None or appID <= 0: return 0
+    if appID is None or appID <= 0: return ""
     if str(appID) in applicationDict:
         return applicationDict[str(appID)]['name']
     # Request for provided application, although is not in the loaded application list

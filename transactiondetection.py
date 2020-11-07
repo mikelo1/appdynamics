@@ -322,7 +322,9 @@ def get_detection_rules(appID_List,selectors=None,outputFormat=None):
     for appID in appID_List:
         sys.stderr.write("get transaction-rules " + getAppName(appID) + "...\n")
         numTransactionRules = numTransactionRules + fetch_transactiondetection(appID,selectors=selectors)
-    if outputFormat and outputFormat == "JSON":
+    if numTransactionRules == 0:
+        sys.stderr.write("get_detection_rules: Could not fetch any transaction detection rules.\n")
+    elif outputFormat and outputFormat == "JSON":
         generate_transactiondetection_JSON(appID_List)
     elif not outputFormat or outputFormat == "CSV":
         generate_transactiondetection_CSV(appID_List)

@@ -263,7 +263,9 @@ def get_schedules(appID_List,selectors=None,outputFormat=None):
     for appID in appID_List:
         sys.stderr.write("get schedules " + getAppName(appID) + "...\n")
         numSchedules = numSchedules + fetch_schedules(appID,selectors=selectors)
-    if outputFormat and outputFormat == "JSON":
+    if numSchedules == 0:
+        sys.stderr.write("get_schedules: Could not fetch any schedules.\n")
+    elif outputFormat and outputFormat == "JSON":
         generate_schedules_JSON(appID_List)
     elif not outputFormat or outputFormat == "CSV":
         generate_schedules_CSV(appID_List)

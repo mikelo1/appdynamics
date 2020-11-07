@@ -220,7 +220,9 @@ def get_healthrule_violations(appID_List,minutesBeforeNow,selectors=None,outputF
     for appID in appID_List:
         sys.stderr.write("get healthrule-violations " + getAppName(appID) + "...\n")
         numEvents = numEvents + fetch_healthrule_violations(appID,minutesBeforeNow,selectors=selectors)
-    if outputFormat and outputFormat == "JSON":
+    if numEvents == 0:
+        sys.stderr.write("get_healthrule_violations: Could not fetch any ghealthrule violations.\n")
+    elif outputFormat and outputFormat == "JSON":
         generate_events_JSON(appID_List)
     else:
         generate_events_CSV(appID_List)

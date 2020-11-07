@@ -23,11 +23,17 @@ def fetch_access_token(serverURL,API_username,API_password):
                                 headers={"Content-Type": "application/vnd.appd.cntrl+protobuf", "v":"1"},
                                 data={"grant_type": "client_credentials", "client_id": API_username, "client_secret": API_password})
     if response.status_code > 399:
+        sys.stderr.write("Something went wrong on HTTP request. Status:" + str(response.status_code) + " ")
+        if response.content.find("<b>description</b>"):
+            sys.stderr.write("Description: "+response.content[response.content.find("<b>description</b>")+18:response.content.rfind("</p>")] + "\n" )
+        else:
+            sys.stderr.write("Description not available\n")
         if 'DEBUG' in locals():
-            print "Something went wrong on HTTP request:"
-            print "   status:", response.status_code
             print "   header:", response.headers
-            print "   content:", response.content
+            print "Writing content to file: response.txt"
+            file1 = open("response.txt","w") 
+            file1.write(response.content)
+            file1.close()
         return None
     token_data = json.loads(response.content)
     return token_data
@@ -77,14 +83,14 @@ def get_access_token(serverURL=None,API_Client=None,basicAuthFile=None):
  # @return the response data. Null if no data was received.
 ###
 def fetch_RESTfulPath(RESTfulPath,params=None,serverURL=None,userName=None,password=None):
-    if 'DEBUG' in locals(): print ("Fetching JSON from RESTful path " + RESTfulPath + "with params " + params + " ...")
+    if 'DEBUG' in locals(): print ("Fetching JSON from RESTful path " + RESTfulPath + "with params " + json.dumps(params) + " ...")
     if serverURL is None: serverURL = appD_Config.get_current_context_serverURL()
     if userName and password:
         try:
             response = requests.get(serverURL + RESTfulPath,
                                     auth=(userName, password), params=params)
         except requests.exceptions.InvalidURL:
-            print ("Invalid URL: " + serverURL + RESTfulPath + ". Do you have the right controller hostname and RESTful path?")
+            sys.stderr.write("Invalid URL: " + serverURL + RESTfulPath + ". Do you have the right controller hostname and RESTful path?\n")
             return None
     else:
         token = get_access_token()
@@ -93,19 +99,22 @@ def fetch_RESTfulPath(RESTfulPath,params=None,serverURL=None,userName=None,passw
         	response = requests.get(serverURL + RESTfulPath,
                                 headers={"Authorization": "Bearer "+token}, params=params)
         except requests.exceptions.InvalidURL:
-            print ("Invalid URL: " + serverURL + RESTfulPath + ". Do you have the right controller hostname and RESTful path?")
+            sys.stderr.write("Invalid URL: " + serverURL + RESTfulPath + ". Do you have the right controller hostname and RESTful path?\n")
             return None
 
     if response.status_code != 200:
-        print "Something went wrong on HTTP request. Status:", response.status_code
+        sys.stderr.write("Something went wrong on HTTP request. Status:" + str(response.status_code) + " ")
+        if response.content.find("<b>description</b>"):
+            sys.stderr.write("Description: "+response.content[response.content.find("<b>description</b>")+18:response.content.rfind("</p>")] + "\n" )
+        else:
+            sys.stderr.write("Description not available\n")
         if 'DEBUG' in locals():
             print "   header:", response.headers
             print "Writing content to file: response.txt"
             file1 = open("response.txt","w") 
             file1.write(response.content)
-            file1.close() 
+            file1.close()
         return None
-
     return response.content
 
 
@@ -127,7 +136,7 @@ def create_RESTful_JSON(RESTfulPath,JSONdata,serverURL=None,userName=None,passwo
                                     headers={"Content-Type": "application/json","Accept": "application/json"},
                                     auth=(userName, password), data=json.dumps(JSONdata))
         except requests.exceptions.InvalidURL:
-            print ("Invalid URL: " + serverURL + RESTfulPath + ". Do you have the right controller hostname and RESTful path?")
+            sys.stderr.write ("Invalid URL: " + serverURL + RESTfulPath + ". Do you have the right controller hostname and RESTful path?\n")
             return None
     else:
         token = get_access_token()
@@ -137,11 +146,15 @@ def create_RESTful_JSON(RESTfulPath,JSONdata,serverURL=None,userName=None,passwo
                                     headers={"Content-Type": "application/json", "Accept": "application/json", "Authorization": "Bearer "+token},
                                     data=json.dumps(JSONdata))
         except requests.exceptions.InvalidURL:
-            print ("Invalid URL: " + serverURL + RESTfulPath + ". Do you have the right controller hostname and RESTful path?")
+            sys.stderr.write ("Invalid URL: " + serverURL + RESTfulPath + ". Do you have the right controller hostname and RESTful path?\n")
             return None
 
     if response.status_code != 200:
-        print "Something went wrong on HTTP request. Status:", response.status_code
+        sys.stderr.write("Something went wrong on HTTP request. Status:" + str(response.status_code) + " ")
+        if response.content.find("<b>description</b>"):
+            sys.stderr.write("Description: "+response.content[response.content.find("<b>description</b>")+18:response.content.rfind("</p>")] + "\n" )
+        else:
+            sys.stderr.write("Description not available\n")
         if 'DEBUG' in locals():
             print "   header:", response.headers
             print response.content
@@ -170,7 +183,7 @@ def update_RESTful_JSON(RESTfulPath,JSONdata,serverURL=None,userName=None,passwo
                                     headers={"Content-Type": "application/json"},
                                     auth=(userName, password), data=json.dumps(JSONdata))
         except requests.exceptions.InvalidURL:
-            print ("Invalid URL: " + serverURL + RESTfulPath + ". Do you have the right controller hostname and RESTful path?")
+            sys.stderr.write ("Invalid URL: " + serverURL + RESTfulPath + ". Do you have the right controller hostname and RESTful path?\n")
             return False
     else:
         token = get_access_token()
@@ -180,11 +193,15 @@ def update_RESTful_JSON(RESTfulPath,JSONdata,serverURL=None,userName=None,passwo
                                     headers={"Content-Type": "application/json", "Authorization": "Bearer "+token},
                                     data=json.dumps(JSONdata))
         except requests.exceptions.InvalidURL:
-            print ("Invalid URL: " + serverURL + RESTfulPath + ". Do you have the right controller hostname and RESTful path?")
+            sys.stderr.write ("Invalid URL: " + serverURL + RESTfulPath + ". Do you have the right controller hostname and RESTful path?\n")
             return False
 
     if response.status_code != 200:
-        print "Something went wrong on HTTP request. Status:", response.status_code
+        sys.stderr.write("Something went wrong on HTTP request. Status:" + str(response.status_code) + " ")
+        if response.content.find("<b>description</b>"):
+            sys.stderr.write("Description: "+response.content[response.content.find("<b>description</b>")+18:response.content.rfind("</p>")] + "\n" )
+        else:
+            sys.stderr.write("Description not available\n")
         if 'DEBUG' in locals():
             print "   header:", response.headers
             print "Writing content to file: response.txt"
@@ -209,7 +226,7 @@ def get_controller_version(serverURL=None,userName=None,password=None):
             response = requests.get(serverURL + "/controller/rest/configuration",
                                     auth=(userName, password), params={"name": "schema.version","output": "JSON"})
         except requests.exceptions.InvalidURL:
-            print ("Invalid URL: " + serverURL + "/controller/rest/configuration. Do you have the right controller hostname?")
+            sys.stderr.write ("Invalid URL: " + serverURL + "/controller/rest/configuration. Do you have the right controller hostname?\n")
             return None
     else:
         token = get_access_token()
@@ -218,13 +235,21 @@ def get_controller_version(serverURL=None,userName=None,password=None):
             response = requests.get(serverURL + "/controller/rest/configuration",
                                 headers={"Authorization": "Bearer "+token}, params={"name": "schema.version","output": "JSON"})
         except requests.exceptions.InvalidURL:
-            print ("Invalid URL: " + serverURL + "/controller/rest/configuration. Do you have the right controller hostname?")
+            sys.stderr.write ("Invalid URL: " + serverURL + "/controller/rest/configuration. Do you have the right controller hostname?\n")
             return None
 
     if response.status_code > 399:
-        print "Something went wrong on HTTP request:"
-        print "   status:", response.status_code
-        print "   header:", response.headers
+        sys.stderr.write("Something went wrong on HTTP request. Status:" + str(response.status_code) + " ")
+        if response.content.find("<b>description</b>"):
+            sys.stderr.write("Description: "+response.content[response.content.find("<b>description</b>")+18:response.content.rfind("</p>")] + "\n" )
+        else:
+            sys.stderr.write("Description not available\n")
+        if 'DEBUG' in locals():
+            print "   header:", response.headers
+            print "Writing content to file: response.txt"
+            file1 = open("response.txt","w")
+            file1.write(response.content)
+            file1.close()
         return None
 
     schemaVersion = json.loads(response.content)

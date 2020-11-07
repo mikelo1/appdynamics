@@ -592,7 +592,9 @@ def get_health_rules(appID_List,selectors=None,outputFormat=None):
     for appID in appID_List:
         sys.stderr.write("get health-rules " + getAppName(appID) + "...\n")
         numHealthRules = numHealthRules + fetch_health_rules_legacy(appID,selectors=selectors)
-    if outputFormat and outputFormat == "JSON":
+    if numHealthRules == 0:
+        sys.stderr.write("get_health_rules: Could not fetch any health rules.\n")
+    elif outputFormat and outputFormat == "JSON":
         generate_health_rules_JSON(appID_List)
     elif not outputFormat or outputFormat == "CSV":
         generate_health_rules_CSV(appID_List)

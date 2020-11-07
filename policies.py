@@ -295,7 +295,9 @@ def get_policies(appID_List,selectors=None,outputFormat=None):
     for appID in appID_List:
         sys.stderr.write("get policies " + getAppName(appID) + "...\n")
         numPolicies = numPolicies + fetch_policies(appID)
-    if outputFormat and outputFormat == "JSON":
+    if numPolicies == 0:
+        sys.stderr.write("get_policies: Could not fetch any policies.\n")
+    elif outputFormat and outputFormat == "JSON":
         generate_policies_JSON(appID_List)
     elif not outputFormat or outputFormat == "CSV":
         generate_policies_CSV(appID_List)
@@ -306,7 +308,9 @@ def get_policies_legacy(appID_List,selectors=None,outputFormat=None):
     for appID in appID_List:
         sys.stderr.write("get policies " + getAppName(appID) + "...\n")
         numPolicies = numPolicies + fetch_policies_legacy(appID)
-    if outputFormat and outputFormat == "JSON":
+    if numPolicies == 0:
+        sys.stderr.write("get_policies: Could not fetch any policies.\n")
+    elif outputFormat and outputFormat == "JSON":
         generate_policies_JSON(appID_List)
     elif not outputFormat or outputFormat == "CSV":
         generate_policies_CSV(appID_List)

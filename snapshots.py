@@ -245,7 +245,9 @@ def get_snapshots(appID_List,minutesBeforeNow,selectors=None,outputFormat=None):
     for appID in appID_List:
         sys.stderr.write("get snapshots " + getAppName(appID) + "...\n")
         numSnapshots = numSnapshots + fetch_snapshots(appID,minutesBeforeNow,selectors=selectors)
-    if outputFormat and outputFormat == "JSON":
+    if numSnapshots == 0:
+        sys.stderr.write("get_snapshots: Could not fetch any snapshots.\n")
+    elif outputFormat and outputFormat == "JSON":
         generate_snapshots_JSON(appID_List)
     else:
         generate_snapshots_CSV(appID_List)

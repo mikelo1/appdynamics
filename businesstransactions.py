@@ -153,7 +153,9 @@ def get_business_transactions(appID_List,selectors=None,outputFormat=None):
     for appID in appID_List:
         sys.stderr.write("get business-transactions " + getAppName(appID) + "...\n")
         numBTs = numBTs + fetch_business_transactions(appID,selectors=selectors)
-    if outputFormat and outputFormat == "JSON":
+    if numBTs == 0:
+        sys.stderr.write("get_business_transactions: Could not fetch any business_transactions.\n")
+    elif outputFormat and outputFormat == "JSON":
         generate_business_transactions_JSON(appID_List)
     elif not outputFormat or outputFormat == "CSV":
         generate_business_transactions_CSV(appID_List)
