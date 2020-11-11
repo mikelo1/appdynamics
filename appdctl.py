@@ -3,8 +3,8 @@ import sys
 import os.path
 import re
 from datetime import datetime, timedelta
-from appdRESTfulAPI import get_access_token
-from appdconfig import AppD_Configuration
+from appdRESTfulAPI import get_access_token, AppD_Configuration
+from appdconfig import get_config
 from applications import get_applications, getAppID, get_application_ID_list, get_applications_from_stream
 from dashboards import get_dashboards, get_dashboards_from_stream
 from nodes import get_nodes, get_nodes_from_stream, update_nodes
@@ -39,6 +39,12 @@ def time_to_minutes(string):
     if 'DEBUG' in locals(): print "Minutes: ",m_mins.group('mins')
 
   return total
+
+def get_help(outputFormat=None):
+  sys.stderr.write("Usage: appdctl get [policies|actions|schedules|health-rules|\n" + \
+                   "                    detection-rules|businesstransactions|backends|\n" + \
+                   "                    healthrule-violations|snapshots|allothertraffic|\n" + \
+                   "                    applications|dashboards|nodes] [options]\n\n")
 
 usage = "usage: %prog [get|login|update|patch] [options]"
 epilog= "examples: %prog get applications"
@@ -169,41 +175,6 @@ elif COMMAND.lower() == "get":
       exit()
 
   ENTITY = args[1]
-  if ENTITY not in ['policies','actions','schedules','health-rules',
-                    'detection-rules','businesstransactions','backends',
-                    'healthrule-violations','snapshots','allothertraffic',
-                    'applications','dashboards','nodes','help']:
-    optParser.error("incorrect entity \""+ENTITY+"\"")
-    exit()
-
-  # create the application list, if applies
-  if ENTITY == "help":
-    sys.stderr.write("Usage: appdctl get [policies|actions|schedules|health-rules|\n" + \
-                     "                    detection-rules|businesstransactions|backends|\n" + \
-                     "                    healthrule-violations|snapshots|allothertraffic|\n" + \
-                     "                    applications|dashboards|nodes] [options]\n\n")
-    exit()
-  elif ENTITY == "applications":
-    get_applications(outputFormat=options.outFormat,includeNodes=False)
-    exit()
-  elif ENTITY == "dashboards":
-    get_dashboards(outputFormat=options.outFormat)
-    exit()
-  elif not options.applications and not options.allApplications:
-      optParser.error("Missing application (use -A for all applications)")
-      exit()
-  elif options.applications:
-    #applicationList = map(lambda x: str(getID(x)), options.applications.split(',') )
-    applicationList = []
-    for appName in options.applications.split(','):
-      appID = getAppID(appName)
-      applicationList.append(appID) if appID is not None else sys.stderr.write("WARN: Application " + appName + " does not exist.\n")
-  else: # if options.allApplications:
-    applicationList = get_application_ID_list()
-
-  if 'applicationList' not in locals() or len(applicationList) == 0:
-    sys.stderr.write("No application was selected.\n")
-    exit()
 
   # create the filters list, if applies
   selectors = {}
@@ -211,7 +182,11 @@ elif COMMAND.lower() == "get":
     for selector in options.selector.split(','):
       selectors.update({selector.split('=')[0]:selector.split('=')[1]})
 
-  functions = { 'get_policies':get_policies_legacy,
+  functions = { 'get_help':get_help,
+                'get_applications':get_applications,
+                'get_dashboards':get_dashboards,
+                'get_config':get_config,
+                'get_policies':get_policies_legacy,
                 'get_actions':get_actions_legacy,
                 'get_schedules':get_schedules,
                 'get_health-rules':get_health_rules,
@@ -223,9 +198,33 @@ elif COMMAND.lower() == "get":
                 'get_snapshots':get_snapshots
           }
 
-  if ENTITY in ['policies','actions','schedules','health-rules','detection-rules','businesstransactions','backends','nodes']:
+  if ENTITY in ['help','applications','dashboards','config']:
+    functions["get_"+ENTITY](outputFormat=options.outFormat)
+  elif ENTITY in ['policies','actions','schedules','health-rules','detection-rules','businesstransactions','backends','nodes']:
+    if not options.applications and not options.allApplications:
+        optParser.error("Missing application (use -A for all applications)")
+        exit()
+    elif options.applications:
+      #applicationList = map(lambda x: str(getID(x)), options.applications.split(',') )
+      applicationList = []
+      for appName in options.applications.split(','):
+        appID = getAppID(appName)
+        applicationList.append(appID) if appID is not None else sys.stderr.write("WARN: Application " + appName + " does not exist.\n")
+    else: # if options.allApplications:
+      applicationList = get_application_ID_list()
     functions["get_"+ENTITY](applicationList,selectors,outputFormat=options.outFormat)
   elif ENTITY in ['healthrule-violations','snapshots','allothertraffic']:
+    if not options.applications and not options.allApplications:
+        optParser.error("Missing application (use -A for all applications)")
+        exit()
+    elif options.applications:
+      #applicationList = map(lambda x: str(getID(x)), options.applications.split(',') )
+      applicationList = []
+      for appName in options.applications.split(','):
+        appID = getAppID(appName)
+        applicationList.append(appID) if appID is not None else sys.stderr.write("WARN: Application " + appName + " does not exist.\n")
+    else: # if options.allApplications:
+      applicationList = get_application_ID_list()
     if options.since is None:
       optParser.error("No duration was specified. (use --since=0 for all events)")
       exit()
@@ -243,6 +242,8 @@ elif COMMAND.lower() == "get":
       selectors.update({"business-transaction-ids": ''+str(AllOtherTraffic_ID)+''})
       ENTITY="snapshots"
     functions["get_"+ENTITY](applicationList,minutes,selectors,outputFormat=options.outFormat)
+  else:
+    optParser.error("incorrect entity \""+ENTITY+"\"")
 
 
 #######################################

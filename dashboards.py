@@ -33,7 +33,7 @@ def fetch_dashboards(selectors=None,serverURL=None,userName=None,password=None,t
         dashboards = json.loads(response)
     except JSONDecodeError:
         print ("fetch_dashboards: Could not process JSON content.")
-        return None
+        return 0
 
     for dashboard in dashboards:
         if loadData:
@@ -65,7 +65,7 @@ def fetch_dashboards(selectors=None,serverURL=None,userName=None,password=None,t
 ###
 def generate_dashboards_CSV(dashbDict=None,fileName=None):
     if dashbDict is None and len(dashboardDict) == 0:
-        print "generate_dashboards_CSV: Dahsboards not loaded."
+        print "generate_dashboards_CSV: Dashboards not loaded."
         return
     elif dashbDict is None:
         dashbDict = dashboardDict
@@ -92,9 +92,8 @@ def generate_dashboards_CSV(dashbDict=None,fileName=None):
                                  'Height': dashboard['height'],
                                  'Width': dashboard['width'],
                                  'CanvasType': dashboard['canvasType']})
-        except:
-            print ("Could not write to the output.")
-            print json.dumps(dashboard)
+        except ValueError as valError:
+            print (valError)
             if fileName is not None: csvfile.close()
             return (-1)
     if fileName is not None: csvfile.close()
@@ -164,10 +163,8 @@ def get_dashboards_from_stream(streamdata,outputFormat=None,outFilename=None):
  # @return the number of fetched dashboards. Zero if no dashboard was found.
 ###
 def get_dashboards(selectors=None,outputFormat=None):
+    sys.stderr.write("get dashboards ...\n")
     numDashboards = fetch_dashboards(selectors=selectors)
-    if numDashboards == 0:
-        print "get_dashboards: Failed to retrieve dashboards."
-        return 0
     if numDashboards == 0:
         sys.stderr.write("get_dashboards: Could not fetch any dashboards.\n")
     elif outputFormat and outputFormat == "JSON":

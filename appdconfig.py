@@ -1,133 +1,151 @@
 #!/usr/bin/python
-import yaml
+import json
 import csv
-from datetime import datetime, timedelta
-import time
+import sys
+from appdRESTfulAPI import fetch_RESTfulPath
 
-class AppD_Configuration:
-    data       = {
-        'Kind': 'Config',
-        'contexts': [ ],
-        'users': [ ],
-        'current-context': ''
-    }
-    configFile = "appdconfig.yaml"
+configDict = dict()
 
-    def __init__(self,dataFile=None):
-        if dataFile is not None:
-            self.configFile = dataFile
+###
+ # Fetch config from a controller then add them to the config dictionary. Provide either an username/password or an access token.
+ # @param selectors fetch specific configuration filtered by specified configuration name
+ # @param serverURL Full hostname of the Appdynamics controller. i.e.: https://demo1.appdynamics.com:443
+ # @param userName Full username, including account. i.e.: myuser@customer1
+ # @param password password for the specified user and host. i.e.: mypassword
+ # @param token API acccess token
+ # @return the number of fetched config settings. Zero if no setting was found.
+###
+def fetch_config(selectors=None,serverURL=None,userName=None,password=None,token=None,loadData=False):
+    if 'DEBUG' in locals(): print ("Fetching config list...")    
+    # Retrieve All Controller Settings
+    # GET <controller_url>/controller/rest/configuration
+    restfulPath = "/controller/rest/configuration?name="
+    params = {"output": "JSON"}
+    if selectors: restfulPath = restfulPath + selectors
+
+    if serverURL and userName and password:
+        response = fetch_RESTfulPath(restfulPath,params=params,serverURL=serverURL,userName=userName,password=password)
+    else:
+        response = fetch_RESTfulPath(restfulPath,params=params)
+
+    try:
+        config = json.loads(response)
+    except JSONDecodeError:
+        print ("fetch_config: Could not process JSON content.")
+        return 0
+
+    # Add loaded settings to the configuration settings dictionary
+    for setting in config:
+        configDict.update({setting['name']:setting})
+
+    if 'DEBUG' in locals():
+        print "fetch_config: Loaded " + str(len(config)) + " settings."
+        for setting in config:
+            print str(setting)
+
+    return len(configDict)
+
+###
+ # Generate CSV output from config data, either from the local dictionary or from streamed data
+ # @param cfgDict dictionary of config settings, containing settings data
+ # @param fileName output file name
+ # @return None
+###
+def generate_config_CSV(cfgDict=None,fileName=None):
+    if cfgDict is None and len(configDict) == 0:
+        print "generate_config_CSV: Config settings not loaded."
+        return
+    elif cfgDict is None:
+        cfgDict = configDict
+
+    if fileName is not None:
         try:
-            stream = open(self.configFile)
-        except IOError as exc:
-            print(exc)
-            return None
-        with open(self.configFile, 'r') as stream:
-            try:
-                self.data = yaml.safe_load(stream)
-            except yaml.YAMLError as exc:
-                print(exc)
+            csvfile = open(fileName, 'w')
+        except:
+            print ("Could not open output file " + fileName + ".")
+            return (-1)
+    else:
+        csvfile = sys.stdout
 
-    def __str__(self):
-        return "({0},{1})".format(self.configFile,self.data)
+    # create the csv writer object
+    fieldnames = ['Name', 'Value', 'Scope', 'Updateable', 'Description']
+    filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
+    filewriter.writeheader()
+         
+    for setting in cfgDict:
+        if 'updateable' not in cfgDict[setting]: continue
+        try:
+            filewriter.writerow({'Name': cfgDict[setting]['name'],
+                                 'Value': cfgDict[setting]['value'],
+                                 'Scope': cfgDict[setting]['scope'],
+                                 'Updateable': cfgDict[setting]['updateable'],
+                                 'Description': cfgDict[setting]['description']})
+        except ValueError as valError:
+            print (valError)
+            if fileName is not None: csvfile.close()
+            return (-1)
+    if fileName is not None: csvfile.close()
 
-    def get_current_context_serverURL(self):
-        if 'current-context' in self.data and len(self.data['current-context']) > 0:
-            for context in self.data['contexts']:
-                if context['name'] == self.data['current-context']:
-                 return context['context']['server']
+###
+ # Generate JSON output from config data, either from the local dictionary or from streamed data
+ # @param cfgDict dictionary of config settings, containing settings data
+ # @param fileName output file name
+ # @return None
+###
+def generate_config_JSON(cfgDict=None,fileName=None):
+    if cfgDict is None and len(configDict) == 0:
+        print "generate_config_JSON: Config settings not loaded."
+        return
+    elif cfgDict is None:
+        cfgDict = configDict
 
-    def get_current_context_servername(self):
-        if 'current-context' in self.data and len(self.data['current-context']) > 0:
-            return self.data['current-context'].split('/')[0]
-        else:
-            return None
+    if fileName is not None:
+        try:
+            with open(fileName, 'w') as outfile:
+                json.dump(cfgDict, outfile)
+            outfile.close()
+        except:
+            print ("Could not open output file " + fileName + ".")
+            return (-1)
+    else:
+        print json.dumps(cfgDict)
 
-    def get_current_context_username(self):
-        if 'current-context' in self.data and len(self.data['current-context']) > 0:
-            return self.data['current-context'].split('/')[1]
-        else:
-            return None
 
-    def get_current_context_token(self):
-        if 'current-context' in self.data and len(self.data['current-context']) > 0:
-            context = self.data['current-context'].split('/')
-            for user in self.data['users']:
-                username = context[1] + "/" + context[0]
-                if user['name'] == username:
-                    if 'expire' in user['user'] and datetime.today() < user['user']['expire']:
-                        if 'DEBUG' in locals(): print "Found valid token in config YAML file."
-                        return user['user']['token']
-                    else:
-                        if 'DEBUG' in locals(): print "Token expired or invalid in config YAML file."
-                        return None
-        else:
-            if 'DEBUG' in locals(): print "get_current_context_token: Cannot get context data. Did you login to any controller machine?"
-            return None
+###### FROM HERE PUBLIC FUNCTIONS ######
 
-    def set_new_token(self,API_Client,access_token,expires_in):
-        for user in self.data['users']:
-            username = user['name'].split('/')[0]
-            if username == API_Client:
-                user['user']['token']  = str(access_token)
-                user['user']['expire'] = datetime.now()+timedelta(seconds=expires_in)
-                if 'DEBUG' in locals(): print "Saving new token..."
-                with open(self.configFile, "w") as outfile:
-                    yaml.dump(self.data, outfile, default_flow_style=False, allow_unicode=True)
-                return True
-        return False
 
-    def create_or_select_user(self,serverURL,API_Client):
-        servername = serverURL.split('/')[2]
-        username = API_Client + "/" + servername
-        contextname = servername + "/" + API_Client
+###
+ # Display config from a JSON stream data.
+ # @param streamdata the stream data in JSON format
+ # @param outputFormat output format. Accepted formats are CSV or JSON.
+ # @param outFilename output file name
+ # @return None
+###
+def get_config_from_stream(streamdata,outputFormat=None,outFilename=None):
+    try:
+        cfgDict = json.loads(streamdata)
+    except:
+        if 'DEBUG' in locals(): print ("get_config_from_stream: Could not process JSON data.")
+        return 0
 
-        # Check whether provided user does exist or not
-        for user in self.data['users']:
-            if user['name'] == username:
-                break
+    if outputFormat and outputFormat == "JSON":
+        generate_config_JSON(cfgDict=cfgDict)
+    else:
+        generate_config_CSV(cfgDict=cfgDict)
 
-        if 'user' not in locals() or user['name'] != username:
-            # Create the new user
-            self.data['users'].append({'name': username,'user': {}})
-            self.data['contexts'].append({'name': contextname,'context': { 'server': serverURL, 'user': username}})
-            changes = True
-        
-        # Set this one as current-context, if not already
-        if self.data['current-context'] != contextname:
-            self.data['current-context'] = contextname
-            changes = True
-        
-        # Save changes, if any
-        if 'changes' in locals():
-            if 'DEBUG' in locals(): print "Saving changes..."
-            with open(self.configFile, "w") as outfile:
-                yaml.dump(self.data, outfile, default_flow_style=False, allow_unicode=True)
-
-class BasicAuth:
-    authFile  = ""
-
-    def __init__(self,basicAuthFile=None):
-        if basicAuthFile is not None:
-            try:
-                stream = open(basicAuthFile)
-            except IOError as exc:
-                print("BasicAuth init: "+str(exc))
-                return None
-            self.authFile = basicAuthFile
-
-    def __str__(self):
-        return "({0})".format(self.authFile)
-
-    def get_authFileName(self):
-        return self.authFile
-
-    def get_password(self,API_Client):
-        auth_dict = dict()
-        with open(self.authFile, mode='r') as csv_file:
-            try:
-                auth_dict = csv.DictReader(csv_file,fieldnames=['password','apiClient'])
-            except IOError as exc:
-                print(exc)
-            for credential in auth_dict:
-                if credential['apiClient'] == API_Client:
-                    return credential['password']
+###
+ # Display config for a list of applications.
+ # @param selectors fetch specific configuration filtered by specified configuration name
+ # @param outputFormat output format. Accepted formats are CSV or JSON.
+ # @return the number of fetched config settings. Zero if no setting was found.
+###
+def get_config(selectors=None,outputFormat=None):
+    sys.stderr.write("get configuration ...\n")
+    numSettings = fetch_config(selectors=selectors)
+    if numSettings == 0:
+        sys.stderr.write("get_config: Could not fetch any config setting.\n")
+    elif outputFormat and outputFormat == "JSON":
+        generate_config_JSON()
+    elif not outputFormat or outputFormat == "CSV":
+        generate_config_CSV()
+    return numSettings
