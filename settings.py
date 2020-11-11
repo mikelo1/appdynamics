@@ -19,9 +19,9 @@ def fetch_config(selectors=None,serverURL=None,userName=None,password=None,token
     if 'DEBUG' in locals(): print ("Fetching config list...")    
     # Retrieve All Controller Settings
     # GET <controller_url>/controller/rest/configuration
-    restfulPath = "/controller/rest/configuration?name="
+    restfulPath = "/controller/rest/configuration"
     params = {"output": "JSON"}
-    if selectors: restfulPath = restfulPath + selectors
+    if selectors: restfulPath = restfulPath + "?name=" + selectors
 
     if serverURL and userName and password:
         response = fetch_RESTfulPath(restfulPath,params=params,serverURL=serverURL,userName=userName,password=password)

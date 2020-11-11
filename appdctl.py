@@ -4,7 +4,8 @@ import os.path
 import re
 from datetime import datetime, timedelta
 from appdRESTfulAPI import get_access_token, AppD_Configuration
-from appdconfig import get_config
+from rbac import get_users
+from settings import get_config
 from applications import get_applications, getAppID, get_application_ID_list, get_applications_from_stream
 from dashboards import get_dashboards, get_dashboards_from_stream
 from nodes import get_nodes, get_nodes_from_stream, update_nodes
@@ -186,6 +187,7 @@ elif COMMAND.lower() == "get":
                 'get_applications':get_applications,
                 'get_dashboards':get_dashboards,
                 'get_config':get_config,
+                'get_users':get_users,
                 'get_policies':get_policies_legacy,
                 'get_actions':get_actions_legacy,
                 'get_schedules':get_schedules,
@@ -198,7 +200,7 @@ elif COMMAND.lower() == "get":
                 'get_snapshots':get_snapshots
           }
 
-  if ENTITY in ['help','applications','dashboards','config']:
+  if ENTITY in ['help','applications','dashboards','config','users']:
     functions["get_"+ENTITY](outputFormat=options.outFormat)
   elif ENTITY in ['policies','actions','schedules','health-rules','detection-rules','businesstransactions','backends','nodes']:
     if not options.applications and not options.allApplications:

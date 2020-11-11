@@ -52,12 +52,14 @@ def fetch_policies(app_ID,serverURL=None,userName=None,password=None,token=None,
             # GET <controller_url>/controller/alerting/rest/v1/applications/<application_id>/policies/{policy-id}
             restfulPath = "/controller/alerting/rest/v1/applications/" + str(app_ID) + "/policies/" + str(policy['id'])
             if userName and password:
-                policyJSON = fetch_RESTful_JSON(restfulPath,userName=userName,password=password)
+                response = fetch_RESTfulPath(restfulPath,params=params,userName=userName,password=password)
             else:
-                policyJSON = fetch_RESTful_JSON(restfulPath)
-            if policyJSON is None:
-                "fetch_policies: Failed to retrieve policy " + str(policy['id']) + " for application " + str(app_ID)
-                continue
+                response = fetch_RESTfulPath(restfulPath,params=params)
+            try:
+                policyJSON = json.loads(response)
+            except JSONDecodeError:
+                print ("fetch_policies: Could not process JSON content.")
+                return None
             policies[index] = policyJSON
             index = index + 1
 
