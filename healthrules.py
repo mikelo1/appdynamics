@@ -511,7 +511,7 @@ def generate_health_rules_CSV(appID_List,custom_healthruleDict=None,fileName=Non
             # Check if data belongs to a health rule
             if 'affectedEntityType' not in healthrule and 'useDataFromLastNMinutes' not in healthrule: continue
             try:
-                filewriter.writerow({'HealthRule': healthrule['name'],
+                filewriter.writerow({'HealthRule': healthrule['name'].encode('ASCII', 'ignore'),
                                      'Application': getAppName(appID),
                                      'Duration': healthrule['useDataFromLastNMinutes'] if 'useDataFromLastNMinutes' in healthrule else "",
                                      'Wait_Time': healthrule['useDataFromLastNMinutes'] if 'useDataFromLastNMinutes' in healthrule else "",

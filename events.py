@@ -74,6 +74,69 @@ def fetch_healthrule_violations(app_ID,minutesBeforeNow,selectors=None,serverURL
     return len(events)
 
 ###
+ # toString method, extracts policy from event
+ # @param event JSON data containing an event
+ # @return string with a comma separated list of policy names
+###
+def str_event_policy(event):
+    triggeredEntitytype = event['triggeredEntityDefinition']['entityType']
+    if triggeredEntitytype == "POLICY":
+        if 'name' in event['triggeredEntityDefinition']:
+            return event['triggeredEntityDefinition']['name']
+        else:
+            return event['triggeredEntityDefinition']['entityId']
+    else:
+        return ""
+
+###
+ # toString method, extracts policy from event
+ # @param event JSON data containing an event
+ # @return string with a comma separated list of entity names
+###
+def str_event_entity(event):
+    affectedEntityType = event['affectedEntityDefinition']['entityType']
+    if affectedEntityType in ["BUSINESS_TRANSACTION","APPLICATION_DIAGNOSTIC_DATA","MOBILE_APPLICATION"]:
+        if 'name' in event['affectedEntityDefinition']:
+            return event['affectedEntityDefinition']['name']
+        else:
+            return event['affectedEntityDefinition']['entityId']
+    else:
+        return ""
+
+###
+ # toString method, extracts description from event
+ # @param event JSON data containing an event
+ # @return string with the description of the event
+###
+def str_event_description(event):
+    desc_pos = event['description'].find("All of the following conditions were found to be violating")
+    Description = event['description'][desc_pos+58:] if desc_pos > 0 else event['description']
+    Description = event.replace("<br>","\n")
+    return Description
+
+###
+ # toString method, extracts starting time from event
+ # @param event JSON data containing an event
+ # @return date
+###
+def str_event_start_time(event):
+    Start_Time_Epoch = event['startTimeInMillis']
+    return datetime.fromtimestamp(float(Start_Time_Epoch)/1000).strftime('%Y-%m-%d %H:%M:%S')
+
+###
+ # toString method, extracts ending time from event
+ # @param event JSON data containing an event
+ # @return date
+###
+def str_event_end_time(event):
+    Status = event['incidentStatus']
+    if Status != "OPEN":
+        End_Time_Epoch = event['endTimeInMillis']
+        return datetime.fromtimestamp(float(End_Time_Epoch)/1000).strftime('%Y-%m-%d %H:%M:%S')
+    else:
+        return ""
+
+###
  # Generate CSV output from healthrule violations data, either from the local dictionary or from streamed data
  # @param appID_List list of application IDs, in order to obtain healtrule violations from local healthrule violations dictionary
  # @param events stream of events, containing healthrule violations
@@ -106,54 +169,20 @@ def generate_events_CSV(appID_List=None,events=None,fileName=None):
 
         if 'affectedEntityDefinition' not in policyviolation: continue
 
-        Start_Time_Epoch = policyviolation['startTimeInMillis']
-        Start_Time = datetime.fromtimestamp(float(Start_Time_Epoch)/1000).strftime('%Y-%m-%d %H:%M:%S')
-
-        Status = policyviolation['incidentStatus']
-        if Status != "OPEN":
-            End_Time_Epoch = policyviolation['endTimeInMillis']
-            End_Time = datetime.fromtimestamp(float(End_Time_Epoch)/1000).strftime('%Y-%m-%d %H:%M:%S')
-        else:
-            End_Time = ""
-
-        Severity = policyviolation['severity'] if 'severity' in policyviolation else "Undefined"
-
-        triggeredEntitytype = policyviolation['triggeredEntityDefinition']['entityType']
-        if triggeredEntitytype == "POLICY":
-            if 'name' in policyviolation['triggeredEntityDefinition']:
-                PolicyName = policyviolation['triggeredEntityDefinition']['name']
-            else:
-                PolicyName = policyviolation['triggeredEntityDefinition']['entityId']
-        else:
-            PolicyName = ""
-
-        affectedEntityType = policyviolation['affectedEntityDefinition']['entityType']
-        if affectedEntityType in ["BUSINESS_TRANSACTION","APPLICATION_DIAGNOSTIC_DATA","MOBILE_APPLICATION"]:
-            if 'name' in policyviolation['affectedEntityDefinition']:
-                EntityName = policyviolation['affectedEntityDefinition']['name']
-            else:
-                EntityName = policyviolation['affectedEntityDefinition']['entityId']
-        else:
-            EntityName = ""
-
-        desc_pos = policyviolation['description'].find("All of the following conditions were found to be violating")
-        Description = policyviolation['description'][desc_pos+58:] if desc_pos > 0 else policyviolation['description']
-        Description = Description.replace("<br>","\n")
-
         app_ID  = policyviolation['deepLinkUrl'][policyviolation['deepLinkUrl'].find("application"):].split('&')[0].split('=')[1]
         appName = getAppName(app_ID)
 
         try:
-            filewriter.writerow({'PolicyName': PolicyName,
-                                'EntityName': EntityName,
-                                'Severity': Severity,
-                                'Status': Status,
-                                'Start_Time': Start_Time,
-                                'End_Time': End_Time,
+            filewriter.writerow({'PolicyName': str_event_policy(policyviolation),
+                                'EntityName': str_event_entity(policyviolation),
+                                'Severity': policyviolation['severity'] if 'severity' in policyviolation else "Undefined",
+                                'Status': policyviolation['incidentStatus'],
+                                'Start_Time': str_event_start_time(policyviolation),
+                                'End_Time': str_event_end_time(policyviolation),
                                 'Application': appName,
-                                'Description': Description})
-        except:
-            print ("generate_events_CSV: Could not write to the output.")
+                                'Description': str_event_description(policyviolation)})
+        except ValueError as valError:
+            print (valError)
             if fileName is not None: csvfile.close()
             return (-1)
     if fileName is not None: csvfile.close()
