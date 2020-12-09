@@ -82,7 +82,7 @@ def str_event_policy(event):
     triggeredEntitytype = event['triggeredEntityDefinition']['entityType']
     if triggeredEntitytype == "POLICY":
         if 'name' in event['triggeredEntityDefinition']:
-            return event['triggeredEntityDefinition']['name']
+            return event['triggeredEntityDefinition']['name'].encode('ASCII', 'ignore')
         else:
             return event['triggeredEntityDefinition']['entityId']
     else:
@@ -97,7 +97,7 @@ def str_event_entity(event):
     affectedEntityType = event['affectedEntityDefinition']['entityType']
     if affectedEntityType in ["BUSINESS_TRANSACTION","APPLICATION_DIAGNOSTIC_DATA","MOBILE_APPLICATION"]:
         if 'name' in event['affectedEntityDefinition']:
-            return event['affectedEntityDefinition']['name']
+            return event['affectedEntityDefinition']['name'].encode('ASCII', 'ignore')
         else:
             return event['affectedEntityDefinition']['entityId']
     else:
@@ -111,7 +111,7 @@ def str_event_entity(event):
 def str_event_description(event):
     desc_pos = event['description'].find("All of the following conditions were found to be violating")
     Description = event['description'][desc_pos+58:] if desc_pos > 0 else event['description']
-    Description = event.replace("<br>","\n")
+    Description = Description.replace("<br>","\n")
     return Description
 
 ###

@@ -229,7 +229,7 @@ def generate_policies_CSV(appID_List,custom_policyDict=None,fileName=None):
             # Check if data belongs to a policy
             if 'reactorType' not in policy and 'selectedEntities' not in policy: continue
             try:
-                filewriter.writerow({'Policy': policy['name'],
+                filewriter.writerow({'Policy': policy['name'].encode('ASCII', 'ignore'),
                                      'Application': getAppName(appID),
                                      'Events': str_policy_healthrules(policy),
                                      'Entities': str_policy_entities(policy),
