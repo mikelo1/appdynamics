@@ -6,6 +6,7 @@ import csv
 import sys
 from getpass import getpass
 from datetime import datetime, timedelta
+from urlparse import urlparse
 import time
 
 class AppD_Configuration:
@@ -34,78 +35,159 @@ class AppD_Configuration:
     def __str__(self):
         return "({0},{1})".format(self.configFile,self.data)
 
-    def get_current_context_serverURL(self):
-        if 'current-context' in self.data and len(self.data['current-context']) > 0:
-            for context in self.data['contexts']:
-                if context['name'] == self.data['current-context']:
-                 return context['context']['server']
+    def get_help(self,output=sys.stdout):
+        if output in [sys.stdout,sys.stderr]:
+            output.write ("Modify appdconfig files using subcommands like \"appdctl config set current-context my-context\"\n\n" + \
+                        " The loading order follows these rules:\n\n" + \
+                        "  1.  If the --kubeconfig flag is set, then only that file is loaded. The flag may only be set once and no merging takes place.\n" + \
+                        "  2.  If $KUBECONFIG environment variable is set, then it is used as a list of paths (normal path delimiting rules for your system). These paths are merged. When a value is modified, it is modified the file that defines the stanza. When a value is created, it is created in the first file that exists. If no files in the chain exist, then it creates the last file in the list.\n" + \
+                        "  3.  Otherwise, ${HOME}/.kube/config is used and no merging takes place.\n\n" + \
+                        "Available Commands:\n" + \
+                        "  current-context Displays the current-context\n" + \
+                        "  delete-context  Delete the specified context from the kubeconfig\n" + \
+                        "  get-contexts    Describe one or many contexts\n" + \
+                        "  rename-context  Renames a context from the kubeconfig file.\n" + \
+                        "  set-context     Sets a context entry in kubeconfig\n" + \
+                        "  set-credentials Sets a user entry in kubeconfig\n" + \
+                        "  unset           Unsets an individual value in a kubeconfig file\n" + \
+                        "  use-context     Sets the current-context in a kubeconfig file\n" + \
+                        "  view            Display merged kubeconfig settings or a specified kubeconfig file\n\n" + \
+                        "Usage:\n" + \
+                        "  appdctl config SUBCOMMAND [options]\n\n")
 
-    def get_current_context_servername(self):
+    def view(self):
+        try:
+            with open(self.configFile, 'r') as stream:
+                print stream.readlines()
+        except EnvironmentError as exc:
+            print(exc)
+
+    def save(self):
+        if 'DEBUG' in locals(): print "Saving changes..."
+        try:
+            with open(self.configFile, "w") as outfile:
+                yaml.dump(self.data, outfile, default_flow_style=False, allow_unicode=True)
+        except yaml.YAMLError as exc:
+            print(exc)
+
+    def get_contexts(self,output=sys.stdout):
+        fieldnames = ['CURRENT', 'NAME', 'AUTHINFO']
+        filewriter = csv.DictWriter(output, fieldnames=fieldnames, delimiter=',', quotechar='"')
+        filewriter.writeheader()
+
+        for context in self.data['contexts']:
+            try:
+                filewriter.writerow({'CURRENT': "*" if 'current-context' in self.data and context['name'] == self.data['current-context'] else "",
+                                     'NAME': context['name'],
+                                     'AUTHINFO': context['context']['user']})
+            except ValueError as valError:
+                print (valError)
+                return (-1)
+
+    def get_current_context(self,output=sys.stdout):
         if 'current-context' in self.data and len(self.data['current-context']) > 0:
-            return self.data['current-context'].split('/')[0]
+            if output in [sys.stdout,sys.stderr]:
+                output.write(self.data['current-context']+"\n")
+            return self.data['current-context']
         else:
             return None
+
+    def get_current_context_serverURL(self):
+        if 'current-context' in self.data and len(self.data['current-context']) > 0:
+            return [context for context in self.data['contexts'] if context['name']==self.data['current-context']][0]['context']['server']
+
+    def get_current_context_user(self):
+        if 'current-context' in self.data and len(self.data['current-context']) > 0:
+            return [context for context in self.data['contexts'] if context['name']==self.data['current-context']][0]['context']['user']
 
     def get_current_context_username(self):
         if 'current-context' in self.data and len(self.data['current-context']) > 0:
-            return self.data['current-context'].split('/')[1]
-        else:
-            return None
+            return [context for context in self.data['contexts'] if context['name']==self.data['current-context']][0]['context']['user'].split('/')[0]
 
     def get_current_context_token(self):
         if 'current-context' in self.data and len(self.data['current-context']) > 0:
-            context = self.data['current-context'].split('/')
-            for user in self.data['users']:
-                username = context[1] + "/" + context[0]
-                if user['name'] == username:
-                    if 'expire' in user['user'] and datetime.today() < user['user']['expire']:
-                        if 'DEBUG' in locals(): print "Found valid token in config YAML file."
-                        return user['user']['token']
-                    else:
-                        if 'DEBUG' in locals(): print "Token expired or invalid in config YAML file."
-                        return None
-        else:
-            if 'DEBUG' in locals(): print "get_current_context_token: Cannot get context data. Did you login to any controller machine?"
-            return None
+            current_user = self.get_current_context_user()
+            userdata = [user for user in self.data['users'] if user['name']==current_user][0]['user']
+            if userdata is not None and 'expire' in userdata and datetime.today() < userdata['expire']:
+                if 'DEBUG' in locals(): print "Found valid token in config YAML file."
+                return user['user']['token']
+            else:
+                if 'DEBUG' in locals(): print "Token expired or invalid in config YAML file."
+                return None
 
-    def set_new_token(self,API_Client,access_token,expires_in):
-        for user in self.data['users']:
-            username = user['name'].split('/')[0]
-            if username == API_Client:
-                user['user']['token']  = str(access_token)
-                user['user']['expire'] = datetime.now()+timedelta(seconds=expires_in)
-                if 'DEBUG' in locals(): print "Saving new token..."
-                with open(self.configFile, "w") as outfile:
-                    yaml.dump(self.data, outfile, default_flow_style=False, allow_unicode=True)
+    def set_current_context_token(self,access_token,expires_in):
+        if 'current-context' in self.data and len(self.data['current-context']) > 0:
+            current_user = self.get_current_context_user()
+            userdata = [user for user in self.data['users'] if user['name']==current_user][0]['user']
+            if userdata is not None:
+                userdata['token']  = str(access_token)
+                userdata['expire'] = datetime.now()+timedelta(seconds=expires_in)
+                self.save()
                 return True
         return False
 
-    def create_or_select_user(self,serverURL,API_Client):
-        servername = serverURL.split('/')[2]
+    def select_context(self,contextname):
+        if 'current-context' in self.data and self.data['current-context'] == contextname:
+            sys.stdout.write("Context " + contextname + " already selected.\n")
+            return contextname
+        for context in self.data['contexts']:
+            if context['name'] == contextname:
+                self.data['current-context'] = contextname
+                self.save()
+                sys.stdout.write("Context changed to "+contextname+"\n")
+                return contextname
+        sys.stderr.write("Context "+contextname+" does not exist.\n")
+        return None
+
+    # @param serverURL Full hostname of the Appdynamics controller. i.e.: https://demo1.appdynamics.com:443
+    # @param API_Client Full username, including account. i.e.: myuser@customer1
+    def create_context(self,serverURL,API_Client,contextname=None):
+        url = urlparse(serverURL)
+        if len(url.scheme) == 0 or len(url.netloc) == 0 is None:
+            sys.stderr.write("URL is not correctly formatted. <protocol>://<host>:<port>\n")
+            return
+        servername = url.netloc
         username = API_Client + "/" + servername
-        contextname = servername + "/" + API_Client
+        if contextname is None: contextname = servername + "/" + API_Client
 
         # Check whether provided user does exist or not
-        for user in self.data['users']:
-            if user['name'] == username:
-                break
-
-        if 'user' not in locals() or user['name'] != username:
-            # Create the new user
+        if username in self.data['users'] or contextname in self.data['contexts']:
+            sys.stderr.write("User or context already exists.\n")
+        else:
+            # Create the new user and set this one as current-context
             self.data['users'].append({'name': username,'user': {}})
             self.data['contexts'].append({'name': contextname,'context': { 'server': serverURL, 'user': username}})
-            changes = True
-
-        # Set this one as current-context, if not already
-        if self.data['current-context'] != contextname:
             self.data['current-context'] = contextname
-            changes = True
+            self.save()
 
-        # Save changes, if any
-        if 'changes' in locals():
-            if 'DEBUG' in locals(): print "Saving changes..."
-            with open(self.configFile, "w") as outfile:
-                yaml.dump(self.data, outfile, default_flow_style=False, allow_unicode=True)
+    def delete_context(self,contextname):
+        context_index = 0
+        for context in self.data['contexts']:
+            if context['name'] == contextname:
+                context_user = context['context']['user']
+                user_index = 0
+                for user in self.data['users']:
+                    if user['name'] == context_user: break
+                    else: user_index += 1
+                if user_index < len (self.data['users']):
+                    self.data['users'].pop(user_index)
+                break
+            else: context_index += 1
+        if context_index < len(self.data['contexts']): 
+            self.data['contexts'].pop(context_index)
+            if 'current-context' in self.data and self.data['current-context'] == contextname:
+                self.data.pop('current-context')
+            self.save()
+
+    def rename_context(self,contextname,new_contextname):
+        for context in self.data['contexts']:
+            if context['name'] == contextname:
+                context['name'] = new_contextname
+                self.save()
+                sys.stdout.write("Context changed to "+new_contextname+"\n")
+                return new_contextname
+        sys.stderr.write("Context "+contextname+" does not exist.\n")
+        return None
 
 class BasicAuth:
     authFile  = ""
@@ -171,23 +253,23 @@ def fetch_access_token(serverURL,API_username,API_password):
 
 ###
  # Get access token from a controller. If no credentials provided it will try to get them from config file.
- # @param serverURL Full hostname of the Appdynamics controller. i.e.: https://demo1.appdynamics.com:443
- # @param API_Client Full username, including account. i.e.: myuser@customer1
+ # @param contextName name of context
  # @param basicAuthFile name of the source CSV file
  # @return the access token string. Null if there was a problem getting the access token.
 ###
-def get_access_token(serverURL=None,API_Client=None,basicAuthFile=None):
+def get_access_token(contextName=None,basicAuthFile=None):
     global basicAuth
-    if serverURL is None or API_Client is None:
-        # If controller was not provided, try to find in the configuration file
-        serverURL  = appD_Config.get_current_context_serverURL()
-        API_Client = appD_Config.get_current_context_username()
-        if serverURL is None or API_Client is None:
-            if 'DEBUG' in locals(): print "Cannot get context data. Did you login to any controller machine?"
+    if contextName is not None:
+        if appD_Config.select_context(contextName) is None:
+            if 'DEBUG' in locals(): print "Cannot get context data. Did you type correctly the context name?"
             return None
+    elif appD_Config.get_current_context(output=None) is None:
+        if 'DEBUG' in locals(): print "Cannot get context data. Did you login to any controller machine?"
+        return None
 
-    appD_Config.create_or_select_user(serverURL,API_Client)
-    token = appD_Config.get_current_context_token()
+    token     = appD_Config.get_current_context_token()
+    serverURL = appD_Config.get_current_context_serverURL()
+    API_Client= appD_Config.get_current_context_username()
     if token is None:
         if basicAuthFile is not None:
             basicAuth = BasicAuth(basicAuthFile=basicAuthFile)
@@ -200,9 +282,12 @@ def get_access_token(serverURL=None,API_Client=None,basicAuthFile=None):
         if token_data is None:
             sys.stderr.write("Authentication failed. Did you mistype the password?\n") 
             return None
-        appD_Config.set_new_token(API_Client,token_data['access_token'],token_data['expires_in'])
+        appD_Config.set_current_context_token(token_data['access_token'],token_data['expires_in'])
         token = token_data['access_token']
     return token
+
+
+###### FROM HERE PUBLIC FUNCTIONS ######
 
 ###
  # Fetch RESTful Path from a controller. Either provide an username/password or let it get an access token automatically.

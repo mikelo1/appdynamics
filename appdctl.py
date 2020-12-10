@@ -97,7 +97,7 @@ if COMMAND.lower() == "help":
 #######################################
 elif COMMAND.lower() == "login":
 
-  if len(args) == 2  and args[1] == "help":
+  if len(args) == 2 and args[1] == "help":
     sys.stderr.write("Login can be done with manual keyboard input or with a basic authentication file in CSV format\n" + \
                      "Either way, if the context doesn't exist in the **appdconfig.yaml** file, it will create a new entry and set it as the current-context.\n\n" + \
                      "To login with a manual input of the credentials, follow these steps:\n" + \
@@ -137,6 +137,54 @@ elif COMMAND.lower() == "login":
     token=get_access_token(server,username)
   if token is not None:
     print "Login successful. "
+
+#######################################
+############ CONFIG COMMAND ###########
+#######################################
+elif COMMAND.lower() == "config":
+
+  if len(args) < 2:
+      optParser.error("incorrect number of arguments")
+      exit()
+
+  SUBCOMMAND = args[1]
+
+  if SUBCOMMAND in ['help','view','get-contexts','current-context']:
+    appD_Config = AppD_Configuration()
+    functions = { 'help':appD_Config.get_help,
+                  'view':appD_Config.view,    
+                  'get-contexts':appD_Config.get_contexts,
+                  'current-context':appD_Config.get_current_context
+                }
+    functions[SUBCOMMAND]()
+  elif SUBCOMMAND in ['use-context','delete-context']:
+    if len(args) < 3:
+      optParser.error("incorrect number of arguments")
+      exit()
+    appD_Config = AppD_Configuration()
+    functions = { 'use-context':appD_Config.select_context,
+                  'delete-context':appD_Config.delete_context
+                }
+    functions[SUBCOMMAND](args[2])
+  elif SUBCOMMAND == 'set-context':
+    if len(args) < 3:
+      optParser.error("incorrect number of arguments")
+      exit()
+    elif options.controllerURL is None or options.apiClient is None:
+      optParser.error("Missing controller URL or APIClient user.")
+      exit()
+    appD_Config = AppD_Configuration()
+    appD_Config.create_context(contextname=args[2],serverURL=options.controllerURL,API_Client=options.apiClient)
+  elif SUBCOMMAND == 'rename-context':
+    if len(args) < 4:
+      optParser.error("incorrect number of arguments")
+      exit()
+    appD_Config = AppD_Configuration()
+    appD_Config.rename_context(args[2],args[3])
+  elif SUBCOMMAND in ['unset','set-credentials']:
+    print "Subcommand " + SUBCOMMAND + " not implemented yet."
+  else:
+    optParser.error("incorrect subcommand \""+SUBCOMMAND+"\"")
 
 #######################################
 ############# GET COMMAND #############
