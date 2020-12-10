@@ -7,6 +7,7 @@ import sys
 from getpass import getpass
 from datetime import datetime, timedelta
 from urlparse import urlparse
+import base64
 import time
 
 class AppD_Configuration:
@@ -141,7 +142,7 @@ class AppD_Configuration:
 
     # @param serverURL Full hostname of the Appdynamics controller. i.e.: https://demo1.appdynamics.com:443
     # @param API_Client Full username, including account. i.e.: myuser@customer1
-    def create_context(self,serverURL,API_Client,contextname=None):
+    def create_context(self,contextname,serverURL,API_Client):
         url = urlparse(serverURL)
         if len(url.scheme) == 0 or len(url.netloc) == 0 is None:
             sys.stderr.write("URL is not correctly formatted. <protocol>://<host>:<port>\n")
@@ -178,6 +179,8 @@ class AppD_Configuration:
             if 'current-context' in self.data and self.data['current-context'] == contextname:
                 self.data.pop('current-context')
             self.save()
+        else:
+            sys.stderr.write("Context does not exist.\n")
 
     def rename_context(self,contextname,new_contextname):
         for context in self.data['contexts']:
@@ -188,6 +191,29 @@ class AppD_Configuration:
                 return new_contextname
         sys.stderr.write("Context "+contextname+" does not exist.\n")
         return None
+
+    def set_credentials(self,contextname):
+        context = [context for context in self.data['contexts'] if context['name']==contextname]
+        if not context:
+            sys.stdout.write("Context "+contextname+" does not exist.\n")
+        else:
+            API_Client = context[0]['context']['user']
+            user = [user for user in self.data['users'] if user['name']==API_Client][0]
+            sys.stderr.write("Authentication required for " + API_Client + "\n")
+            Client_Secret = getpass(prompt='Password: ')
+            user['user'].update({'password': base64.b64encode(Client_Secret.encode('ascii'))})
+            self.save()
+
+    def get_credentials(self,contextname):
+        context = [context for context in self.data['contexts'] if context['name']==contextname]
+        if not context:
+            sys.stdout.write("Context "+contextname+" does not exist.\n")
+        else:
+            API_Client = context[0]['context']['user']
+            user = [user for user in self.data['users'] if user['name']==API_Client][0]
+            if 'password' in user['user']:
+                return base64.b64decode(user['user']['password'].encode('ascii')).decode('ascii')
+
 
 class BasicAuth:
     authFile  = ""
@@ -218,7 +244,7 @@ class BasicAuth:
                 if credential['apiClient'] == API_Client:
                     return credential['password']
 
-basicAuth=None
+basicAuth   = None #BasicAuth(basicAuthFile="auth_file.csv")
 appD_Config = AppD_Configuration()
 
 ###
@@ -252,12 +278,11 @@ def fetch_access_token(serverURL,API_username,API_password):
     return token_data
 
 ###
- # Get access token from a controller. If no credentials provided it will try to get them from config file.
+ # Get access token from a controller. If no credentials provided it will try to get them from basic auth file.
  # @param contextName name of context
- # @param basicAuthFile name of the source CSV file
  # @return the access token string. Null if there was a problem getting the access token.
 ###
-def get_access_token(contextName=None,basicAuthFile=None):
+def get_access_token(contextName=None):
     global basicAuth
     if contextName is not None:
         if appD_Config.select_context(contextName) is None:
@@ -271,10 +296,10 @@ def get_access_token(contextName=None,basicAuthFile=None):
     serverURL = appD_Config.get_current_context_serverURL()
     API_Client= appD_Config.get_current_context_username()
     if token is None:
-        if basicAuthFile is not None:
-            basicAuth = BasicAuth(basicAuthFile=basicAuthFile)
         if basicAuth is not None:
             Client_Secret = basicAuth.get_password(API_Client)
+        elif appD_Config.get_credentials(appD_Config.get_current_context(output=None)):
+            Client_Secret = appD_Config.get_credentials(appD_Config.get_current_context(output=None))
         else:
             sys.stderr.write("Authentication required for " + serverURL + "\n")
             Client_Secret = getpass(prompt='Password: ')
@@ -299,7 +324,7 @@ def get_access_token(contextName=None,basicAuthFile=None):
  # @return the response data. Null if no data was received.
 ###
 def fetch_RESTfulPath(RESTfulPath,params=None,serverURL=None,userName=None,password=None):
-    if 'DEBUG' in locals(): print ("Fetching JSON from RESTful path " + RESTfulPath + "with params " + json.dumps(params) + " ...")
+    if 'DEBUG' in locals(): print ("Fetching JSON from RESTful path " + RESTfulPath + " with params " + json.dumps(params) + " ...")
     if serverURL is None: serverURL = appD_Config.get_current_context_serverURL()
     if userName and password:
         try:

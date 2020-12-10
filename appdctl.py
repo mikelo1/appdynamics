@@ -57,10 +57,10 @@ optParser.add_option("-f", "--filename", action="store", dest="filename",
                   help="Filename, directory, or URL to files identifying the resource to get from a server.")
 optParser.add_option("--controller-url", action="store", dest="controllerURL",
                   help="URL of the controller")
-optParser.add_option("--api-client", action="store", dest="apiClient",
+optParser.add_option("--user-API", action="store", dest="apiClient",
                   help="API client username")
-optParser.add_option("--basic-auth-file", action="store", dest="basicAuthFile",
-                  help="Basic authentication file")
+#optParser.add_option("--password", action="store", dest="password",
+#                  help="Basic authentication password")
 optParser.add_option("-p", "--patch", action="store", dest="patchJSON",
                   help="The patch to be applied to the resource JSON file")
 groupQuery = OptionGroup(optParser, "Query range options")
@@ -86,6 +86,7 @@ optParser.add_option_group(groupQuery)
 if len(args) < 1:
     optParser.error("incorrect number of arguments")
     exit()
+
 
 COMMAND = args[0]
 
@@ -157,31 +158,32 @@ elif COMMAND.lower() == "config":
                   'current-context':appD_Config.get_current_context
                 }
     functions[SUBCOMMAND]()
-  elif SUBCOMMAND in ['use-context','delete-context']:
+  elif SUBCOMMAND in ['use-context','delete-context','set-credentials','get-credentials']:
     if len(args) < 3:
       optParser.error("incorrect number of arguments")
       exit()
     appD_Config = AppD_Configuration()
     functions = { 'use-context':appD_Config.select_context,
-                  'delete-context':appD_Config.delete_context
+                  'delete-context':appD_Config.delete_context,
+                  'set-credentials':appD_Config.set_credentials,
+                  'get-credentials':appD_Config.get_credentials
                 }
     functions[SUBCOMMAND](args[2])
   elif SUBCOMMAND == 'set-context':
     if len(args) < 3:
       optParser.error("incorrect number of arguments")
       exit()
-    elif options.controllerURL is None or options.apiClient is None:
-      optParser.error("Missing controller URL or APIClient user.")
+    if not options.controllerURL or not options.apiClient:
+      optParser.error("missing controller URL or API username.")
       exit()
-    appD_Config = AppD_Configuration()
-    appD_Config.create_context(contextname=args[2],serverURL=options.controllerURL,API_Client=options.apiClient)
+    AppD_Configuration().create_context(contextname=args[2],serverURL=options.controllerURL,API_Client=options.apiClient)
   elif SUBCOMMAND == 'rename-context':
     if len(args) < 4:
       optParser.error("incorrect number of arguments")
       exit()
     appD_Config = AppD_Configuration()
-    appD_Config.rename_context(args[2],args[3])
-  elif SUBCOMMAND in ['unset','set-credentials']:
+    appD_Config.rename_context(args[2],args[3])    
+  elif SUBCOMMAND == 'unset':
     print "Subcommand " + SUBCOMMAND + " not implemented yet."
   else:
     optParser.error("incorrect subcommand \""+SUBCOMMAND+"\"")
