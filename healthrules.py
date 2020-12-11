@@ -588,10 +588,16 @@ def get_health_rules_from_stream(streamdata,outputFormat=None,outFilename=None):
  # @return the number of fetched health rules. Zero if no health rule was found.
 ###
 def get_health_rules(appID_List,selectors=None,outputFormat=None):
-    numHealthRules = 0
+    numHealthRules = index = 0
+    sys.stderr.write("get health-rules 0%")
+    sys.stderr.flush()
     for appID in appID_List:
-        sys.stderr.write("get health-rules " + getAppName(appID) + "...\n")
+        index += 1
+        percentage = index*100/len(appID_List)
+        sys.stderr.write("\rget health-rules ... " + str(percentage) + "%")
+        sys.stderr.flush()
         numHealthRules = numHealthRules + fetch_health_rules_legacy(appID,selectors=selectors)
+    sys.stderr.write("\n")
     if numHealthRules == 0:
         sys.stderr.write("get_health_rules: Could not fetch any health rules.\n")
     elif outputFormat and outputFormat == "JSON":
