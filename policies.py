@@ -40,7 +40,8 @@ def fetch_policies(app_ID,serverURL=None,userName=None,password=None,token=None,
 
     try:
         policies = json.loads(response)
-    except JSONDecodeError:
+    except ValueError as valError:
+        print (valError)
         print ("fetch_policies: Could not process JSON content.")
         return None
 
@@ -87,7 +88,8 @@ def fetch_policies_legacy(app_ID,serverURL=None,userName=None,password=None,toke
 
     try:
         policies = json.loads(response)
-    except JSONDecodeError:
+    except ValueError as valError:
+        print (valError)
         print ("fetch_policies: Could not process JSON content.")
         return None
 

@@ -111,7 +111,7 @@ class AppD_Configuration:
             userdata = [user for user in self.data['users'] if user['name']==current_user][0]['user']
             if userdata is not None and 'expire' in userdata and datetime.today() < userdata['expire']:
                 if 'DEBUG' in locals(): print "Found valid token in config YAML file."
-                return user['user']['token']
+                return userdata['token']
             else:
                 if 'DEBUG' in locals(): print "Token expired or invalid in config YAML file."
                 return None
@@ -296,6 +296,7 @@ def get_access_token(contextName=None):
     serverURL = appD_Config.get_current_context_serverURL()
     API_Client= appD_Config.get_current_context_username()
     if token is None:
+        if 'DEBUG' in locals(): print "Current context "+ appD_Config.get_current_context(output=None) + " has no valid token."
         if basicAuth is not None:
             Client_Secret = basicAuth.get_password(API_Client)
         elif appD_Config.get_credentials(appD_Config.get_current_context(output=None)):
@@ -309,6 +310,9 @@ def get_access_token(contextName=None):
             return None
         appD_Config.set_current_context_token(token_data['access_token'],token_data['expires_in'])
         token = token_data['access_token']
+        if 'DEBUG' in locals(): print "New token obtained for current context "+ appD_Config.get_current_context(output=None) + ": "+token
+    else:
+        if 'DEBUG' in locals(): print "Current context "+ appD_Config.get_current_context(output=None) + " has valid token: "+token
     return token
 
 

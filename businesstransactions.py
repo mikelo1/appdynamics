@@ -33,7 +33,8 @@ def fetch_business_transactions(app_ID,selectors=None,serverURL=None,userName=No
 
     try:
         transactions = json.loads(response)
-    except JSONDecodeError:
+    except ValueError as valError:
+        print (valError)
         print ("fetch_business_transactions: Could not process JSON content.")
         return None
   

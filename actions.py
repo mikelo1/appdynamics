@@ -31,7 +31,8 @@ def fetch_actions(app_ID,serverURL=None,userName=None,password=None,token=None,l
 
     try:
         actions = json.loads(response)
-    except JSONDecodeError:
+    except ValueError as valError:
+        print (valError)
         print ("fetch_actions: Could not process JSON content.")
         return None
 
