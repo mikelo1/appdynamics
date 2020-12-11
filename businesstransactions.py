@@ -150,10 +150,16 @@ def get_business_transactions_from_stream(streamdata,outputFormat=None,outFilena
  # @return the number of fetched business transactions. Zero if no business transaction was found.
 ###
 def get_business_transactions(appID_List,selectors=None,outputFormat=None):
-    numBTs = 0
+    numBTs = index = 0
+    sys.stderr.write("get business-transactions 0%")
+    sys.stderr.flush()
     for appID in appID_List:
-        sys.stderr.write("get business-transactions " + getAppName(appID) + "...\n")
+        index += 1
+        percentage = index*100/len(appID_List)
+        sys.stderr.write("\rget business-transactions ... " + str(percentage) + "%")
+        sys.stderr.flush()
         numBTs = numBTs + fetch_business_transactions(appID,selectors=selectors)
+    sys.stderr.write("\n")
     if numBTs == 0:
         sys.stderr.write("get_business_transactions: Could not fetch any business_transactions.\n")
     elif outputFormat and outputFormat == "JSON":
