@@ -207,7 +207,6 @@ elif COMMAND.lower() == "get":
     functions = { 'load_policies':get_policies_from_stream,
                   'load_actions':get_actions_from_stream,
                   'load_schedules':get_schedules_from_stream,
-                  'load_health-rules':get_health_rules_from_stream,
                   'load_detection-rules':get_detection_rules_from_stream,
                   'load_businesstransactions':get_business_transactions_from_stream,
                   'load_backends':get_backends_from_stream,
