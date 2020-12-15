@@ -304,21 +304,25 @@ elif COMMAND.lower() == "get":
     else: # if options.allApplications:
       applicationList = get_application_ID_list()
 
+    entityObjects = { 'healthrules': {'class': HealthRuleDict, 'function': fetch_health_rules_legacy}
+          }
+
     index = 0
-    sys.stderr.write("get health-rules 0%")
+    sys.stderr.write("get "+ENTITY+" 0%")
     sys.stderr.flush()
-    HRDict = HealthRuleDict()
+    entityDict = entityObjects[ENTITY]['class']()
     for appID in applicationList:
         index += 1
         percentage = index*100/len(applicationList)
-        sys.stderr.write("\rget health-rules ... " + str(percentage) + "%")
+        sys.stderr.write("\rget "+ENTITY+" ... " + str(percentage) + "%")
         sys.stderr.flush()
-        HRDict.get_health_rules_from_stream(fetch_health_rules_legacy(appID,selectors=selectors),appID=appID)
+        data = entityObjects[ENTITY]['function'](appID,selectors=selectors)
+        entityDict.load(data,appID=appID)
     sys.stderr.write("\n")
     if options.outFormat and options.outFormat == "JSON":
-        HRDict.generate_health_rules_JSON(appID_List=applicationList)
+        entityDict.generate_JSON(appID_List=applicationList)
     elif not options.outFormat or options.outFormat == "CSV":
-        HRDict.generate_health_rules_CSV(appID_List=applicationList)
+        entityDict.generate_CSV(appID_List=applicationList)
 
   else:
     optParser.error("incorrect entity \""+ENTITY+"\"")

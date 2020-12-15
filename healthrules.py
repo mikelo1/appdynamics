@@ -17,7 +17,7 @@ class HealthRuleDict:
         return json.dumps(self.healthruleDict)
 
     ###
-     # Translate stream containing healthrules in XML format, to JSON format structure
+     # private method to translate stream containing healthrules in XML format, to JSON format structure
      # @param streamdata the stream data in XML format
      # @return stream data in JSON format.
     ###
@@ -61,7 +61,7 @@ class HealthRuleDict:
         return healthrules
 
     ###
-     # Translate ElementTree XML object containing affected-entities-match-criteria data to JSON data
+     # private method to translate ElementTree XML object containing affected-entities-match-criteria data to JSON data
      # @param element the ElementTree XML object
      # @param entityType the type of the ElementTree object
      # @return stream data in JSON format.
@@ -217,7 +217,7 @@ class HealthRuleDict:
         return affects
 
     ###
-     # Translate ElementTree XML object containing critical or warning execution-criteria data to JSON data
+     # private method to translate ElementTree XML object containing critical or warning execution-criteria data to JSON data
      # @param element the ElementTree XML object
      # @param entityType the type of the ElementTree object
      # @return stream data in JSON format.
@@ -318,7 +318,7 @@ class HealthRuleDict:
 
 
     ###
-     # toString method, extracts affects from health rule
+     # toString private method, extracts affects from health rule
      # @param healthrule JSON data containing a health rule
      # @return string with a comma separated list of affects
     ###
@@ -398,7 +398,7 @@ class HealthRuleDict:
         return Affects
 
     ###
-     # toString method, extracts critical conditions from health rule
+     # toString private method, extracts critical conditions from health rule
      # @param healthrule JSON data containing a health rule
      # @return string with a comma separated list of critical conditions
     ###
@@ -427,7 +427,7 @@ class HealthRuleDict:
         return CritCondition
 
 
-    ###### FROM HERE PUBLIC FUNCTIONS ######
+    ###### FROM HERE PUBLIC METHODS ######
 
     ###
      # Generate CSV output from health rules data, either from the local dictionary or from streamed data
@@ -435,7 +435,7 @@ class HealthRuleDict:
      # @param fileName output file name
      # @return None
     ###
-    def generate_health_rules_CSV(self,appID_List,fileName=None):
+    def generate_CSV(self,appID_List,fileName=None):
         if type(appID_List) is not list or len(appID_List)==0: return
 
         if fileName is not None:
@@ -450,7 +450,6 @@ class HealthRuleDict:
         # create the csv writer object
         fieldnames = ['HealthRule', 'Application', 'Duration', 'Wait_Time', 'Schedule', 'Enabled', 'Affects', 'Critical_Condition']
         filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
-        filewriter.writeheader()
 
         for appID in appID_List:
             if str(appID) not in self.healthruleDict:
@@ -459,6 +458,10 @@ class HealthRuleDict:
             for healthrule in self.healthruleDict[str(appID)]:
                 # Check if data belongs to a health rule
                 if 'affectedEntityType' not in healthrule and 'useDataFromLastNMinutes' not in healthrule: continue
+                elif 'header_is_printed' not in locals(): 
+                    filewriter.writeheader()
+                    header_is_printed=True
+
                 try:
                     filewriter.writerow({'HealthRule': healthrule['name'].encode('ASCII', 'ignore'),
                                          'Application': getAppName(appID),
@@ -482,7 +485,7 @@ class HealthRuleDict:
      # @param fileName output file name
      # @return None
     ###
-    def generate_health_rules_JSON(self,appID_List,fileName=None):
+    def generate_JSON(self,appID_List,fileName=None):
         if type(appID_List) is not list or len(appID_List)==0: return
 
         healthrules = []
@@ -509,7 +512,7 @@ class HealthRuleDict:
      # @param appID the ID number of the application where to load the health rule data.
      # @return the number of loaded health rules. Zero if no health rule was loaded.
     ###
-    def get_health_rules_from_stream(self,streamdata,appID=None):
+    def load(self,streamdata,appID=None):
         if appID is None: appID = 0
         healthrules = self.__parse_healthrules_XML(streamdata)
         if len(healthrules) == 0:
