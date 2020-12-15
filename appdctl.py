@@ -3,14 +3,14 @@ import sys
 import os.path
 import re
 from datetime import datetime, timedelta
-from appdRESTfulAPI import get_access_token, AppD_Configuration, fetch_health_rules_legacy
+from appdRESTfulAPI import get_access_token, AppD_Configuration, fetch_health_rules_legacy, fetch_business_transactions
 from rbac import get_users
 from settings import get_config
 from applications import get_applications, getAppID, get_application_ID_list, get_applications_from_stream
 from dashboards import get_dashboards, get_dashboards_from_stream
 from nodes import get_nodes, get_nodes_from_stream, update_nodes
 from transactiondetection import get_detection_rules, get_detection_rules_from_stream
-from businesstransactions import get_business_transactions, get_business_transactions_from_stream, get_business_transaction_ID
+from businesstransactions import BusinessTransactionDict
 from backends import get_backends, get_backends_from_stream
 from healthrules import HealthRuleDict
 from policies import get_policies, get_policies_legacy, get_policies_from_stream
@@ -208,7 +208,6 @@ elif COMMAND.lower() == "get":
                   'load_actions':get_actions_from_stream,
                   'load_schedules':get_schedules_from_stream,
                   'load_detection-rules':get_detection_rules_from_stream,
-                  'load_businesstransactions':get_business_transactions_from_stream,
                   'load_backends':get_backends_from_stream,
                   'load_nodes':get_nodes_from_stream,
                   'load_healthrule-violations':get_healthrule_violations_from_stream,
@@ -241,7 +240,6 @@ elif COMMAND.lower() == "get":
                 'get_actions':get_actions_legacy,
                 'get_schedules':get_schedules,
                 'get_detection-rules':get_detection_rules,
-                'get_businesstransactions':get_business_transactions,
                 'get_backends':get_backends,
                 'get_nodes':get_nodes,
                 'get_healthrule-violations':get_healthrule_violations,
@@ -250,7 +248,7 @@ elif COMMAND.lower() == "get":
 
   if ENTITY in ['help','applications','dashboards','config','users']:
     functions["get_"+ENTITY](outputFormat=options.outFormat)
-  elif ENTITY in ['policies','actions','schedules','health-rules','detection-rules','businesstransactions','backends','nodes']:
+  elif ENTITY in ['policies','actions','schedules','health-rules','detection-rules','backends','nodes']:
     if not options.applications and not options.allApplications:
         optParser.error("Missing application (use -A for all applications)")
         exit()
@@ -292,7 +290,7 @@ elif COMMAND.lower() == "get":
       selectors.update({"business-transaction-ids": ''+str(AllOtherTraffic_ID)+''})
       ENTITY="snapshots"
     functions["get_"+ENTITY](applicationList,minutes,selectors,outputFormat=options.outFormat)
-  elif ENTITY in ['healthrules']:
+  elif ENTITY in ['businesstransactions','healthrules']:
     if not options.applications and not options.allApplications:
         optParser.error("Missing application (use -A for all applications)")
         exit()
@@ -304,7 +302,8 @@ elif COMMAND.lower() == "get":
     else: # if options.allApplications:
       applicationList = get_application_ID_list()
 
-    entityObjects = { 'healthrules': {'class': HealthRuleDict, 'function': fetch_health_rules_legacy}
+    entityObjects = { 'healthrules': {'class': HealthRuleDict, 'function': fetch_health_rules_legacy},
+                      'businesstransactions': {'class': BusinessTransactionDict, 'function': fetch_business_transactions},
           }
 
     index = 0

@@ -430,7 +430,7 @@ class HealthRuleDict:
     ###### FROM HERE PUBLIC METHODS ######
 
     ###
-     # Generate CSV output from health rules data, either from the local dictionary or from streamed data
+     # Generate CSV output from health rules data
      # @param appID_List list of application IDs, in order to obtain health rules from local health rules dictionary
      # @param fileName output file name
      # @return None
@@ -480,7 +480,7 @@ class HealthRuleDict:
 
 
     ###
-     # Generate JSON output from health rules data, either from the local dictionary or from streamed data
+     # Generate JSON output from health rules data
      # @param appID_List list of application IDs, in order to obtain health rules from local health rules dictionary
      # @param fileName output file name
      # @return None
@@ -507,7 +507,7 @@ class HealthRuleDict:
             print json.dumps(healthrules)
 
     ###
-     # Display health rules from a stream data in JSON or XML format.
+     # Load health rules from a stream data in JSON or XML format.
      # @param streamdata the stream data in JSON or XML format
      # @param appID the ID number of the application where to load the health rule data.
      # @return the number of loaded health rules. Zero if no health rule was loaded.
@@ -518,8 +518,8 @@ class HealthRuleDict:
         if len(healthrules) == 0:
             try:
                 healthrules = json.loads(streamdata)
-            except ValueError:
-                if 'DEBUG' in locals(): print ("get_health_rules_from_stream: Could not process JSON content.")
+            except TypeError as error:
+                sys.stderr.write("load_health_rule: "+str(error)+"\n")
                 return 0
 
         if type(healthrules) is dict:
