@@ -96,9 +96,8 @@ class BusinessTransactionDict:
         try:
             transactions = json.loads(streamdata)
         except TypeError as error:
-            print ("fetch_business_transactions: "+str(error))
+            print ("load_business_transaction: "+str(error))
             return 0
-        self.BTDict.update({str(appID):transactions})
 
         if type(transactions) is dict:
             self.BTDict.update({str(appID):[transactions]})

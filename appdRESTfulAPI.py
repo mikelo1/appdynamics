@@ -319,6 +319,88 @@ def get_access_token(contextName=None):
 ###### FROM HERE PUBLIC FUNCTIONS ######
 
 ###
+ # Fetch application business transactions from a controller.
+ # @param app_ID the ID number of the application business transactions to fetch
+ # @param selectors fetch only business transactions filtered by specified selectors
+ # @return the fetched data. Null if no data was received.
+###
+def fetch_business_transactions(app_ID,selectors=None):
+    # Retrieve All Business Transactions in a Business Application
+    # GET /controller/rest/applications/application_name/business-transactions
+    restfulPath = "/controller/rest/applications/" + str(app_ID) + "/business-transactions"
+    params = {"output": "JSON"}
+    if selectors: params.update(selectors)
+    return fetch_RESTfulPath(restfulPath,params=params)
+
+###
+ # Fetch health rules from a controller.
+ # @param app_ID the ID number of the health rules to fetch
+ # @param selectors fetch only health rules filtered by specified selectors
+ # @return the fetched data. Null if no data was received.
+###
+def fetch_health_rules(app_ID,selectors=None):
+    # Retrieve a list of Health Rules for an Application
+    # GET <controller_url>/controller/alerting/rest/v1/applications/<application_id>/health-rules
+    restfulPath = "/controller/alerting/rest/v1/applications/" + str(app_ID) + "/health-rules"
+    params = {"output": "JSON"}
+    if selectors: params.update(selectors)
+    return fetch_RESTfulPath(restfulPath,params=params)
+
+###
+ # Fetch health rules from a controller.
+ # @param app_ID the ID number of the health rules to fetch
+ # @param selectors fetch only health rules filtered by specified selectors
+ # @return the fetched data. Null if no data was received.
+###
+def fetch_health_rules_legacy(app_ID,selectors=None):
+    # Export Health Rules from an Application
+    # GET /controller/healthrules/application_id?name=health_rule_name
+    restfulPath = "/controller/healthrules/" + str(app_ID)
+    params = {"output": "XML"}
+    if selectors: params.update(selectors)
+    return fetch_RESTfulPath(restfulPath,params=params)
+
+
+###
+ # Fetch application actions from a controller then add them to the actions dictionary. Provide either an username/password or an access token.
+ # @param app_ID the ID number of the application actions to fetch
+ # @return the fetched data. Null if no data was received.
+###
+def fetch_actions(app_ID):
+    # Retrieve a List of Actions for a Given Application
+    # GET <controller_url>/controller/alerting/rest/v1/applications/<application_id>/actions
+    restfulPath = "/controller/alerting/rest/v1/applications/" + str(app_ID) + "/actions"
+    params = {"output": "JSON"}
+    return fetch_RESTfulPath(restfulPath,params=params)
+
+###
+ # Fetch action details from a controller.
+ # @param app_ID the ID number of the application actions to fetch
+ # @param action_ID the ID number of the action to fetch
+ # @return the fetched data. Null if no data was received.
+###
+def fetch_action_details(app_ID,action_ID):
+    # Retrieve Details of a Specified Action
+    # GET <controller_url>/controller/alerting/rest/v1/applications/<application_id>/actions/{action-id}
+    restfulPath = "/controller/alerting/rest/v1/applications/" + str(app_ID) + "/actions/" + str(action_ID)
+    return fetch_RESTful_JSON(restfulPath)
+
+###
+ # Fetch application actions from a controller then add them to the actions dictionary. Provide either an username/password or an access token.
+ # @param app_ID the ID number of the application actions to fetch
+ # @param selectors fetch only actions filtered by specified selectors
+ # @return the fetched data. Null if no data was received.
+###
+def fetch_actions_legacy(app_ID,selectors=None):
+    # https://docs.appdynamics.com/display/PRO44/Configuration+Import+and+Export+API#ConfigurationImportandExportAPI-ExportActionsfromanApplication
+    # Exports all actions in the specified application to a JSON file.
+    # GET /controller/actions/application_id
+    restfulPath = "/controller/actions/" + str(app_ID)
+    params = {"output": "JSON"}
+    return fetch_RESTfulPath(restfulPath,params=params)
+
+
+###
  # Fetch RESTful Path from a controller. Either provide an username/password or let it get an access token automatically.
  # @param RESTfulPath RESTful path to retrieve data
  # @param params additional HTTP parameters (if any)
