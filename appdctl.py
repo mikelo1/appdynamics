@@ -3,7 +3,7 @@ import sys
 import os.path
 import re
 from datetime import datetime, timedelta
-from appdRESTfulAPI import get_access_token, AppD_Configuration
+from appdRESTfulAPI import get_access_token, AppD_Configuration, fetch_health_rules_legacy
 from rbac import get_users
 from settings import get_config
 from applications import get_applications, getAppID, get_application_ID_list, get_applications_from_stream
@@ -12,7 +12,7 @@ from nodes import get_nodes, get_nodes_from_stream, update_nodes
 from transactiondetection import get_detection_rules, get_detection_rules_from_stream
 from businesstransactions import get_business_transactions, get_business_transactions_from_stream, get_business_transaction_ID
 from backends import get_backends, get_backends_from_stream
-from healthrules import get_health_rules, get_health_rules_from_stream
+from healthrules import HealthRuleDict
 from policies import get_policies, get_policies_legacy, get_policies_from_stream
 from schedules import get_schedules, get_schedules_from_stream, patch_schedules
 from actions import get_actions, get_actions_legacy, get_actions_from_stream
@@ -241,7 +241,6 @@ elif COMMAND.lower() == "get":
                 'get_policies':get_policies_legacy,
                 'get_actions':get_actions_legacy,
                 'get_schedules':get_schedules,
-                'get_health-rules':get_health_rules,
                 'get_detection-rules':get_detection_rules,
                 'get_businesstransactions':get_business_transactions,
                 'get_backends':get_backends,
@@ -294,6 +293,34 @@ elif COMMAND.lower() == "get":
       selectors.update({"business-transaction-ids": ''+str(AllOtherTraffic_ID)+''})
       ENTITY="snapshots"
     functions["get_"+ENTITY](applicationList,minutes,selectors,outputFormat=options.outFormat)
+  elif ENTITY in ['healthrules']:
+    if not options.applications and not options.allApplications:
+        optParser.error("Missing application (use -A for all applications)")
+        exit()
+    elif options.applications:
+      applicationList = []
+      for appName in options.applications.split(','):
+        appID = getAppID(appName)
+        applicationList.append(appID) if appID is not None else sys.stderr.write("WARN: Application " + appName + " does not exist.\n")
+    else: # if options.allApplications:
+      applicationList = get_application_ID_list()
+
+    index = 0
+    sys.stderr.write("get health-rules 0%")
+    sys.stderr.flush()
+    HRDict = HealthRuleDict()
+    for appID in applicationList:
+        index += 1
+        percentage = index*100/len(applicationList)
+        sys.stderr.write("\rget health-rules ... " + str(percentage) + "%")
+        sys.stderr.flush()
+        HRDict.get_health_rules_from_stream(fetch_health_rules_legacy(appID,selectors=selectors),appID=appID)
+    sys.stderr.write("\n")
+    if options.outFormat and options.outFormat == "JSON":
+        HRDict.generate_health_rules_JSON(appID_List=applicationList)
+    elif not options.outFormat or options.outFormat == "CSV":
+        HRDict.generate_health_rules_CSV(appID_List=applicationList)
+
   else:
     optParser.error("incorrect entity \""+ENTITY+"\"")
 
