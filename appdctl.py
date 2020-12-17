@@ -3,21 +3,21 @@ import sys
 import os.path
 import re
 from datetime import datetime, timedelta
-from appdRESTfulAPI import get_access_token, AppD_Configuration, fetch_health_rules_legacy, fetch_business_transactions, fetch_actions_legacy
-from rbac import get_users
-from settings import get_config
-from applications import get_applications, getAppID, get_application_ID_list, get_applications_from_stream
-from dashboards import get_dashboards, get_dashboards_from_stream
-from nodes import get_nodes, get_nodes_from_stream, update_nodes
-from transactiondetection import get_detection_rules, get_detection_rules_from_stream
+from appdRESTfulAPI import RESTfulAPI, AppD_Configuration
+from rbac import RBACDict
+from settings import ConfigurationDict
+from applications import ApplicationDict
+from dashboards import DashboardDict
+from nodes import NodeDict
+from transactiondetection import DetectionruleDict
 from businesstransactions import BusinessTransactionDict
-from backends import get_backends, get_backends_from_stream
+from backends import BackendDict
 from healthrules import HealthRuleDict
-from policies import get_policies, get_policies_legacy, get_policies_from_stream
-from schedules import get_schedules, get_schedules_from_stream, patch_schedules
+from policies import PolicyDict
+from schedules import ScheduleDict
 from actions import ActionDict
-from events import get_healthrule_violations, get_healthrule_violations_from_stream
-from snapshots import get_snapshots, get_snapshots_from_stream
+from events import EventDict
+from snapshots import SnapshotDict
 from optparse import OptionParser, OptionGroup
 
 
@@ -41,16 +41,80 @@ def time_to_minutes(string):
 
   return total
 
-def get_help(outputFormat=None):
-  sys.stderr.write("Usage: appdctl get [policies|actions|schedules|health-rules|\n" + \
-                   "                    detection-rules|businesstransactions|backends|\n" + \
-                   "                    healthrule-violations|snapshots|allothertraffic|\n" + \
-                   "                    applications|dashboards|nodes] [options]\n\n")
+
+class HelpDict:
+    helpDict = dict()
+
+    def __init__(self):
+        pass
+
+    def __str__(self):
+        return json.dumps(self.helpDict)
+
+    def get_help():
+        pass
+
+def get_help(output=sys.stdout):
+  if output not in [sys.stdout,sys.stderr]: return
+  COMMAND   = argv[1] if len(args) >= 1 else ""
+  SUBCOMMAND= argv[2] if len(args) >= 2 else None
+  if not SUBCOMMAND:
+    optParser.print_help()
+  elif COMMAND == "login" and SUBCOMMAND=="help":
+    sys.stderr.write("Login can be done with manual keyboard input or with a basic authentication file in CSV format\n" + \
+                     "Either way, if the context doesn't exist in the **appdconfig.yaml** file, it will create a new entry and set it as the current-context.\n\n" + \
+                     "To login with a manual input of the credentials, follow these steps:\n" + \
+                     "1. $ ./appdctl.py login\n" + \
+                     "2. Input your controller full hostname, including protocol and port\n" + \
+                     "   i.e.: https://demo1.appdynamics.com:443\n" + \
+                     "3. Input the API Client user name\n" + \
+                     "4. Input the API Client user password\n\n" + \
+                     "In case of having a basic authentication file, follow this syntax:\n" + \
+                     "1. $ ./appdctl.py login --api-client <my_APIClient_username>@<my_account_name1> --basic-auth-file <path_to_auth_file>\n\n")
+  elif COMMAND=="get" and SUBCOMMAND=="help":
+    sys.stderr.write("Usage: appdctl get [policies|actions|schedules|healthrules|\n" + \
+                     "                    detection-rules|businesstransactions|backends|\n" + \
+                     "                    healthrule-violations|snapshots|allothertraffic|\n" + \
+                     "                    applications|dashboards|nodes] [options]\n\n")
+  elif COMMAND=="config" and SUBCOMMAND=="help":
+    output.write ("Modify appdconfig files using subcommands like \"appdctl config set current-context my-context\"\n\n" + \
+                " The loading order follows these rules:\n\n" + \
+                "  1.  If the --kubeconfig flag is set, then only that file is loaded. The flag may only be set once and no merging takes place.\n" + \
+                "  2.  If $KUBECONFIG environment variable is set, then it is used as a list of paths (normal path delimiting rules for your system). These paths are merged. When a value is modified, it is modified the file that defines the stanza. When a value is created, it is created in the first file that exists. If no files in the chain exist, then it creates the last file in the list.\n" + \
+                "  3.  Otherwise, ${HOME}/.kube/config is used and no merging takes place.\n\n" + \
+                "Available Commands:\n" + \
+                "  current-context Displays the current-context\n" + \
+                "  delete-context  Delete the specified context from the kubeconfig\n" + \
+                "  get-contexts    Describe one or many contexts\n" + \
+                "  rename-context  Renames a context from the kubeconfig file.\n" + \
+                "  set-context     Sets a context entry in kubeconfig\n" + \
+                "  set-credentials Sets a user entry in kubeconfig\n" + \
+                "  unset           Unsets an individual value in a kubeconfig file\n" + \
+                "  use-context     Sets the current-context in a kubeconfig file\n" + \
+                "  view            Display merged kubeconfig settings or a specified kubeconfig file\n\n" + \
+                "Usage:\n" + \
+                "  appdctl config SUBCOMMAND [options]\n\n")
+
+def get_application_list():
+    if not options.applications and not options.allApplications:
+        optParser.error("Missing application (use -A for all applications)")
+        return []
+    elif options.applications:
+      data = entityObjects['applications']['function']()
+      ApplicationDict().load(data)
+      return [ ApplicationDict().getAppID(appName) for appName in options.applications.split(',') if ApplicationDict().getAppID(appName) is not None ]
+    else: # if options.allApplications:
+      data = entityObjects['applications']['function']()
+      ApplicationDict().load(data)
+      return ApplicationDict().get_application_ID_list()
 
 usage = "usage: %prog [get|login|update|patch] [options]"
 epilog= "examples: %prog get applications"
 
 optParser = OptionParser(usage=usage, version="%prog 0.1", epilog=epilog)
+#optParser.add_option("-h", "--help", 
+#                  action="store_true", default=False, dest="showHelp",
+#                  help="Display help for command")
 optParser.add_option("-o", "--output", action="store", dest="outFormat",
                   help="Output format. One of: json|csv")
 optParser.add_option("-f", "--filename", action="store", dest="filename",
@@ -87,6 +151,23 @@ if len(args) < 1:
     optParser.error("incorrect number of arguments")
     exit()
 
+entityObjects = { 'help': {'class': HelpDict, 'function': HelpDict().get_help},
+                  'applications': {'class': ApplicationDict, 'function': RESTfulAPI().fetch_applications},
+                  'nodes': {'class': NodeDict, 'function': RESTfulAPI().fetch_nodes},
+                  'detection-rules': {'class': DetectionruleDict, 'function': RESTfulAPI().fetch_transactiondetection},
+                  'businesstransactions': {'class': BusinessTransactionDict, 'function': RESTfulAPI().fetch_business_transactions},
+                  'backends': {'class': BackendDict, 'function': RESTfulAPI().fetch_backends},                    
+                  'healthrules': {'class': HealthRuleDict, 'function': RESTfulAPI().fetch_health_rules_legacy},
+                  'policies': {'class': PolicyDict, 'function': RESTfulAPI().fetch_policies_legacy},
+                  'actions': {'class': ActionDict, 'function': RESTfulAPI().fetch_actions_legacy},
+                  'schedules': {'class': ScheduleDict, 'function': RESTfulAPI().fetch_schedules},
+                  'dashboards': {'class': DashboardDict, 'function': RESTfulAPI().fetch_dashboards},
+                  'healthrule-violations': {'class': EventDict, 'function': RESTfulAPI().fetch_healthrule_violations},
+                  'snapshots': {'class': SnapshotDict, 'function': RESTfulAPI().fetch_snapshots},
+                  'allothertraffic': {'class': SnapshotDict, 'function': RESTfulAPI().fetch_snapshots},
+                  'config': {'class': ConfigurationDict, 'function': RESTfulAPI().fetch_configuration},
+                  'users': {'class': RBACDict, 'function': RESTfulAPI().fetch_users}
+                }
 
 COMMAND = args[0]
 
@@ -99,45 +180,35 @@ if COMMAND.lower() == "help":
 elif COMMAND.lower() == "login":
 
   if len(args) == 2 and args[1] == "help":
-    sys.stderr.write("Login can be done with manual keyboard input or with a basic authentication file in CSV format\n" + \
-                     "Either way, if the context doesn't exist in the **appdconfig.yaml** file, it will create a new entry and set it as the current-context.\n\n" + \
-                     "To login with a manual input of the credentials, follow these steps:\n" + \
-                     "1. $ ./appdctl.py login\n" + \
-                     "2. Input your controller full hostname, including protocol and port\n" + \
-                     "   i.e.: https://demo1.appdynamics.com:443\n" + \
-                     "3. Input the API Client user name\n" + \
-                     "4. Input the API Client user password\n\n" + \
-                     "In case of having a basic authentication file, follow this syntax:\n" + \
-                     "1. $ ./appdctl.py login --api-client <my_APIClient_username>@<my_account_name1> --basic-auth-file <path_to_auth_file>\n\n")
-    exit()
-
-  if options.controllerURL and options.apiClient:
-    server = options.controllerURL
-    username = options.apiClient
+    get_help()
   else:
-    server = None
-    appD_Config = AppD_Configuration()
-    current_server = appD_Config.get_current_context_serverURL()
-    if current_server is None: current_server = "https://localhost:8090"
-    server = raw_input("AppDynamics Controller server [" + current_server + "]: ")
-    if len(server) == 0: server = current_server
-    if not server.startswith("http"):
-      sys.stderr.write("Missing HTTP protocol in the URL. Please try login again.\n")
-      exit()
-    current_user = appD_Config.get_current_context_username()
-    if current_user is None: current_user = "APIClient@customer1"
-    username = raw_input("API Client username [" + current_user + "]: ")
-    if len(username) == 0: username = current_user
-    if not username.find('@'):
-      sys.stderr.write("Missing account in username. Please try login again.\n")
-      exit()
+    if options.controllerURL and options.apiClient:
+      server = options.controllerURL
+      username = options.apiClient
+    else:
+      server = None
+      appD_Config = AppD_Configuration()
+      current_server = appD_Config.get_current_context_serverURL()
+      if current_server is None: current_server = "https://localhost:8090"
+      server = raw_input("AppDynamics Controller server [" + current_server + "]: ")
+      if len(server) == 0: server = current_server
+      if not server.startswith("http"):
+        sys.stderr.write("Missing HTTP protocol in the URL. Please try login again.\n")
+        exit()
+      current_user = appD_Config.get_current_context_username()
+      if current_user is None: current_user = "APIClient@customer1"
+      username = raw_input("API Client username [" + current_user + "]: ")
+      if len(username) == 0: username = current_user
+      if not username.find('@'):
+        sys.stderr.write("Missing account in username. Please try login again.\n")
+        exit()
 
-  if options.basicAuthFile:
-    token=get_access_token(server,username,options.basicAuthFile)
-  else:
-    token=get_access_token(server,username)
-  if token is not None:
-    print "Login successful. "
+    if options.basicAuthFile:
+      token=get_access_token(server,username,options.basicAuthFile)
+    else:
+      token=get_access_token(server,username)
+    if token is not None:
+      print "Login successful. "
 
 #######################################
 ############ CONFIG COMMAND ###########
@@ -152,7 +223,7 @@ elif COMMAND.lower() == "config":
 
   if SUBCOMMAND in ['help','view','get-contexts','current-context']:
     appD_Config = AppD_Configuration()
-    functions = { 'help':appD_Config.get_help,
+    functions = { 'help':get_help,
                   'view':appD_Config.view,    
                   'get-contexts':appD_Config.get_contexts,
                   'current-context':appD_Config.get_current_context
@@ -204,18 +275,23 @@ elif COMMAND.lower() == "get":
       sys.stderr.write("Don't know what to do with "+options.filename+"\n")
       exit()
 
-    functions = { 'load_policies':get_policies_from_stream,
-                  'load_schedules':get_schedules_from_stream,
-                  'load_detection-rules':get_detection_rules_from_stream,
-                  'load_backends':get_backends_from_stream,
-                  'load_nodes':get_nodes_from_stream,
-                  'load_healthrule-violations':get_healthrule_violations_from_stream,
-                  'load_snapshots':get_snapshots_from_stream,
-                  'load_applications':get_applications_from_stream,
-                  'load_dashboards':get_dashboards_from_stream
-                }
-    for key in functions:
-      functions[key](data,outputFormat=options.outFormat)
+#    functions = { 'load_healthrule-violations':get_healthrule_violations_from_stream,
+#                  'load_snapshots':get_snapshots_from_stream
+#                }
+#    for key in functions:
+#      functions[key](data,outputFormat=options.outFormat)
+#
+#    if 'loadData' in locals():
+#        index = 0
+#        for schedule in schedules:
+#            if 'DEBUG' in locals(): print ("Fetching schedule "+str(schedule['id'])+" for App " + app_ID + "...")
+#            schedFileName=inFileName[:inFileName.find('.json')]+"/"+str(schedule['id'])+".json"
+#            try:
+#                sched_json_file = open(schedFileName)
+#                scheduleJSON = json.load(sched_json_file)
+#            except:
+#                print ("Could not process JSON file " + schedFileName)
+#                continue
     exit()
 
   if len(args) < 2:
@@ -230,47 +306,38 @@ elif COMMAND.lower() == "get":
     for selector in options.selector.split(','):
       selectors.update({selector.split('=')[0]:selector.split('=')[1]})
 
-  functions = { 'get_help':get_help,
-                'get_applications':get_applications,
-                'get_dashboards':get_dashboards,
-                'get_config':get_config,
-                'get_users':get_users,
-                'get_policies':get_policies_legacy,
-                'get_schedules':get_schedules,
-                'get_detection-rules':get_detection_rules,
-                'get_backends':get_backends,
-                'get_nodes':get_nodes,
-                'get_healthrule-violations':get_healthrule_violations,
-                'get_snapshots':get_snapshots
-          }
+  if ENTITY == 'help':
+    entityObjects[ENTITY]['function']()
 
-  if ENTITY in ['help','applications','dashboards','config','users']:
-    functions["get_"+ENTITY](outputFormat=options.outFormat)
-  elif ENTITY in ['policies','schedules','health-rules','detection-rules','backends','nodes']:
-    if not options.applications and not options.allApplications:
-        optParser.error("Missing application (use -A for all applications)")
-        exit()
-    elif options.applications:
-      #applicationList = map(lambda x: str(getID(x)), options.applications.split(',') )
-      applicationList = []
-      for appName in options.applications.split(','):
-        appID = getAppID(appName)
-        applicationList.append(appID) if appID is not None else sys.stderr.write("WARN: Application " + appName + " does not exist.\n")
-    else: # if options.allApplications:
-      applicationList = get_application_ID_list()
-    functions["get_"+ENTITY](applicationList,selectors,outputFormat=options.outFormat)
+  elif ENTITY in ['applications','dashboards','config','users']:
+    entityDict = entityObjects[ENTITY]['class']()
+    data = entityObjects[ENTITY]['function']()
+    entityDict.load(data)
+    if options.outFormat and options.outFormat == "JSON":
+        entityDict.generate_JSON()
+    elif not options.outFormat or options.outFormat == "CSV":
+        entityDict.generate_CSV()
+
+  elif ENTITY in ['nodes','detection-rules','businesstransactions','backends','healthrules','policies','actions','schedules']:
+    applicationList = get_application_list()
+    index = 0
+    sys.stderr.write("get "+ENTITY+" 0%")
+    sys.stderr.flush()
+    entityDict = entityObjects[ENTITY]['class']()
+    for appID in applicationList:
+        index += 1
+        percentage = index*100/len(applicationList)
+        sys.stderr.write("\rget "+ENTITY+" ... " + str(percentage) + "%")
+        sys.stderr.flush()
+        data = entityObjects[ENTITY]['function'](appID,selectors=selectors)
+        entityDict.load(data,appID=appID)
+    sys.stderr.write("\n")
+    if options.outFormat and options.outFormat == "JSON":
+        entityDict.generate_JSON(appID_List=applicationList)
+    elif not options.outFormat or options.outFormat == "CSV":
+        entityDict.generate_CSV(appID_List=applicationList)
+
   elif ENTITY in ['healthrule-violations','snapshots','allothertraffic']:
-    if not options.applications and not options.allApplications:
-        optParser.error("Missing application (use -A for all applications)")
-        exit()
-    elif options.applications:
-      #applicationList = map(lambda x: str(getID(x)), options.applications.split(',') )
-      applicationList = []
-      for appName in options.applications.split(','):
-        appID = getAppID(appName)
-        applicationList.append(appID) if appID is not None else sys.stderr.write("WARN: Application " + appName + " does not exist.\n")
-    else: # if options.allApplications:
-      applicationList = get_application_ID_list()
     if options.since is None:
       optParser.error("No duration was specified. (use --since=0 for all events)")
       exit()
@@ -287,25 +354,7 @@ elif COMMAND.lower() == "get":
         exit()
       selectors.update({"business-transaction-ids": ''+str(AllOtherTraffic_ID)+''})
       ENTITY="snapshots"
-    functions["get_"+ENTITY](applicationList,minutes,selectors,outputFormat=options.outFormat)
-
-  elif ENTITY in ['businesstransactions','healthrules','actions']:
-    if not options.applications and not options.allApplications:
-        optParser.error("Missing application (use -A for all applications)")
-        exit()
-    elif options.applications:
-      applicationList = []
-      for appName in options.applications.split(','):
-        appID = getAppID(appName)
-        applicationList.append(appID) if appID is not None else sys.stderr.write("WARN: Application " + appName + " does not exist.\n")
-    else: # if options.allApplications:
-      applicationList = get_application_ID_list()
-
-    entityObjects = { 'businesstransactions': {'class': BusinessTransactionDict, 'function': fetch_business_transactions},
-                      'healthrules': {'class': HealthRuleDict, 'function': fetch_health_rules_legacy},
-                      'actions': {'class': ActionDict, 'function': fetch_actions_legacy},
-          }
-
+    applicationList = get_application_list()
     index = 0
     sys.stderr.write("get "+ENTITY+" 0%")
     sys.stderr.flush()
@@ -315,7 +364,7 @@ elif COMMAND.lower() == "get":
         percentage = index*100/len(applicationList)
         sys.stderr.write("\rget "+ENTITY+" ... " + str(percentage) + "%")
         sys.stderr.flush()
-        data = entityObjects[ENTITY]['function'](appID,selectors=selectors)
+        data = entityObjects[ENTITY]['function'](appID,"BEFORE_NOW",minutes,selectors=selectors)
         entityDict.load(data,appID=appID)
     sys.stderr.write("\n")
     if options.outFormat and options.outFormat == "JSON":
@@ -339,30 +388,14 @@ elif COMMAND.lower() == "update":
   if ENTITY == "help":
     sys.stderr.write("Usage: appdctl update nodes [options]\n\n")
     exit()
-  elif ENTITY not in ['nodes']:
+  elif ENTITY in ['nodes']:
+    applicationList = get_application_list()
+
+    entityDict = entityObjects[ENTITY]['class']()
+    entityDict.update(appID_List=applicationList)
+
+  else:
     optParser.error("incorrect entity \""+ENTITY+"\"")
-    exit()
-
-  if not options.applications and not options.allApplications:
-      optParser.error("Missing application (use -A for all applications)")
-      exit()
-  elif options.applications:
-    #applicationList = map(lambda x: str(getID(x)), options.applications.split(',') )
-    applicationList = []
-    for appName in options.applications.split(','):
-      appID = getAppID(appName)
-      applicationList.append(appID) if appID is not None else sys.stderr.write("WARN: Application " + appName + " does not exist.\n")
-  else: # if options.allApplications:
-    applicationList = get_application_ID_list()
-  #if not options.patchJSON:
-  #  optParser.error("Missing patch JSON.")
-  #  exit()
-
-  if 'applicationList' in locals() and len(applicationList)>0 and ENTITY in ['nodes']:
-    update_nodes(appID_List=applicationList)
-  elif 'applicationList' not in locals() or len(applicationList) == 0:
-    sys.stderr.write("No application was selected.\n")
-
 
 #######################################
 ############ PATCH COMMAND ############
@@ -373,33 +406,20 @@ elif COMMAND.lower() == "patch":
       exit()
 
   ENTITY = args[1]
+
   if ENTITY == "help":
-    sys.stderr.write("Usage: appdctl patch [policies|schedules] [options]\n\n")
+    sys.stderr.write("Usage: appdctl patch [schedules] [options]\n\n")
     exit()
-  elif ENTITY not in ['policies','schedules']:
+  elif ENTITY in ['schedules']:
+    applicationList = get_application_list()
+
+    if not options.patchJSON:
+      optParser.error("Missing patch JSON.")
+    else:
+      entityDict = entityObjects[ENTITY]['class']()
+      entityDict.patch(appID_List=applicationList,source=options.patchJSON)
+  else:
     optParser.error("incorrect entity \""+ENTITY+"\"")
-    exit()
-
-  if not options.applications and not options.allApplications:
-      optParser.error("Missing application (use -A for all applications)")
-      exit()
-  elif options.applications:
-    #applicationList = map(lambda x: str(getID(x)), options.applications.split(',') )
-    applicationList = []
-    for appName in options.applications.split(','):
-      appID = getAppID(appName)
-      applicationList.append(appID) if appID is not None else sys.stderr.write("WARN: Application " + appName + " does not exist.\n")
-  else: # if options.allApplications:
-    applicationList = get_application_ID_list()
-  if not options.patchJSON:
-    optParser.error("Missing patch JSON.")
-    exit()
-
-  if 'applicationList' in locals() and len(applicationList)>0 and ENTITY in ['schedules']:
-    patch_schedules(appID_List=applicationList,source=options.patchJSON)
-  elif 'applicationList' not in locals() or len(applicationList) == 0:
-    sys.stderr.write("No application was selected.\n")
-
 
 else:
     optParser.error("Incorrect or not implemented command ["+COMMAND+"]")

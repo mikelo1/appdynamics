@@ -2,8 +2,7 @@
 import json
 import csv
 import sys
-from appdRESTfulAPI import fetch_RESTfulPath
-from applications import getAppName
+from applications import ApplicationDict
 
 class BusinessTransactionDict:
     BTDict = dict()
@@ -52,7 +51,7 @@ class BusinessTransactionDict:
 
                 try:
                     filewriter.writerow({'name': BT['name'].encode('ASCII', 'ignore'),
-                                         'Application': getAppName(appID),
+                                         'Application': ApplicationDict().getAppName(appID),
                                          'entryPointType': BT['entryPointType'],
                                          'tierName': BT['tierName']})
                 except ValueError as valError:
@@ -89,6 +88,7 @@ class BusinessTransactionDict:
     ###
      # Load business transactions from a JSON stream data.
      # @param streamdata the stream data in JSON format
+     # @param appID the ID number of the application where to load the business transaction data.
      # @return the number of loaded business transactions. Zero if no business transaction was loaded.
     ###
     def load(self,streamdata,appID=None):
@@ -98,7 +98,7 @@ class BusinessTransactionDict:
         except TypeError as error:
             print ("load_business_transaction: "+str(error))
             return 0
-
+        # Add loaded transactions to the business transaction dictionary
         if type(transactions) is dict:
             self.BTDict.update({str(appID):[transactions]})
         else:

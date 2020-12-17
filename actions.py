@@ -2,9 +2,9 @@
 import json
 import csv
 import sys
-from appdRESTfulAPI import fetch_RESTfulPath
-from applications import getAppName
-from policies import get_policies_matching_action
+from applications import ApplicationDict
+from appdRESTfulAPI import RESTfulAPI
+from policies import PolicyDict
 
 class ActionDict:
     actionDict = dict()
@@ -131,10 +131,10 @@ class ActionDict:
                     header_is_printed=True
                 try:
                     filewriter.writerow({'ActionName': action['name'].encode('ASCII', 'ignore'),
-                                        'Application': getAppName(appID),
+                                        'Application': ApplicationDict().getAppName(appID),
                                         'ActionType': action['actionType'],
                                         'Recipients': self.__str_action_recipients(action),
-                                        'Policies': "", #get_policies_matching_action(app_ID,action['name']),
+                                        'Policies': "", #PolicyDict().get_policies_matching_action(app_ID,action['name']),
                                         'CustomProperties': self.__str_action_properties(action)})
                 except ValueError as valError:
                     print (valError)
@@ -169,6 +169,7 @@ class ActionDict:
     ###
      # Load actions from a JSON stream data.
      # @param streamdata the stream data in JSON format
+     # @param appID the ID number of the application where to load the actions data.
      # @return the number of loaded actions. Zero if no action was loaded.
     ###
     def load(self,streamdata,appID=None):
@@ -194,7 +195,7 @@ class ActionDict:
         if str(appID) in self.actionDict:
             index = 0
             for action in self.actionDict[str(appID)]:
-                actionJSON = fetch_action_details(app_ID,actions['id'])
+                actionJSON = RESTfulAPI().fetch_action_details(app_ID,actions['id'])
                 if actionsJSON is None:
                     print "load_action_details: Failed to retrieve action " + str(action['id']) + " for application " + str(app_ID)
                     continue

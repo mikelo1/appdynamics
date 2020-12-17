@@ -3,9 +3,7 @@ import xml.etree.ElementTree as ET
 import json
 import csv
 import sys
-from applications import getAppName
-from appdRESTfulAPI import fetch_RESTfulPath, entityXML2JSON
-
+from applications import ApplicationDict
 
 class HealthRuleDict:
     healthruleDict = dict()
@@ -15,6 +13,28 @@ class HealthRuleDict:
 
     def __str__(self):
         return json.dumps(self.healthruleDict)
+
+    ###
+     # private method to translate XML format entity names to JSON format entity names.
+     # @param entityType naming of the entity in the XML file format
+     # @return naming of the entity in the JSON file format. Null if provided entity name could not be interpreted.
+    ###
+    def __entityXML2JSON(XMLentityType):
+        switcher = {
+            "BUSINESS_TRANSACTION": "BUSINESS_TRANSACTION_PERFORMANCE",
+            "NODE_HEALTH_TRANSACTION_PERFORMANCE": "TIER_NODE_TRANSACTION_PERFORMANCE",
+            "INFRASTRUCTURE": "TIER_NODE_HARDWARE",
+            "JMX_INSTANCE_NAME": "JMX_OBJECT",
+            "INFORMATION_POINT": "INFORMATION_POINTS",
+            "SIM": "SERVERS_IN_APPLICATION",
+            "NETVIZ": "ADVANCED_NETWORK",
+            "BACKEND": "BACKENDS",
+            "SERVICEENDPOINTS": "SERVICE_ENDPOINTS",
+            "ERROR": "ERRORS",
+            "OVERALL_APPLICATION": "OVERALL_APPLICATION_PERFORMANCE",
+            "EUMPAGES": "EUM_BROWSER_APPS"
+        }
+        return switcher.get(XMLentityType, XMLentityType)
 
     ###
      # private method to translate stream containing healthrules in XML format, to JSON format structure
@@ -46,7 +66,7 @@ class HealthRuleDict:
             schedule = "Always" if alwaysEnabled == "true" else element.find('schedule').text
             healthrule.update({"scheduleName": schedule })
             entityType = element.find('type').text
-            healthrule.update({"affectedEntityType": entityXML2JSON(entityType)})
+            healthrule.update({"affectedEntityType": self.__entityXML2JSON(entityType)})
 
             healthrule.update({"affects": self.__parse_affects_from_XML(element.find('affected-entities-match-criteria'),entityType)})
 
@@ -67,7 +87,7 @@ class HealthRuleDict:
      # @return stream data in JSON format.
     ###
     def __parse_affects_from_XML(self,element,entityType):
-        affects = {"affectedEntityType": entityXML2JSON(entityType)}
+        affects = {"affectedEntityType": self.__entityXML2JSON(entityType)}
 
         # 1) Overall Application Performance (load,response time,num slow calls)
         if entityType == "OVERALL_APPLICATION":
@@ -464,7 +484,7 @@ class HealthRuleDict:
 
                 try:
                     filewriter.writerow({'HealthRule': healthrule['name'].encode('ASCII', 'ignore'),
-                                         'Application': getAppName(appID),
+                                         'Application': ApplicationDict().getAppName(appID),
                                          'Duration': healthrule['useDataFromLastNMinutes'] if 'useDataFromLastNMinutes' in healthrule else "",
                                          'Wait_Time': healthrule['useDataFromLastNMinutes'] if 'useDataFromLastNMinutes' in healthrule else "",
                                          'Schedule': healthrule['scheduleName'] if 'scheduleName' in healthrule else "",
