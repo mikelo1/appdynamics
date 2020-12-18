@@ -130,7 +130,7 @@ class ApplicationDict:
     ###
     def get_application_Name_list(self):
         if len(self.applicationDict) > 0:
-            return [applicationDict[str(appID)]['name'] for appID in applicationDict]
+            return [self.applicationDict[str(appID)]['name'] for appID in self.applicationDict]
         return None
 
     ###
@@ -139,7 +139,7 @@ class ApplicationDict:
     ###
     def get_application_ID_list(self):
         if len(self.applicationDict) > 0:
-            return [applicationDict[str(appID)]['id'] for appID in applicationDict]
+            return [self.applicationDict[str(appID)]['id'] for appID in self.applicationDict]
         return None
 
     ###

@@ -867,6 +867,10 @@ class RESTfulAPI:
         if selectors: restfulPath = restfulPath + selectors
         return self.__fetch_RESTfulPath(restfulPath,params=params)
 
+    ###
+     # Fetch users with extended info from a controller.
+     # @return the fetched data. Null if no data was received.
+    ###
     def fetch_users_extended(self):
         restfulPath = "/controller/restui/userAdministrationUiService/users"
         params = {"output": "JSON"}
