@@ -100,9 +100,9 @@ class RBACDict:
                 header_is_printed=True
             try:
                 filewriter.writerow({'Name': user['name'],
-                                     'Email': user['email'] if 'email' in user else "",
-                                     'Roles': json.dumps(user['roles'] if 'roles' in user else ""),
-                                     'Groups': json.dumps(user['groups']) if 'groups' in user else ""})
+                                     'Email': user['email'] if 'email' in user else None,
+                                     'Roles': json.dumps(user['roles'] if 'roles' in user else None),
+                                     'Groups': json.dumps(user['groups']) if 'groups' in user else None})
             except ValueError as valError:
                 print (valError)
                 if fileName is not None: csvfile.close()
@@ -135,16 +135,17 @@ class RBACDict:
     ###
     def load(self,streamdata,appID=None):
         try:
-            users = json.loads(streamdata)
+            usersJSON = json.loads(streamdata)
         except TypeError as error:
             print ("load_users: "+str(error))
             return 0
-        for user in users:
+        print json.dumps(usersJSON)
+        for user in usersJSON:
             # Add loaded user to the users dictionary
-            if 'id' not in user: continue
+            if 'providerUniqueName' not in user: continue
             userName = user['name']
             self.rbacDict.update({userName:user})
-        return len(users)
+        return len(usersJSON)
 
 
     ###
@@ -155,7 +156,7 @@ class RBACDict:
     def load_details(self):
         count = 0
         for userName in self.rbacDict:
-            response = RESTfulAPI().fetch_user_by_ID(self.rbacDict[userName]['id'])
+            response = RESTfulAPI().fetch_user(self.rbacDict[userName]['id'])
             if response is not None:
                 try:
                     user = json.loads(response)

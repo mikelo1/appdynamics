@@ -867,16 +867,21 @@ class RESTfulAPI:
         if selectors: restfulPath = restfulPath + selectors
         return self.__fetch_RESTfulPath(restfulPath,params=params)
 
+    def fetch_users_extended(self):
+        restfulPath = "/controller/restui/userAdministrationUiService/users"
+        params = {"output": "JSON"}
+        return self.__fetch_RESTfulPath(restfulPath,params=params)
+
     ###
      # Fetch specific user from a controller.
      # @param userID the ID number of the user to fetch
      # @return the fetched data. Null if no data was received.
     ###
-    def fetch_user_by_ID(self,userID):
+    def fetch_user(self,userID):
         # Get User by ID
         # GET /controller/api/rbac/v1/users/userId
         restfulPath = "/controller/api/rbac/v1/users/" + str(userID)
-        return self.__fetch_RESTfulPath(restfulPath,params=params)
+        return self.__fetch_RESTfulPath(restfulPath)
 
     ###
      # Get the controller version. Either provide an username/password or let it get an access token automatically.

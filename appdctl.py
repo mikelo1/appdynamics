@@ -166,7 +166,7 @@ entityObjects = { 'help': {'class': HelpDict, 'function': HelpDict().get_help},
                   'snapshots': {'class': SnapshotDict, 'function': RESTfulAPI().fetch_snapshots},
                   'allothertraffic': {'class': SnapshotDict, 'function': RESTfulAPI().fetch_snapshots},
                   'config': {'class': ConfigurationDict, 'function': RESTfulAPI().fetch_configuration},
-                  'users': {'class': RBACDict, 'function': RESTfulAPI().fetch_users}
+                  'users': {'class': RBACDict, 'function': RESTfulAPI().fetch_users_extended}
                 }
 
 COMMAND = args[0]
