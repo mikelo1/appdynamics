@@ -165,7 +165,9 @@ class SnapshotDict:
             return 0
         # Add loaded snapshots to the snapshots dictionary
         if type(snapshots) is dict:
-            self.snapshotDict.update({str(appID):[snapshots]})
-        else:
+            snapshots = [snapshots]
+        if str(appID) not in self.snapshotDict:
             self.snapshotDict.update({str(appID):snapshots})
-        return len(snapshots)
+        else:
+            self.snapshotDict[str(appID)].extend(snapshots)
+        return len(snapshots)        
