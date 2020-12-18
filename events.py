@@ -15,70 +15,6 @@ class EventDict:
     def __str__(self):
         return json.dumps(self.eventDict)
 
-###
- # Fetch healtrule violations from a controller then add them to the events dictionary. Provide either an username/password or an access token.
- # @param app_ID the ID number of the application healtrule violations to fetch
- # @param minutesBeforeNow fetch only events newer than a relative duration in minutes
- # @param selectors fetch only events filtered by specified selectors
- # @param serverURL Full hostname of the Appdynamics controller. i.e.: https://demo1.appdynamics.com:443
- # @param userName Full username, including account. i.e.: myuser@customer1
- # @param password password for the specified user and host. i.e.: mypassword
- # @param token API acccess token
- # @return the number of fetched events. Zero if no event was found.
-###
-#   def fetch_healthrule_violations(app_ID,minutesBeforeNow,selectors=None,serverURL=None,userName=None,password=None,token=None):
-#       if 'DEBUG' in locals(): print ("Fetching healthrule violations for App " + str(app_ID) + ", for the last "+str(minutesBeforeNow)+" minutes...")
-#       # https://docs.appdynamics.com/display/PRO45/Events+and+Action+Suppression+API
-#       # Retrieve All Health Rule Violations that have occurred in an application within a specified time frame. 
-#       # URI /controller/rest/applications/application_id/problems/healthrule-violations
-#       restfulPath = "/controller/rest/applications/" + str(app_ID) + "/problems/healthrule-violations"
-#   
-#       for i in range(int(minutesBeforeNow),0,-1440): # loop "minutesBeforeNow" minutes in chunks of 1440 minutes (1 day)
-#           sinceTime = datetime.today()-timedelta(minutes=i)
-#           sinceEpoch= long(time.mktime(sinceTime.timetuple())*1000)
-#           params = timerange_to_params("AFTER_TIME",duration="1440",startEpoch=sinceEpoch)
-#           params.update({"output": "JSON"})
-#           if selectors: params.update(selectors)
-#   
-#           for retry in range(1,4):
-#               if 'DEBUG' in locals(): print ("Fetching healthrule violations for App " + str(app_ID) + "params "+str(params)+"...")
-#               if serverURL and userName and password:
-#                   response = fetch_RESTfulPath(restfulPath,params=params,serverURL=serverURL,userName=userName,password=password)
-#               else:
-#                   response = fetch_RESTfulPath(restfulPath,params=params)
-#   
-#               try:
-#                   data_chunck = json.loads(response)
-#               except JSONDecodeError:
-#                   if retry < 3:
-#                       print "Failed to fetch healthrule violations. Retrying (",retry," of 3)..."
-#                   else:
-#                       print "Giving up."
-#                       return None
-#               if data_chunck is not None: break
-#       
-#           if 'events' not in locals():
-#               events = data_chunck
-#               if 'DEBUG' in locals(): print "fetch_healthrule_violations: Added " + str(len(data_chunck)) + " events."
-#           else:
-#               # Append retrieved data to root
-#               for new_event in data_chunck:
-#                   events.append(new_event)
-#               if 'DEBUG' in locals(): print "fetch_healthrule_violations: Added " + str(len(data_chunck)) + " events."
-#   
-#   
-#       # Add loaded events to the event dictionary
-#       if 'events' in locals():
-#           eventDict.update({str(app_ID):events})
-#       else:
-#           sys.stderr.write("fetch_healthrule_violations: Failed to retrieve events for application " + str(app_ID)+"\n")
-#           return 0
-#   
-#       if 'DEBUG' in locals():
-#           print "fetch_healthrule_violations: Loaded " + str(len(events)) + " events."
-#   
-#       return len(events)
-
     ###
      # toString private method, extracts policy from event
      # @param event JSON data containing an event
@@ -234,7 +170,9 @@ class EventDict:
             return 0
         # Add loaded events to the events dictionary
         if type(events) is dict:
-            self.eventDict.update({str(appID):[events]})
-        else:
+            events = [events]
+        if str(appID) not in self.eventDict:
             self.eventDict.update({str(appID):events})
+        else:
+            self.eventDict[str(appID)].extend(events)
         return len(events)

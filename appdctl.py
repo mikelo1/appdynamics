@@ -3,6 +3,7 @@ import sys
 import os.path
 import re
 from datetime import datetime, timedelta
+import time
 from appdRESTfulAPI import RESTfulAPI, AppD_Configuration
 from rbac import RBACDict
 from settings import ConfigurationDict
@@ -320,14 +321,15 @@ elif COMMAND.lower() == "get":
 
   elif ENTITY in ['nodes','detection-rules','businesstransactions','backends','healthrules','policies','actions','schedules']:
     applicationList = get_application_list()
+    current_context = AppD_Configuration().get_current_context(output="None")
     index = 0
-    sys.stderr.write("get "+ENTITY+" 0%")
+    sys.stderr.write("get "+ENTITY+" ("+current_context+")... 0%")
     sys.stderr.flush()
     entityDict = entityObjects[ENTITY]['class']()
     for appID in applicationList:
         index += 1
         percentage = index*100/len(applicationList)
-        sys.stderr.write("\rget "+ENTITY+" ... " + str(percentage) + "%")
+        sys.stderr.write("\rget "+ENTITY+" ("+current_context+")... " + str(percentage) + "%")
         sys.stderr.flush()
         data = entityObjects[ENTITY]['function'](appID,selectors=selectors)
         entityDict.load(data,appID=appID)
@@ -355,17 +357,21 @@ elif COMMAND.lower() == "get":
       selectors.update({"business-transaction-ids": ''+str(AllOtherTraffic_ID)+''})
       ENTITY="snapshots"
     applicationList = get_application_list()
+    current_context = AppD_Configuration().get_current_context(output="None")
     index = 0
-    sys.stderr.write("get "+ENTITY+" 0%")
+    sys.stderr.write("get "+ENTITY+" ("+current_context+")... 0%")
     sys.stderr.flush()
     entityDict = entityObjects[ENTITY]['class']()
     for appID in applicationList:
         index += 1
         percentage = index*100/len(applicationList)
-        sys.stderr.write("\rget "+ENTITY+" ... " + str(percentage) + "%")
+        sys.stderr.write("\rget "+ENTITY+" ("+current_context+")... " + str(percentage) + "%")
         sys.stderr.flush()
-        data = entityObjects[ENTITY]['function'](appID,"BEFORE_NOW",minutes,selectors=selectors)
-        entityDict.load(data,appID=appID)
+        for i in range(minutes,0,-1440): # loop specified minutes in chunks of 1440 minutes (1 day)
+            sinceTime = datetime.today()-timedelta(minutes=i)
+            sinceEpoch= long(time.mktime(sinceTime.timetuple())*1000)
+            data = entityObjects[ENTITY]['function'](appID,"AFTER_TIME",duration="1440",startEpoch=sinceEpoch,selectors=selectors)
+            entityDict.load(data,appID=appID)
     sys.stderr.write("\n")
     if options.outFormat and options.outFormat == "JSON":
         entityDict.generate_JSON(appID_List=applicationList)

@@ -91,5 +91,7 @@ Advanced Commands:
    $ appdctl.py get healthrule-violations -a myApp1 --since=1d12h
  * Get last 1 day snapshots for specific application, where user experience was ERROR and business transaction ID is 12345
    $ appdctl.py get snapshots -a myApp1 -l user-experience=ERROR,business-transaction-ids=12345 --since=1d -o JSON
+ * Get last 1 day snapshots for specific application, where error ID is 500
+   $ appdctl.py get snapshots -a myApp1 -l error-ids=500 --since=1d -o JSON
  * Update timezone for all schedules of a specific application
    $ appdctl.py patch schedules -a myApp1 -p '{"timezone":"Europe\/Belgrade"}'

@@ -13,64 +13,6 @@ class RBACDict:
     def __str__(self):
         return json.dumps(self.rbacDict)
 
-###
- # Fetch users from a controller then add them to the users dictionary. Provide either an username/password or an access token.
- # @param selectors fetch specific user filtered by specified user name or ID
- # @param serverURL Full hostname of the Appdynamics controller. i.e.: https://demo1.appdynamics.com:443
- # @param userName Full username, including account. i.e.: myuser@customer1
- # @param password password for the specified user and host. i.e.: mypassword
- # @param token API acccess token
- # @return the number of fetched users. Zero if no user was found.
-###
-#def fetch_users(selectors=None,serverURL=None,userName=None,password=None,token=None,loadData=False):
-#    if 'DEBUG' in locals(): print ("Fetching users list...")    
-#    # Get All Users
-#    # GET <controller_url>/controller/rest/users
-#    restfulPath = "/controller/api/rbac/v1/users"
-#    params = {"output": "JSON"}
-#    if selectors: restfulPath = restfulPath + selectors
-#
-#    if serverURL and userName and password:
-#        response = fetch_RESTfulPath(restfulPath,params=params,serverURL=serverURL,userName=userName,password=password)
-#    else:
-#        response = fetch_RESTfulPath(restfulPath,params=params)
-#
-#    try:
-#        data = json.loads(response)
-#    except JSONDecodeError:
-#        print ("fetch_users: Could not process JSON content.")
-#        return 0
-#
-#    if loadData:
-#        index = 0
-#        for user in data['users']:
-#            if 'DEBUG' in locals(): print ("Fetching user " + user['name'] + "...")
-#            # Get User by ID
-#            # GET /controller/api/rbac/v1/users/userId
-#            restfulPath = "/controller/api/rbac/v1/users/" + str(user['id'])
-#            if serverURL and userName and password:
-#                response = fetch_RESTfulPath(restfulPath,params=params,userName=userName,password=password)
-#            else:
-#                response = fetch_RESTfulPath(restfulPath,params=params)
-#            try:
-#                userJSON = json.loads(response)
-#            except JSONDecodeError:
-#                print ("fetch_users: Could not process JSON content.")
-#                return 0
-#            data['users'][index] = userJSON
-#            index = index + 1
-#
-#    # Add loaded users to the RBAC dictionary
-#    rbacDict.update(data)
-#
-#    if 'DEBUG' in locals():
-#        print "fetch_users: Loaded " + str(len(data['users'])) + " users."
-#        for user in data['users']:
-#            print str(user)
-#
-#    return len(rbacDict['users'])
-
-
     ###### FROM HERE PUBLIC FUNCTIONS ######
 
     ###

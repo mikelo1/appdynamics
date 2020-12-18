@@ -19,7 +19,7 @@ class HealthRuleDict:
      # @param entityType naming of the entity in the XML file format
      # @return naming of the entity in the JSON file format. Null if provided entity name could not be interpreted.
     ###
-    def __entityXML2JSON(XMLentityType):
+    def __entityXML2JSON(self,XMLentityType):
         switcher = {
             "BUSINESS_TRANSACTION": "BUSINESS_TRANSACTION_PERFORMANCE",
             "NODE_HEALTH_TRANSACTION_PERFORMANCE": "TIER_NODE_TRANSACTION_PERFORMANCE",
