@@ -43,22 +43,8 @@ def time_to_minutes(string):
   return total
 
 
-class HelpDict:
-    helpDict = dict()
-
-    def __init__(self):
-        pass
-
-    def __str__(self):
-        return json.dumps(self.helpDict)
-
-    def get_help():
-        pass
-
-def get_help(output=sys.stdout):
+def get_help(COMMAND,SUBCOMMAND=None,output=sys.stdout):
   if output not in [sys.stdout,sys.stderr]: return
-  COMMAND   = argv[1] if len(args) >= 1 else ""
-  SUBCOMMAND= argv[2] if len(args) >= 2 else None
   if not SUBCOMMAND:
     optParser.print_help()
   elif COMMAND == "login" and SUBCOMMAND=="help":
@@ -152,7 +138,7 @@ if len(args) < 1:
     optParser.error("incorrect number of arguments")
     exit()
 
-entityObjects = { 'help': {'class': HelpDict, 'function': HelpDict().get_help},
+entityObjects = { 'help': {'class': None, 'function': get_help},
                   'applications': {'class': ApplicationDict, 'function': RESTfulAPI().fetch_applications},
                   'nodes': {'class': NodeDict, 'function': RESTfulAPI().fetch_nodes},
                   'detection-rules': {'class': DetectionruleDict, 'function': RESTfulAPI().fetch_transactiondetection},
@@ -181,7 +167,7 @@ if COMMAND.lower() == "help":
 elif COMMAND.lower() == "login":
 
   if len(args) == 2 and args[1] == "help":
-    get_help()
+    get_help(COMMAND)
   else:
     if options.controllerURL and options.apiClient:
       server = options.controllerURL
@@ -308,7 +294,7 @@ elif COMMAND.lower() == "get":
       selectors.update({selector.split('=')[0]:selector.split('=')[1]})
 
   if ENTITY == 'help':
-    entityObjects[ENTITY]['function']()
+    entityObjects[ENTITY]['function'](COMMAND)
 
   elif ENTITY in ['applications','dashboards','config','users']:
     entityDict = entityObjects[ENTITY]['class']()
