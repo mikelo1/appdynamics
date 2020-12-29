@@ -6,7 +6,7 @@ In order to establish a connection to an AppDynamics controller, please login fi
 
 # Required packages
 
-	python python-requests python-libxml2
+	python python-requests python-libxml2 yaml
 
 
 
