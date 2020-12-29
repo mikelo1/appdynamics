@@ -3,15 +3,13 @@ import json
 import csv
 import sys
 from appdRESTfulAPI import RESTfulAPI
+from entities import ControllerEntity
 
-class ApplicationDict:
+class ApplicationDict(ControllerEntity):
     applicationDict = dict()
 
     def __init__(self):
-        pass
-
-    def __str__(self):
-        return json.dumps(self.applicationDict)
+        self.applicationDict = self.entityDict
 
     def __test_applications_with_tiers_and_nodes():
         applications=json.loads('[{"name":"evo-api-logalty-aks","description":"","id":15713322,"accountGuid":"edbe509e-bd4d-4ba9-a588-e761827a8730"},{"name":"ev-cajeros-web-srv","description":"","id":57502,"accountGuid":"edbe509e-bd4d-4ba9-a588-e761827a8730"}]')
@@ -48,13 +46,15 @@ class ApplicationDict:
 
         for appID in self.applicationDict:
             application = self.applicationDict[appID]
-            if 'header_is_printed' not in locals(): 
+            # Check if data belongs to an application
+            if 'accountGuid' not in application: continue
+            elif 'header_is_printed' not in locals(): 
                 filewriter.writeheader()
                 header_is_printed=True
             tierList = [tier['name'] for tier in application['tiers']] if 'tiers' in application else []
             nodeList = [node['name'] for tier in application['tiers'] for node in tier['nodes']] if 'tiers' in application else []
 
-            try:        
+            try:
                 filewriter.writerow({'Name': application['name'],
                                     'Description': application['description'],
                                     'Id': application['id'],
@@ -66,46 +66,6 @@ class ApplicationDict:
                 if fileName is not None: csvfile.close()
                 exit(1)
         if fileName is not None: csvfile.close()
-
-    ###
-     # Generate JSON output from applications data
-     # @param fileName output file name
-     # @return None
-    ###
-    def generate_JSON(self,fileName=None):
-        data = [self.applicationDict[appID] for appID in self.applicationDict]
-        if fileName is not None:
-            try:
-                with open(fileName, 'w') as outfile:
-                    json.dump(data, outfile)
-                outfile.close()
-            except:
-                print ("Could not open output file " + fileName + ".")
-                return (-1)
-        else:
-            print json.dumps(data)
-
-
-    ###
-     # Load applications from a JSON stream data.
-     # @param streamdata the stream data in JSON format
-     # @return the number of loaded applications. Zero if no application was loaded.
-    ###
-    def load(self,streamdata):
-        try:
-            applications = json.loads(streamdata)
-        except TypeError as error:
-            print ("load_application: "+str(error))
-            return 0
-
-        #print json.dumps(applications)
-        for application in applications:
-            # Add loaded application to the application dictionary
-            if 'accountGuid' not in application: continue
-            app_ID = application['id']
-            self.applicationDict.update({str(app_ID):application})
-
-        return len(applications)
 
     ###
      # Load tiers and nodes details for one specific application
