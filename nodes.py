@@ -191,7 +191,7 @@ class NodeDict:
     ###
     def getTierName(self,app_ID,tierID):
         if tierID <= 0: return 0
-        if str(app_ID) in nodeDict:
+        if str(app_ID) in self.nodeDict:
             for node in self.nodeDict[str(app_ID)]:
                 if node['tierId'] == tierID:
                     return node['tierName']
@@ -205,7 +205,7 @@ class NodeDict:
     ###
     def getNodeName(self,app_ID,nodeID):
         if nodeID <= 0: return 0
-        if str(app_ID) in nodeDict:
+        if str(app_ID) in self.nodeDict:
             for node in self.nodeDict[str(app_ID)]:
                 if node['id'] == nodeID:
                     return node['name']
