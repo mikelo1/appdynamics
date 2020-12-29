@@ -4,16 +4,15 @@ import csv
 import sys
 from applications import ApplicationDict
 from appdRESTfulAPI import RESTfulAPI
+from appEntities import AppEntity
 from policies import PolicyDict
 
-class ActionDict:
+
+class ActionDict(AppEntity):
     actionDict = dict()
 
     def __init__(self):
-        pass
-
-    def __str__(self):
-        return json.dumps(self.actionDict)
+        self.actionDict = self.entityDict
 
     ###
      # toString private method, extracts properties from action
@@ -141,50 +140,6 @@ class ActionDict:
                     if fileName is not None: csvfile.close()
                     return (-1)
         if fileName is not None: csvfile.close()
-
-    ###
-     # Generate JSON output from actions data
-     # @param appID_List list of application IDs, in order to obtain actions from local actions dictionary
-     # @param fileName output file name
-     # @return None
-    ###
-    def generate_JSON(self,appID_List,fileName=None):
-        if type(appID_List) is not list or len(appID_List)==0: return
-
-        actions = []
-        for appID in appID_List:
-            actions = actions + self.actionDict[str(appID)]
-
-        if fileName is not None:
-            try:
-                with open(fileName, 'w') as outfile:
-                    json.dump(actions, outfile)
-                outfile.close()
-            except:
-                sys.stderr.write ("Could not open output file " + fileName + ".\n")
-                return (-1)
-        else:
-            print json.dumps(actions)
-
-    ###
-     # Load actions from a JSON stream data.
-     # @param streamdata the stream data in JSON format
-     # @param appID the ID number of the application where to load the actions data.
-     # @return the number of loaded actions. Zero if no action was loaded.
-    ###
-    def load(self,streamdata,appID=None):
-        if appID is None: appID = 0
-        try:
-            actions = json.loads(streamdata)
-        except TypeError as error:
-            print ("load_action: "+str(error))
-            return 0
-        # Add loaded actions to the actions dictionary
-        if type(actions) is dict:
-            self.actionDict.update({str(appID):[actions]})
-        else:
-            self.actionDict.update({str(appID):actions})
-        return len(actions)
 
     ###
      # Load action details for all actions from an application

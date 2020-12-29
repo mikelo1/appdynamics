@@ -4,15 +4,13 @@ import json
 import csv
 import sys
 from applications import ApplicationDict
+from appEntities import AppEntity
 
-class HealthRuleDict:
+class HealthRuleDict(AppEntity):
     healthruleDict = dict()
 
     def __init__(self):
-        pass
-
-    def __str__(self):
-        return json.dumps(self.healthruleDict)
+        self.healthruleDict = self.entityDict
 
     ###
      # private method to translate XML format entity names to JSON format entity names.
@@ -497,34 +495,6 @@ class HealthRuleDict:
                     return (-1)
         if 'DEBUG' in locals(): print "INFO: Displayed number of health rules:" + str(len(healthrules))
         if fileName is not None: csvfile.close()
-
-
-    ###
-     # Generate JSON output from health rules data
-     # @param appID_List list of application IDs, in order to obtain health rules from local health rules dictionary
-     # @param fileName output file name
-     # @return None
-    ###
-    def generate_JSON(self,appID_List,fileName=None):
-        if type(appID_List) is not list or len(appID_List)==0: return
-
-        healthrules = []
-        for appID in appID_List:
-            if str(appID) not in self.healthruleDict:
-                if 'DEBUG' in locals(): print "Application "+str(appID) +" is not loaded in dictionary."
-                continue            
-            healthrules = healthrules + self.healthruleDict[str(appID)]
-
-        if fileName is not None:
-            try:
-                with open(fileName, 'w') as outfile:
-                    json.dump(healthrules, outfile)
-                outfile.close()
-            except:
-                print ("Could not open output file " + fileName + ".")
-                return (-1)
-        else:
-            print json.dumps(healthrules)
 
     ###
      # Load health rules from a stream data in JSON or XML format.
