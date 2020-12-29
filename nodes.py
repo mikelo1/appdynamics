@@ -6,16 +6,13 @@ from appdRESTfulAPI import RESTfulAPI
 from applications import ApplicationDict
 from datetime import datetime, timedelta
 import time
+from entities import AppEntity
 
-
-class NodeDict:
+class NodeDict(AppEntity):
     nodeDict = dict()
 
     def __init__(self):
-        pass
-
-    def __str__(self):
-        return json.dumps(self.nodeDict)
+        self.nodeDict = self.entityDict
 
     ###
      # Update nodes availability with the last hour availability percentage
@@ -91,49 +88,6 @@ class NodeDict:
                     if fileName is not None: csvfile.close()
                     return (-1)
         if fileName is not None: csvfile.close()
-
-    ###
-     # Generate JSON output from nodes data
-     # @param appID_List list of application IDs, in order to obtain nodes from local nodes dictionary
-     # @param fileName output file name
-     # @return None
-    ###
-    def generate_nodes_JSON(self,appID_List,fileName=None):
-        if type(appID_List) is not list or len(appID_List)==0: return
-
-        nodes = []
-        for appID in appID_List:
-            nodes = nodes + self.nodeDict[str(appID)]
-
-        if fileName is not None:
-            try:
-                with open(fileName, 'w') as outfile:
-                    json.dump(nodes, outfile)
-                outfile.close()
-            except:
-                print ("Could not open output file " + fileName + ".")
-                return (-1)
-        else:
-            print json.dumps(nodes)
-
-    ###
-     # Load nodes from a JSON stream data.
-     # @param streamdata the stream data in JSON format
-     # @return the number of loaded nodes. Zero if no node was loaded.
-    ###
-    def load(self,streamdata,appID=None):
-        if appID is None: appID = 0
-        try:
-            nodes = json.loads(streamdata)
-        except TypeError as error:
-            print ("load_nodes: "+str(error))
-            return 0
-        # Add loaded nodes to the nodes dictionary
-        if type(nodes) is dict:
-            self.nodeDict.update({str(appID):[nodes]})
-        else:
-            self.nodeDict.update({str(appID):nodes})
-        return len(nodes)
 
     ###
      # Load node details for all nodes from an application

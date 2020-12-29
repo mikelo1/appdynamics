@@ -4,16 +4,13 @@ import json
 import csv
 import sys
 from applications import ApplicationDict
+from entities import AppEntity
 
-
-class DetectionruleDict:
+class DetectionruleDict(AppEntity):
     detectionruleDict = dict()
 
     def __init__(self):
-        pass
-
-    def __str__(self):
-        return json.dumps(self.detectionruleDict)
+        self.detectionruleDict = self.entityDict
 
     ###
      # toString private method, extracts Match Rule List from transaction detection rule
