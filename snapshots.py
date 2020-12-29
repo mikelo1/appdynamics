@@ -6,15 +6,13 @@ from datetime import datetime, timedelta
 import time
 from nodes import NodeDict
 from applications import ApplicationDict
+from entities import AppEntity
 
-class SnapshotDict:
+class SnapshotDict(AppEntity):
     snapshotDict = dict()
 
     def __init__(self):
-        pass
-
-    def __str__(self):
-        return json.dumps(self.snapshotDict)
+        self.snapshotDict = self.entityDict
 
 
 #def fetch_snapshots2(app_ID,minutesBeforeNow,selectors=None,serverURL=None,userName=None,password=None,token=None):
@@ -129,45 +127,3 @@ class SnapshotDict:
                     print ("Could not write to the output.")
                     continue
         if fileName is not None: csvfile.close()
-
-    ###
-     # Generate JSON output from snapshots data
-     # @param appID_List list of application IDs, in order to obtain snapshots from local snapshots dictionary
-     # @param fileName output file name
-     # @return None
-    ###
-    def generate_JSON(self,appID_List,fileName=None):
-        if type(appID_List) is not list or len(appID_List)==0: return
-        snapshots = [ self.snapshotDict[str(appID)] for appID in appID_List ]
-        if fileName is not None:
-            try:
-                with open(fileName, 'w') as outfile:
-                    json.dump(snapshots, outfile)
-                outfile.close()
-            except:
-                sys.stderr.write ("Could not open output file " + fileName + ".\n")
-                return (-1)
-        else:
-            print json.dumps(snapshots)
-
-    ###
-     # Load snapshots from a JSON stream data.
-     # @param streamdata the stream data in JSON format
-     # @param appID the ID number of the application where to load the snapshots data.
-     # @return the number of loaded snapshots. Zero if no snapshot was loaded.
-    ###
-    def load(self,streamdata,appID=None):
-        if appID is None: appID = 0
-        try:
-            snapshots = json.loads(streamdata)
-        except TypeError as error:
-            print ("load_snapshots: "+str(error))
-            return 0
-        # Add loaded snapshots to the snapshots dictionary
-        if type(snapshots) is dict:
-            snapshots = [snapshots]
-        if str(appID) not in self.snapshotDict:
-            self.snapshotDict.update({str(appID):snapshots})
-        else:
-            self.snapshotDict[str(appID)].extend(snapshots)
-        return len(snapshots)        

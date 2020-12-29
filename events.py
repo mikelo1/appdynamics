@@ -5,15 +5,13 @@ import sys
 from datetime import datetime, timedelta
 import time
 from applications import ApplicationDict
+from entities import AppEntity
 
-class EventDict:
+class EventDict(AppEntity):
     eventDict = dict()
 
     def __init__(self):
-        pass
-
-    def __str__(self):
-        return json.dumps(self.eventDict)
+        self.eventDict = self.entityDict
 
     ###
      # toString private method, extracts policy from event
@@ -132,47 +130,3 @@ class EventDict:
                     if fileName is not None: csvfile.close()
                     return (-1)
         if fileName is not None: csvfile.close()
-
-    ###
-     # Generate JSON output from healthrule violations data
-     # @param appID_List list of application IDs, in order to obtain healtrule violations from local healthrule violations dictionary
-     # @param fileName output file name
-     # @return None
-    ###
-    def generate_JSON(self,appID_List,fileName=None):
-        if type(appID_List) is not list or len(appID_List)==0: return
-
-        events = [ self.eventDict[str(appID)] for appID in appID_List ]
-        if fileName is not None:
-            try:
-                JSONfile = open(fileName, 'w')
-                json.dumps(events,JSONfile)
-                JSONfile.close()
-            except:
-                sys.stderr.write ("Could not open output file " + fileName + ".\n")
-                return (-1)
-        else:
-            print json.dumps(events)
-
-
-    ###
-     # Load healtrule violations from a JSON stream data.
-     # @param streamdata the stream data in JSON format
-     # @param appID the ID number of the application where to load the events data.
-     # @return the number of loaded events. Zero if no event was loaded.
-    ###
-    def load(self,streamdata,appID=None):
-        if appID is None: appID = 0
-        try:
-            events = json.loads(streamdata)
-        except TypeError as error:
-            print ("load_events: "+str(error))
-            return 0
-        # Add loaded events to the events dictionary
-        if type(events) is dict:
-            events = [events]
-        if str(appID) not in self.eventDict:
-            self.eventDict.update({str(appID):events})
-        else:
-            self.eventDict[str(appID)].extend(events)
-        return len(events)

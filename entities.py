@@ -49,7 +49,9 @@ class AppEntity:
             return 0
         # Add loaded entities to the entities dictionary
         if type(entities) is dict:
-            self.entityDict.update({str(appID):[entities]})
-        else:
+            entities = [entities]
+        if str(appID) not in self.entityDict:            
             self.entityDict.update({str(appID):entities})
+        else:
+            self.entityDict[str(appID)].extend(entities)
         return len(entities)
