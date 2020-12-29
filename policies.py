@@ -4,7 +4,7 @@ import csv
 import sys
 from applications import ApplicationDict
 from appdRESTfulAPI import RESTfulAPI
-from appEntities import AppEntity
+from entities import AppEntity
 
 class PolicyDict(AppEntity):
     policyDict = dict()

@@ -4,7 +4,7 @@ import json
 import csv
 import sys
 from applications import ApplicationDict
-from appEntities import AppEntity
+from entities import AppEntity
 
 class HealthRuleDict(AppEntity):
     healthruleDict = dict()

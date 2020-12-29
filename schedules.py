@@ -4,15 +4,13 @@ import csv
 import sys
 from appdRESTfulAPI import RESTfulAPI
 from applications import ApplicationDict
+from entities import AppEntity
 
-class ScheduleDict:
+class ScheduleDict(AppEntity):
     scheduleDict = dict()
 
     def __init__(self):
-        pass
-
-    def __str__(self):
-        return json.dumps(self.scheduleDict)
+        self.scheduleDict = self.entityDict
 
     def __build_test_schedules(app_ID):
         schedules1=json.loads('[{"timezone":"Europe/Brussels","description":"This schedule is active Monday through Friday, during business hours","id":30201,"scheduleConfiguration":{"scheduleFrequency":"WEEKLY","endTime":"17:00","days":["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY"],"startTime":"08:00"},"name":"Weekdays:8am-5pm,Mon-Fri"}]')
@@ -111,52 +109,6 @@ class ScheduleDict:
                     if fileName is not None: csvfile.close()
                     return (-1)
         if fileName is not None: csvfile.close()
-
-    ###
-     # Generate JSON output from schedules data
-     # @param appID_List list of application IDs, in order to obtain schedules from local schedules dictionary
-     # @param fileName output file name
-     # @return None
-    ###
-    def generate_JSON(self,appID_List,fileName=None):
-        if type(appID_List) is not list or len(appID_List)==0: return
-
-        schedules = []
-        for appID in appID_List:
-            schedules = schedules + self.scheduleDict[str(appID)]
-
-        if fileName is not None:
-            try:
-                with open(fileName, 'w') as outfile:
-                    json.dump(schedules, outfile)
-                outfile.close()
-            except:
-                print ("Could not open output file " + fileName + ".")
-                return (-1)
-        else:
-            print json.dumps(schedules)
-
-    ###
-     # Load schedules from a JSON stream data.
-     # @param streamdata the stream data in JSON format
-     # @param outFilename output file name
-     # @return the number of loaded schedules. Zero if no schedule was loaded.
-    ###
-    def load(self,streamdata,appID=None):
-        if appID is None: appID = 0
-        try:
-            schedules = json.loads(streamdata)
-        except TypeError as error:
-            print ("load_schedules: "+str(error))
-            return 0
-        # Add loaded schedules to the schedules dictionary
-        if type(schedules) is dict:
-            self.scheduleDict.update({str(appID):[schedules]})
-        else:
-            self.scheduleDict.update({str(appID):schedules})
-
-        return len(schedules)
-
 
     ###
      # Load schedule details for all schedules from an application

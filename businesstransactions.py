@@ -3,15 +3,13 @@ import json
 import csv
 import sys
 from applications import ApplicationDict
+from entities import AppEntity
 
-class BusinessTransactionDict:
+class BusinessTransactionDict(AppEntity):
     BTDict = dict()
 
     def __init__(self):
-        pass
-
-    def __str__(self):
-        return json.dumps(self.BTDict)
+        self.BTDict = self.entityDict
 
     ###### FROM HERE PUBLIC FUNCTIONS ######
 
@@ -59,52 +57,6 @@ class BusinessTransactionDict:
                     if fileName is not None: csvfile.close()
                     exit(1)
             if fileName is not None: csvfile.close()
-
-    ###
-     # Generate JSON output from business transactions data
-     # @param appID_List list of application IDs, in order to obtain business transactions from local business transactions dictionary
-     # @param custom_transactionDict dictionary containing business transactions
-     # @param fileName output file name
-     # @return None
-    ###
-    def generate_JSON(self,appID_List,fileName=None):
-        if type(appID_List) is not list or len(appID_List)==0: return
-
-        transactions = []
-        for appID in appID_List:
-            transactions = transactions + self.BTDict[str(appID)]
-
-        if fileName is not None:
-            try:
-                with open(fileName, 'w') as outfile:
-                    json.dump(transactions, outfile)
-                outfile.close()
-            except:
-                print ("Could not open output file " + fileName + ".")
-                return (-1)
-        else:
-            print json.dumps(transactions)
-
-    ###
-     # Load business transactions from a JSON stream data.
-     # @param streamdata the stream data in JSON format
-     # @param appID the ID number of the application where to load the business transaction data.
-     # @return the number of loaded business transactions. Zero if no business transaction was loaded.
-    ###
-    def load(self,streamdata,appID=None):
-        if appID is None: appID = 0
-        try:
-            transactions = json.loads(streamdata)
-        except TypeError as error:
-            print ("load_business_transaction: "+str(error))
-            return 0
-        # Add loaded transactions to the business transaction dictionary
-        if type(transactions) is dict:
-            self.BTDict.update({str(appID):[transactions]})
-        else:
-            self.BTDict.update({str(appID):transactions})
-
-        return len(transactions)
 
     ###
      # Get the ID for a business transaction name.
