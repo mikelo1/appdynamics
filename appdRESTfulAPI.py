@@ -6,7 +6,10 @@ import csv
 import sys
 from getpass import getpass
 from datetime import datetime, timedelta
-from urlparse import urlparse
+if sys.version_info.major < 3:
+    from urlparse import urlparse
+else:
+    from urllib.parse import urlparse
 import base64
 import time
 
@@ -39,12 +42,12 @@ class AppD_Configuration:
     def view(self):
         try:
             with open(self.configFile, 'r') as stream:
-                print stream.readlines()
+                print (stream.readlines())
         except EnvironmentError as exc:
             print(exc)
 
     def save(self):
-        if 'DEBUG' in locals(): print "Saving changes..."
+        if 'DEBUG' in locals(): print ("Saving changes...")
         try:
             with open(self.configFile, "w") as outfile:
                 yaml.dump(self.data, outfile, default_flow_style=False, allow_unicode=True)
@@ -93,10 +96,10 @@ class AppD_Configuration:
             current_user = self.get_current_context_user()
             userdata = [user for user in self.data['users'] if user['name']==current_user][0]['user']
             if userdata is not None and 'expire' in userdata and datetime.today() < userdata['expire']:
-                if 'DEBUG' in locals(): print "Found valid token in config YAML file."
+                if 'DEBUG' in locals(): print ("Found valid token in config YAML file.")
                 return userdata['token']
             else:
-                if 'DEBUG' in locals(): print "Token expired or invalid in config YAML file."
+                if 'DEBUG' in locals(): print ("Token expired or invalid in config YAML file.")
                 return None
 
     def set_current_context_token(self,access_token,expires_in):
@@ -261,8 +264,8 @@ class RESTfulAPI:
             else:
                 sys.stderr.write("Description not available\n")
             if 'DEBUG' in locals():
-                print "   header:", response.headers
-                print "Writing content to file: response.txt"
+                print ("   header:", response.headers)
+                print ("Writing content to file: response.txt")
                 file1 = open("response.txt","w") 
                 file1.write(response.content)
                 file1.close()
@@ -279,17 +282,17 @@ class RESTfulAPI:
         appD_Config=AppD_Configuration()
         if contextName is not None:
             if appD_Config.select_context(contextName) is None:
-                if 'DEBUG' in locals(): print "Cannot get context data. Did you type correctly the context name?"
+                if 'DEBUG' in locals(): print ("Cannot get context data. Did you type correctly the context name?")
                 return None
         elif appD_Config.get_current_context(output=None) is None:
-            if 'DEBUG' in locals(): print "Cannot get context data. Did you login to any controller machine?"
+            if 'DEBUG' in locals(): print ("Cannot get context data. Did you login to any controller machine?")
             return None
 
         token     = appD_Config.get_current_context_token()
         serverURL = appD_Config.get_current_context_serverURL()
         API_Client= appD_Config.get_current_context_username()
         if token is None:
-            if 'DEBUG' in locals(): print "Current context "+ appD_Config.get_current_context(output=None) + " has no valid token."
+            if 'DEBUG' in locals(): print ("Current context "+ appD_Config.get_current_context(output=None) + " has no valid token.")
             if self.basicAuth is not None:
                 Client_Secret = self.basicAuth.get_password(API_Client)
             elif appD_Config.get_credentials(appD_Config.get_current_context(output=None)):
@@ -303,9 +306,9 @@ class RESTfulAPI:
                 return None
             appD_Config.set_current_context_token(token_data['access_token'],token_data['expires_in'])
             token = token_data['access_token']
-            if 'DEBUG' in locals(): print "New token obtained for current context "+ appD_Config.get_current_context(output=None) + ": "+token
+            if 'DEBUG' in locals(): print ("New token obtained for current context "+ appD_Config.get_current_context(output=None) + ": "+token)
         else:
-            if 'DEBUG' in locals(): print "Current context "+ appD_Config.get_current_context(output=None) + " has valid token: "+token
+            if 'DEBUG' in locals(): print ("Current context "+ appD_Config.get_current_context(output=None) + " has valid token: "+token)
         return token
 
     ###
@@ -344,8 +347,8 @@ class RESTfulAPI:
             else:
                 sys.stderr.write("Description not available\n")
             if 'DEBUG' in locals():
-                print "   header:", response.headers
-                print "Writing content to file: response.txt"
+                print ("   header:", response.headers)
+                print ("Writing content to file: response.txt")
                 file1 = open("response.txt","w") 
                 file1.write(response.content)
                 file1.close()
@@ -391,12 +394,8 @@ class RESTfulAPI:
             else:
                 sys.stderr.write("Description not available\n")
             if 'DEBUG' in locals():
-                print "   header:", response.headers
-                print response.content
-                #print "Writing content to file: response.txt"
-                #file1 = open("response.txt","w")
-                #file1.write(response.content)
-                #file1.close()
+                print ("   header:", response.headers)
+                print (response.content)
             return None
         return response.content
 
@@ -438,8 +437,8 @@ class RESTfulAPI:
             else:
                 sys.stderr.write("Description not available\n")
             if 'DEBUG' in locals():
-                print "   header:", response.headers
-                print "Writing content to file: response.txt"
+                print ("   header:", response.headers)
+                print ("Writing content to file: response.txt")
                 file1 = open("response.txt","w")
                 file1.write(response.content)
                 file1.close()

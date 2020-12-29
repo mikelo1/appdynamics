@@ -70,7 +70,7 @@ class NodeDict:
 
         for appID in appID_List:
             if str(appID) not in self.nodeDict:
-                if 'DEBUG' in locals(): print "Application "+str(appID) +" is not loaded in dictionary."
+                if 'DEBUG' in locals(): print ("Application "+str(appID) +" is not loaded in dictionary.")
                 continue
             for node in self.nodeDict[str(appID)]:
                 # Check if data belongs to a node
@@ -146,7 +146,7 @@ class NodeDict:
             for node in self.nodeDict[str(app_ID)]:
                 streamdata = RESTfulAPI().fetch_node_details(app_ID,node['id'])
                 if streamdata is None:
-                    print "load_node_details: Failed to retrieve node " + str(node['id']) + " for application " + str(app_ID)
+                    print ("load_node_details: Failed to retrieve node " + str(node['id']) + " for application " + str(app_ID) )
                     continue
                 try:
                     nodeJSON = json.loads(streamdata)
@@ -157,7 +157,7 @@ class NodeDict:
                 index = index + 1
             return index
         else:
-            print self
+            print (self)
         return 0
 
     ###
@@ -176,10 +176,10 @@ class NodeDict:
             self.__update_availability_nodes(appID)
             unavailNodeList = [ node['id'] for node in self.nodeDict[str(appID)] if node['availability'] == 0.0 ]
             for i in range(0,len(unavailNodeList),25):
-                if 'DEBUG' in locals(): print "Unavailable node list:",unavailNodeList
+                if 'DEBUG' in locals(): print ("Unavailable node list:",unavailNodeList)
                 response = RESTfulAPI().mark_nodes_as_historical(unavailNodeList[i:i+25])
             RESTfulAPI().fetch_nodes(appID,selectors=selectors)
-            print "update_nodes: [INFO] Disabled nodes in application",appID,":",len(unavailNodeList)
+            print ("update_nodes: [INFO] Disabled nodes in application",appID,":",len(unavailNodeList) )
             updated += len(unavailNodeList)
         return updated
 
@@ -191,7 +191,7 @@ class NodeDict:
     ###
     def getTierName(self,app_ID,tierID):
         if tierID <= 0: return 0
-        if str(app_ID) in self.nodeDict:
+        if str(app_ID) in nodeDict:
             for node in self.nodeDict[str(app_ID)]:
                 if node['tierId'] == tierID:
                     return node['tierName']
@@ -205,7 +205,7 @@ class NodeDict:
     ###
     def getNodeName(self,app_ID,nodeID):
         if nodeID <= 0: return 0
-        if str(app_ID) in self.nodeDict:
+        if str(app_ID) in nodeDict:
             for node in self.nodeDict[str(app_ID)]:
                 if node['id'] == nodeID:
                     return node['name']
