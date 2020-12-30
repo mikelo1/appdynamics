@@ -119,4 +119,5 @@ class ApplicationDict(ControllerEntity):
     def getAppName(self,appID):
         if str(appID) in self.applicationDict:
             return self.applicationDict[str(appID)]['name']
+        if 'DEBUG' in locals(): sys.stderr.write("Application "+str(appID)+" is not loaded.\n")
         return None

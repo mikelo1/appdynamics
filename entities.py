@@ -29,7 +29,7 @@ class AppEntity:
                     json.dump(entityList, outfile)
                 outfile.close()
             except:
-                print ("Could not open output file " + fileName + ".")
+                sys.stderr.write("Could not open output file " + fileName + ".")
                 return (-1)
         else:
             print json.dumps(entityList)
@@ -45,7 +45,7 @@ class AppEntity:
         try:
             entities = json.loads(streamdata)
         except TypeError as error:
-            print ("load_entities: "+str(error))
+            sys.stderr.write("load_entities: "+str(error))
             return 0
         # Add loaded entities to the entities dictionary
         if type(entities) is dict:
@@ -83,7 +83,7 @@ class ControllerEntity:
                     json.dump(data, outfile)
                 outfile.close()
             except:
-                print ("Could not open output file " + fileName + ".")
+                sys.stderr.write("Could not open output file " + fileName + ".")
                 return (-1)
         else:
             print json.dumps(data)
@@ -98,10 +98,10 @@ class ControllerEntity:
         try:
             entities = json.loads(streamdata)
         except TypeError as error:
-            print ("load_entities: "+str(error))
+            sys.stderr.write("load_entities: "+str(error))
             return 0
         for entity in entities:
             # Add loaded entities to the entity dictionary
-            entityID = entity['name']
+            entityID = entity['id']
             self.entityDict.update({str(entityID):entity})
         return len(entities)

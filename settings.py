@@ -49,3 +49,20 @@ class ConfigurationDict(ControllerEntity):
                 if fileName is not None: csvfile.close()
                 return (-1)
         if fileName is not None: csvfile.close()
+
+    ###
+     # Load entities from a JSON stream data.
+     # @param streamdata the stream data in JSON format
+     # @return the number of loaded entities. Zero if no entity was loaded.
+    ###
+    def load(self,streamdata):
+        try:
+            entities = json.loads(streamdata)
+        except TypeError as error:
+            sys.stderr.write("load_entities: "+str(error))
+            return 0
+        for entity in entities:
+            # Add loaded entities to the entity dictionary
+            entityID = entity['name']
+            self.entityDict.update({str(entityID):entity})
+        return len(entities)
