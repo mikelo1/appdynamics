@@ -87,12 +87,14 @@ def get_application_list():
         optParser.error("Missing application (use -A for all applications)")
         return []
     elif options.applications:
-      data = entityObjects['applications']['function']()
-      ApplicationDict().load(data)
+      #data = entityObjects['applications']['function']()
+      #ApplicationDict().load(data)
+      ApplicationDict().fetch()
       return [ ApplicationDict().getAppID(appName) for appName in options.applications.split(',') if ApplicationDict().getAppID(appName) is not None ]
     else: # if options.allApplications:
-      data = entityObjects['applications']['function']()
-      ApplicationDict().load(data)
+      #data = entityObjects['applications']['function']()
+      #ApplicationDict().load(data)
+      ApplicationDict().fetch()
       return ApplicationDict().get_application_ID_list()
 
 usage = "usage: %prog [get|login|update|patch] [options]"
@@ -142,7 +144,7 @@ entityObjects = { 'help': {'class': None, 'function': get_help},
                   'applications': {'class': ApplicationDict},
                   'dashboards': {'class': DashboardDict},
                   'config': {'class': ConfigurationDict},
-                  'users': {'class': RBACDict, 'function': RESTfulAPI().fetch_users_extended,
+                  'users': {'class': RBACDict},
                   'nodes': {'class': NodeDict},
                   'detection-rules': {'class': DetectionruleDict},
                   'businesstransactions': {'class': BusinessTransactionDict},
@@ -155,7 +157,6 @@ entityObjects = { 'help': {'class': None, 'function': get_help},
                   'healthrule-violations': {'class': EventDict},
                   'snapshots': {'class': SnapshotDict},
                   'allothertraffic': {'class': SnapshotDict}
-                  }
                 }
  
 COMMAND = args[0]

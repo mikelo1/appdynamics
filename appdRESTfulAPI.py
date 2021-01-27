@@ -488,8 +488,9 @@ class RESTfulAPI:
         """
         # Retrieve All Tiers in a Business Application
         # GET /controller/rest/applications/application_name/tiers
-        restfulPath = "/controller/rest/applications/" + appKey + "/tiers"
-        return self.__fetch_RESTfulPath(restfulPath)
+        restfulPath = "/controller/rest/applications/" + str(appKey) + "/tiers"
+        params = {"output": "JSON"}
+        return self.__fetch_RESTfulPath(restfulPath,params=params)
 
     def fetch_tier_nodes(self,appKey,tierKey):
         """
@@ -501,7 +502,8 @@ class RESTfulAPI:
         # Retrieve Node Information for All Nodes in a Tier
         # GET /controller/rest/applications/application_name/tiers/tier_name/nodes
         restfulPath = "/controller/rest/applications/" + str(appKey) + "/tiers/" + str(tierKey) + "/nodes"
-        return self.__fetch_RESTfulPath(restfulPath)
+        params = {"output": "JSON"}
+        return self.__fetch_RESTfulPath(restfulPath,params=params)
 
     def fetch_nodes(self,app_ID,selectors=None):
         """

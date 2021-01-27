@@ -6,11 +6,7 @@ from appdRESTfulAPI import RESTfulAPI
 from entities import ControllerEntity
 
 class ApplicationDict(ControllerEntity):
-    applicationDict = dict()
     entityAPIFunctions = {'fetch': RESTfulAPI().fetch_applications}
-
-    def __init__(self):
-        self.applicationDict = self.entityDict
 
     def __test_applications_with_tiers_and_nodes():
         applications=json.loads('[{"name":"evo-api-logalty-aks","description":"","id":15713322,"accountGuid":"edbe509e-bd4d-4ba9-a588-e761827a8730"},{"name":"ev-cajeros-web-srv","description":"","id":57502,"accountGuid":"edbe509e-bd4d-4ba9-a588-e761827a8730"}]')
@@ -22,17 +18,17 @@ class ApplicationDict(ControllerEntity):
                 tier.update({'nodes':nodes})
             application.update({'tiers':tiers})
             app_ID = application['id']
-            self.applicationDict.update({str(app_ID):application})
+            self.entityDict.update({str(app_ID):application})
 
 
     ###### FROM HERE PUBLIC FUNCTIONS ######
 
-    ###
-     # Generate CSV output from applications data
-     # @param fileName output file name
-     # @return None
-    ###
     def generate_CSV(self,fileName=None):
+        """
+        Generate CSV output from applications data
+        :param fileName: output file name
+        :returns: None
+        """
         if fileName is not None:
             try:
                 csvfile = open(fileName, 'w')
@@ -45,8 +41,8 @@ class ApplicationDict(ControllerEntity):
         fieldnames = ['Name', 'Description', 'Id', 'AccountGuid', 'Tiers', 'Nodes']
         filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
 
-        for appID in self.applicationDict:
-            application = self.applicationDict[appID]
+        for appID in self.entityDict:
+            application = self.entityDict[appID]
             # Check if data belongs to an application
             if 'accountGuid' not in application: continue
             elif 'header_is_printed' not in locals(): 
@@ -68,13 +64,14 @@ class ApplicationDict(ControllerEntity):
                 exit(1)
         if fileName is not None: csvfile.close()
 
-    ###
-     # Load tiers and nodes details for one specific application
-     # @param app_ID the ID number of the application tiers and nodes to fetch
-     # @return the number of tiers. Zero if no tier was found.
-    ###
+
     def load_tiers_and_nodes(self,app_ID):
-        if str(app_ID) in self.applicationDict:
+        """
+        Load tiers and nodes details for one specific application
+        :param app_ID: the ID number of the application tiers and nodes to fetch
+        :returns: the number of tiers. Zero if no tier was found.
+        """
+        if str(app_ID) in self.entityDict:
             # Add tiers and nodes to the application data
             tiers = json.loads(RESTfulAPI().fetch_tiers(app_ID))
             if tiers is not None:
@@ -82,43 +79,57 @@ class ApplicationDict(ControllerEntity):
                     nodes = json.loads(RESTfulAPI().fetch_tier_nodes(app_ID,tier['name']))
                     if nodes is not None:
                         tier.update({'nodes':nodes})
-                self.applicationDict.update({str(appID):{'tiers':tiers}})
+                self.entityDict.update({str(app_ID):{'tiers':tiers}})
                 return len(tiers)
 
-    ###
-     # Get a list with all application names.
-     # @return a list with all application names. None if no application was found.
-    ###
+
     def get_application_Name_list(self):
-        if len(self.applicationDict) > 0:
-            return [self.applicationDict[str(appID)]['name'] for appID in self.applicationDict]
+        """
+        Get a list with all application names.
+        :returns: a list with all application names. None if no application was found.
+        """
+        if len(self.entityDict) > 0:
+            return [self.entityDict[str(appID)]['name'] for appID in self.entityDict]
         return None
 
-    ###
-     # Get a list with all application IDs.
-     # @return a list with all application IDs. None if no application was found.
-    ###
+
     def get_application_ID_list(self):
-        if len(self.applicationDict) > 0:
-            return [self.applicationDict[str(appID)]['id'] for appID in self.applicationDict]
+        """
+        Get a list with all application IDs.
+        :returns: a list with all application IDs. None if no application was found.
+        """
+        if len(self.entityDict) > 0:
+            return [self.entityDict[str(appID)]['id'] for appID in self.entityDict]
         return None
 
-    ###
-     # Get the ID for an application name.
-     # @param appName the name of the application
-     # @return the ID of the specified application name. None if the application was not found.
-    ###
+
     def getAppID(self,appName):
-        searchList = [ self.applicationDict[str(application)]['id'] for application in self.applicationDict if self.applicationDict[application]['name'] == appName ]
+        """
+        Get the ID for an application name.
+        :param appName: the name of the application
+        :returns: the ID of the specified application name. None if the application was not found.
+        """
+        searchList = [ self.entityDict[str(application)]['id'] for application in self.entityDict if self.entityDict[application]['name'] == appName ]
         return searchList[0] if len(searchList) > 0 else None
 
-    ###
-     # Get the name for an application ID. Fetch applications data if not loaded yet.
-     # @param appID the ID of the application
-     # @return the name of the specified application ID. None if the application was not found.
-    ###
+
     def getAppName(self,appID):
-        if str(appID) in self.applicationDict:
-            return self.applicationDict[str(appID)]['name']
+        """
+        Get the name for an application ID. Fetch applications data if not loaded yet.
+        :param appID: the ID of the application
+        :returns: the name of the specified application ID. None if the application was not found.
+        """
+        if str(appID) in self.entityDict:
+            return self.entityDict[str(appID)]['name']
         if 'DEBUG' in locals(): sys.stderr.write("Application "+str(appID)+" is not loaded.\n")
+        return None
+
+
+    def getTiers_ID_List(self,appID):
+        """
+        Get a list of tier IDs for an application.
+        :returns: a list with all tier IDs for an application. None if no tier was found.
+        """
+        if len(self.entityDict) > 0:
+            return [ tier['id'] for tier in self.entityDict[str(appID)]['tiers'] ]
         return None
