@@ -243,14 +243,14 @@ class RESTfulAPI:
     def __str__(self):
         return "({0},{1})".format(self.appD_Config.get_configFileName,self.basicAuth)
 
-    ###
-     # Fetch access token from a controller. Provide an username/password.
-     # @param serverURL Full hostname of the Appdynamics controller. i.e.: https://demo1.appdynamics.com:443
-     # @param userName Full username, including account. i.e.: myuser@customer1
-     # @param password password for the specified user and host. i.e.: mypassword
-     # @return the access token string. Null if there was a problem getting the access token.
-    ###
     def __fetch_access_token(self,serverURL,API_username,API_password):
+        """
+        Fetch access token from a controller. Provide an username/password.
+        :param serverURL: Full hostname of the Appdynamics controller. i.e.: https://demo1.appdynamics.com:443
+        :param userName: Full username, including account. i.e.: myuser@customer1
+        :param password: password for the specified user and host. i.e.: mypassword
+        :returns: the access token string. Null if there was a problem getting the access token.
+        """
         if 'DEBUG' in locals(): print ("Fetching access token for controller " + serverURL + "...")
         # https://docs.appdynamics.com/display/PRO45/API+Clients#APIClients-using-the-access-token
         response = requests.post(serverURL + "/controller/api/oauth/access_token",
@@ -273,12 +273,12 @@ class RESTfulAPI:
         token_data = json.loads(response.content)
         return token_data
 
-    ###
-     # Get access token from a controller. If no credentials provided it will try to get them from basic auth file.
-     # @param contextName name of context
-     # @return the access token string. Null if there was a problem getting the access token.
-    ###
     def __get_access_token(self,contextName=None):
+        """
+        Get access token from a controller. If no credentials provided it will try to get them from basic auth file.
+        :param contextName: name of context
+        :returns: the access token string. Null if there was a problem getting the access token.
+        """
         appD_Config=AppD_Configuration()
         if contextName is not None:
             if appD_Config.select_context(contextName) is None:
@@ -311,16 +311,16 @@ class RESTfulAPI:
             if 'DEBUG' in locals(): print ("Current context "+ appD_Config.get_current_context(output=None) + " has valid token: "+token)
         return token
 
-    ###
-     # Fetch RESTful Path from a controller. Either provide an username/password or let it get an access token automatically.
-     # @param RESTfulPath RESTful path to retrieve data
-     # @param params additional HTTP parameters (if any)
-     # @param serverURL Full hostname of the Appdynamics controller. i.e.: https://demo1.appdynamics.com:443
-     # @param userName Full username, including account. i.e.: myuser@customer1
-     # @param password password for the specified user and host. i.e.: mypassword
-     # @return the response data. Null if no data was received.
-    ###
     def __fetch_RESTfulPath(self,RESTfulPath,params=None,serverURL=None,userName=None,password=None):
+        """
+        Fetch RESTful Path from a controller. Either provide an username/password or let it get an access token automatically.
+        :param RESTfulPath: RESTful path to retrieve data
+        :param params: additional HTTP parameters (if any)
+        :param serverURL: Full hostname of the Appdynamics controller. i.e.: https://demo1.appdynamics.com:443
+        :param userName: Full username, including account. i.e.: myuser@customer1
+        :param password: password for the specified user and host. i.e.: mypassword
+        :returns: the response data. Null if no data was received.
+        """
         if 'DEBUG' in locals(): print ("Fetching JSON from RESTful path " + RESTfulPath + " with params " + json.dumps(params) + " ...")
         if serverURL is None: serverURL = AppD_Configuration().get_current_context_serverURL()
         if userName and password:
@@ -356,16 +356,16 @@ class RESTfulAPI:
         return response.content
 
 
-    ###
-     # Update data from a controller. Either provide an username/password or let it get an access token automatically.
-     # @param RESTfulPath RESTful path to upload data
-     # @param JSONdata the data to be updated in JSON format
-     # @param serverURL Full hostname of the Appdynamics controller. i.e.: https://demo1.appdynamics.com:443
-     # @param userName Full username, including account. i.e.: myuser@customer1
-     # @param password password for the specified user and host. i.e.: mypassword
-     # @return True if the update was successful. False if no schedule was updated.
-    ###
     def __create_RESTful_JSON(self,RESTfulPath,JSONdata,serverURL=None,userName=None,password=None):
+        """
+        Update data from a controller. Either provide an username/password or let it get an access token automatically.
+        :param RESTfulPath: RESTful path to upload data
+        :param JSONdata: the data to be updated in JSON format
+        :param serverURL: Full hostname of the Appdynamics controller. i.e.: https://demo1.appdynamics.com:443
+        :param userName: Full username, including account. i.e.: myuser@customer1
+         :param password: password for the specified user and host. i.e.: mypassword
+        :returns: True if the update was successful. False if no schedule was updated.
+        """
         if 'DEBUG' in locals(): print ("Creating RESTful path " + RESTfulPath + " with provided JSON data...")
         if serverURL is None: serverURL = AppD_Configuration().get_current_context_serverURL()
         if userName and password:
@@ -399,16 +399,16 @@ class RESTfulAPI:
             return None
         return response.content
 
-    ###
-     # Update data from a controller. Either provide an username/password or let it get an access token automatically.
-     # @param RESTfulPath RESTful path to upload data
-     # @param JSONdata the data to be updated in JSON format
-     # @param serverURL Full hostname of the Appdynamics controller. i.e.: https://demo1.appdynamics.com:443
-     # @param userName Full username, including account. i.e.: myuser@customer1
-     # @param password password for the specified user and host. i.e.: mypassword
-     # @return True if the update was successful. False if no schedule was updated.
-    ###
     def __update_RESTful_JSON(self,RESTfulPath,JSONdata,serverURL=None,userName=None,password=None):
+        """
+        Update data from a controller. Either provide an username/password or let it get an access token automatically.
+        :param RESTfulPath: RESTful path to upload data
+        :param JSONdata: the data to be updated in JSON format
+        :param serverURL: Full hostname of the Appdynamics controller. i.e.: https://demo1.appdynamics.com:443
+        :param userName: Full username, including account. i.e.: myuser@customer1
+        :param password: password for the specified user and host. i.e.: mypassword
+        :returns: True if the update was successful. False if no schedule was updated.
+        """
         if 'DEBUG' in locals(): print ("Updating RESTful path " + RESTfulPath + " with provided JSON data...")
         if serverURL is None: serverURL = AppD_Configuration().get_current_context_serverURL()
         if userName and password:
@@ -446,66 +446,70 @@ class RESTfulAPI:
         return True
 
 
-    ###### FROM HERE PUBLIC FUNCTIONS ######
+       ###### FROM HERE PUBLIC FUNCTIONS ######
 
 
-    ###
-     # Fetch applications from a controller.
-     # @return the fetched data. Null if no data was received.
-    ###
     def fetch_applicationsAllTypes(self):
+        """
+        Fetch applications from a controller.
+        :returns: the fetched data. Null if no data was received.
+        """
         restfulPath = "/controller/restui/applicationManagerUiBean/getApplicationsAllTypes"
         return self.__fetch_RESTfulPath(restfulPath)
 
     def fetch_applications(self):
+        """
+        Fetch applications from a controller.
+        :returns: the fetched data. Null if no data was received.
+        """
         # Retrieve All Business Applications
         # GET /controller/rest/applications
         restfulPath = "/controller/rest/applications/"
         params = {"output": "JSON"}
         return self.__fetch_RESTfulPath(restfulPath,params=params)
 
-    ###
-     # Fetch application from a controller.
-     # @param appKey name or ID number of the application to fetch
-     # @return the fetched data. Null if no data was received.
-    ###
     def fetch_application(self,appKey):
+        """
+        Fetch application from a controller.
+        :param appKey: name or ID number of the application to fetch
+        :returns: the fetched data. Null if no data was received.
+        """
         # Retrieve a specific Business Application
         # GET /controller/rest/applications/application_name
         restfulPath = "/controller/rest/applications/" + str(appKey)
         params = {"output": "JSON"}
         return self.__fetch_RESTfulPath(restfulPath,params=params)
 
-    ###
-     # Fetch tiers for an application.
-     # @param appKey name or ID number of the application to fetch
-     # @return the fetched data. Null if no data was received.
-    ###
     def fetch_tiers(self,appKey):
+        """
+        Fetch tiers for an application.
+        :param appKey: name or ID number of the application to fetch
+        :returns: the fetched data. Null if no data was received.
+        """
         # Retrieve All Tiers in a Business Application
         # GET /controller/rest/applications/application_name/tiers
         restfulPath = "/controller/rest/applications/" + appKey + "/tiers"
         return self.__fetch_RESTfulPath(restfulPath)
 
-    ###
-     # Fetch nodes for an application
-     # @param appKey name or ID number of the application to fetch nodes
-     # @param tierName name or ID of the tier to fetch nodes
-     # @return the fetched data. Null if no data was received.
-    ###
     def fetch_tier_nodes(self,appKey,tierKey):
+        """
+        Fetch nodes for an application
+        :param appKey: name or ID number of the application to fetch nodes
+        :param tierName: name or ID of the tier to fetch nodes
+        :returns: the fetched data. Null if no data was received.
+        """
         # Retrieve Node Information for All Nodes in a Tier
         # GET /controller/rest/applications/application_name/tiers/tier_name/nodes
         restfulPath = "/controller/rest/applications/" + str(appKey) + "/tiers/" + str(tierKey) + "/nodes"
         return self.__fetch_RESTfulPath(restfulPath)
 
-    ###
-     # Fetch application nodes from a controller
-     # @param app_ID the ID number of the nodes to fetch
-     # @param selectors fetch only nodes filtered by specified selectors
-     # @return the number of fetched nodes. Zero if no node was found.
-    ###
     def fetch_nodes(self,app_ID,selectors=None):
+        """
+        Fetch application nodes from a controller
+        :param app_ID: the ID number of the nodes to fetch
+        :param selectors: fetch only nodes filtered by specified selectors
+        :returns: the number of fetched nodes. Zero if no node was found.
+        """
         # Retrieve Node Information for All Nodes in a Business Application
         # GET /controller/rest/applications/application_name/nodes
         restfulPath = "/controller/rest/applications/" + str(app_ID) + "/nodes"
@@ -513,26 +517,26 @@ class RESTfulAPI:
         if selectors: params.update(selectors)
         return self.__fetch_RESTfulPath(restfulPath,params=params)
 
-    ###
-     # Fetch action details from a controller.
-     # @param app_ID the ID number of the application actions to fetch
-     # @param action_ID the ID number of the action to fetch
-     # @return the fetched data. Null if no data was received.
-    ###
     def fetch_node_details(self,app_ID,node_ID):
+        """
+        Fetch action details from a controller.
+        :param app_ID: the ID number of the application actions to fetch
+        :param action_ID: the ID number of the action to fetch
+        :returns: the fetched data. Null if no data was received.
+        """
         # Retrieve Node Information by Node Name
         # GET /controller/rest/applications/application_name/nodes/node_name
         restfulPath = "/controller/rest/applications/" + str(app_ID) + "/nodes/" + str(node_ID)
         return self.__fetch_RESTful_JSON(restfulPath)
 
-    ###
-     # Fetch agent status from a controller.
-     # @param nodeList a list of node IDs to fetch agent status
-     # @param start_epoch the time range start time in unix epoch format
-     # @param end_epoch the time range end time in unix epoch format
-     # @return the fetched data. Null if no data was received.
-    ###
     def fetch_agent_status(self,nodeList,start_epoch,end_epoch):
+        """
+        Fetch agent status from a controller.
+        :param nodeList: a list of node IDs to fetch agent status
+        :param start_epoch: the time range start time in unix epoch format
+        :param end_epoch: the time range end time in unix epoch format
+        :returns: the fetched data. Null if no data was received.
+        """
         # Retrieve app and machine agent status by Rest API
         # POST /controller/restui/v1/nodes/list/health/ids
         # BODY {"requestFilter":[<comma seperated list of node id's>],"resultColumns":["LAST_APP_SERVER_RESTART_TIME","VM_RUNTIME_VERSION","MACHINE_AGENT_STATUS","APP_AGENT_VERSION","APP_AGENT_STATUS","HEALTH"],"offset":0,"limit":-1,"searchFilters":[],"columnSorts":[],"timeRangeStart":<start_time>,"timeRangeEnd":<end_time>}
@@ -542,13 +546,13 @@ class RESTfulAPI:
                       "timeRangeStart":start_epoch,"timeRangeEnd":end_epoch}
         return self.__create_RESTful_JSON(restfulPath,JSONdata=params)
 
-    ###
-     # Mark nodes as historical
-     # @source https://docs.appdynamics.com/display/PRO45/Configuration+API#ConfigurationAPI-MarkNodesasHistorical
-     # @param nodeList the list of node IDs to be maked as historical
-     # @return the fetched data. Null if no data was received.
-    ###
     def mark_nodes_as_historical(self,nodeList):
+        """
+        Mark nodes as historical
+        @source https://docs.appdynamics.com/display/PRO45/Configuration+API#ConfigurationAPI-MarkNodesasHistorical
+        :param nodeList: the list of node IDs to be maked as historical
+        :returns: the fetched data. Null if no data was received.
+        """
         # Mark Nodes as Historical.Pass one or more identifiers of the node to be marked as historical, up to a maximum of 25 nodes.
         # POST /controller/rest/mark-nodes-historical?application-component-node-ids=value
         nodeList_str = ','.join(map(lambda x: str(x),nodeList))
@@ -556,13 +560,13 @@ class RESTfulAPI:
         return self.__create_RESTful_JSON(restfulPath,JSONdata="")
 
 
-    ###
-     # Fetch transaction detection rules from a controller.
-     # @param app_ID the ID number of the detection rules to fetch
-     # @param selectors fetch only snapshots filtered by specified selectors
-     # @return the fetched data. Null if no data was received.
-    ###
     def fetch_transactiondetection(self,app_ID,selectors=None):
+        """
+        Fetch transaction detection rules from a controller.
+        :param app_ID: the ID number of the detection rules to fetch
+        :param selectors: fetch only snapshots filtered by specified selectors
+        :returns: the fetched data. Null if no data was received.
+        """
         # Export Transaction Detection Rules for All Entry Point Types
         # GET /controller/transactiondetection/application_id/[tier_name/]rule_type
         # https://docs.appdynamics.com/display/PRO45/Configuration+Import+and+Export+API#ConfigurationImportandExportAPI-ExportTransactionDetectionRulesExportTransactionDetectionRules
@@ -571,27 +575,27 @@ class RESTfulAPI:
         if selectors: params.update(selectors)
         return self.__fetch_RESTfulPath(restfulPath,params=params)
 
-    ###
-     # Update application transaction detection rule from a controller.
-     # @param app_ID the ID number of the application where to update the transaction detection rule
-     # @param rule_name the name of the transaction detection rule to update
-     # @param detectionruleXML the XML data of the transaction detection rule to update
-     # @return the fetched data. Null if no data was received.
-    ###
     def update_transactiondetection(self,app_ID,rule_name,detectionruleXML):
+        """
+        Update application transaction detection rule from a controller.
+        :param app_ID: the ID number of the application where to update the transaction detection rule
+        :param rule_name: the name of the transaction detection rule to update
+        :param detectionruleXML: the XML data of the transaction detection rule to update
+        :returns: the fetched data. Null if no data was received.
+        """
         # Import automatic detection rules in XML format
         # POST /controller/transactiondetection/application_id/[scope_name]/rule_type/[entry_point_type]/[rule_name] -F file=@exported_file_name.xml
         # https://docs.appdynamics.com/display/PRO45/Configuration+Import+and+Export+API#ConfigurationImportandExportAPI-ImportTransactionDetectionRules
         restfulPath = "/controller/transactiondetection/" + str(app_ID) + "/custom/" + rule_name
         return self.__update_RESTful_XML(restfulPath,detectionruleXML)
 
-    ###
-     # Fetch application business transactions from a controller.
-     # @param app_ID the ID number of the application business transactions to fetch
-     # @param selectors fetch only business transactions filtered by specified selectors
-     # @return the fetched data. Null if no data was received.
-    ###
     def fetch_business_transactions(self,app_ID,selectors=None):
+        """
+        Fetch application business transactions from a controller.
+        :param app_ID: the ID number of the application business transactions to fetch
+        :param selectors: fetch only business transactions filtered by specified selectors
+        :returns: the fetched data. Null if no data was received.
+        """
         # Retrieve All Business Transactions in a Business Application
         # GET /controller/rest/applications/application_name/business-transactions
         restfulPath = "/controller/rest/applications/" + str(app_ID) + "/business-transactions"
@@ -599,13 +603,13 @@ class RESTfulAPI:
         if selectors: params.update(selectors)
         return self.__fetch_RESTfulPath(restfulPath,params=params)
 
-    ###
-     # Fetch application backends from a controller.
-     # @param app_ID the ID number of the application backends to fetch
-     # @param selectors fetch only business transactions filtered by specified selectors
-     # @return the fetched data. Null if no data was received.
-    ###
     def fetch_backends(self,app_ID,selectors=None):
+        """
+        Fetch application backends from a controller.
+        :param app_ID: the ID number of the application backends to fetch
+        :param selectors: fetch only backends filtered by specified selectors
+        :returns: the fetched data. Null if no data was received.
+        """
         # Retrieve All Registered Backends in a Business Application With Their Properties
         # GET /controller/rest/applications/application_name/backends
         restfulPath = "/controller/rest/applications/" + str(app_ID) + "/backends"
@@ -613,13 +617,28 @@ class RESTfulAPI:
         if selectors: params.update(selectors)
         return self.__fetch_RESTfulPath(restfulPath,params=params)
 
-    ###
-     # Fetch health rules from a controller.
-     # @param app_ID the ID number of the health rules to fetch
-     # @param selectors fetch only health rules filtered by specified selectors
-     # @return the fetched data. Null if no data was received.
-    ###
+
+    def fetch_entrypoints_TierRules(self,tier_ID,selectors=None):
+        """
+        Fetch tier entrypoints from a controller.
+        :param tier_ID: the ID number of the tier endpoints to fetch
+        :param selectors: fetch only endpoints filtered by specified selectors
+        :returns: the fetched data. Null if no data was received.
+        """
+        restfulPath = "/controller/restui/serviceEndpoint/getServiceEndpointMatchConfigs"
+        #data = {"agentType": "APP_AGENT","attachedEntity":{"entityId":app_ID,"entityType":"APPLICATION"} }
+        data = {"agentType": "APP_AGENT","attachedEntity":{"entityId": tier_ID,"entityType": "APPLICATION_COMPONENT"} }
+        if selectors: params.update(selectors)
+        return self.__create_RESTful_JSON(restfulPath,JSONdata=data)
+
+
     def fetch_health_rules(self,app_ID,selectors=None):
+        """
+        Fetch health rules from a controller - Using the new API call
+        :param app_ID: the ID number of the health rules to fetch
+        :param selectors: fetch only health rules filtered by specified selectors
+        :returns: the fetched data. Null if no data was received.
+        """
         # Retrieve a list of Health Rules for an Application
         # GET <controller_url>/controller/alerting/rest/v1/applications/<application_id>/health-rules
         restfulPath = "/controller/alerting/rest/v1/applications/" + str(app_ID) + "/health-rules"
@@ -627,13 +646,13 @@ class RESTfulAPI:
         if selectors: params.update(selectors)
         return self.__fetch_RESTfulPath(restfulPath,params=params)
 
-    ###
-     # Fetch health rules from a controller.
-     # @param app_ID the ID number of the health rules to fetch
-     # @param selectors fetch only health rules filtered by specified selectors
-     # @return the fetched data. Null if no data was received.
-    ###
     def fetch_health_rules_legacy(self,app_ID,selectors=None):
+        """
+        Fetch health rules from a controller - Using the legacy API call
+        :param app_ID: the ID number of the health rules to fetch
+        :param selectors: fetch only health rules filtered by specified selectors
+        :returns: the fetched data. Null if no data was received.
+        """
         # Export Health Rules from an Application
         # GET /controller/healthrules/application_id?name=health_rule_name
         restfulPath = "/controller/healthrules/" + str(app_ID)
@@ -642,36 +661,49 @@ class RESTfulAPI:
         return self.__fetch_RESTfulPath(restfulPath,params=params)
 
 
-    ###
-     # Fetch application policies from a controller.
-     # @param app_ID the ID number of the application policies to fetch
-     # @return the fetched data. Null if no data was received.
-    ###
+    def fetch_health_rules_with_IDs(self,app_ID,selectors=None):
+        """
+        Fetch health rules from a controller - Using the legacy API call
+        :param app_ID: the ID number of the health rules to fetch
+        :param selectors: fetch only health rules filtered by specified selectors
+        :returns: the fetched data. Null if no data was received.
+        """
+        restfulPath = "/controller/restui/policy2/policies/" + str(app_ID)
+        params = {"Content-Type": "application/json","resultColumns": ["LAST_APP_SERVER_RESTART_TIME", "VM_RUNTIME_VERSION", "MACHINE_AGENT_STATUS", "APP_AGENT_VERSION", "APP_AGENT_STATUS", "HEALTH"]}
+        if selectors: params.update(selectors)
+        return self.__fetch_RESTfulPath(restfulPath,params=params)
+
+
     def fetch_policies(self,app_ID):
+        """
+        Fetch application policies from a controller - Using the new API call
+        :param app_ID: the ID number of the application policies to fetch
+        :returns: the fetched data. Null if no data was received.
+        """
         # Retrieve a list of Policies associated with an Application
         # GET <controller_url>/controller/alerting/rest/v1/applications/<application_id>/policies
         restfulPath = "/controller/alerting/rest/v1/applications/" + str(app_ID) + "/policies"
         params = {"output": "JSON"}
         return self.__fetch_RESTfulPath(restfulPath,params=params)
 
-    ###
-     # Fetch action details from a controller.
-     # @param app_ID the ID number of the application actions to fetch
-     # @param action_ID the ID number of the action to fetch
-     # @return the fetched data. Null if no data was received.
-    ###
     def fetch_policy_details(self,app_ID,policy_ID):
+        """
+        Fetch action details from a controller.
+        :param app_ID: the ID number of the application actions to fetch
+        :param action_ID: the ID number of the action to fetch
+        :returns: the fetched data. Null if no data was received.
+        """
         # Retrieve Details of a Specified Policy
         # GET <controller_url>/controller/alerting/rest/v1/applications/<application_id>/policies/{policy-id}
         restfulPath = "/controller/alerting/rest/v1/applications/" + str(app_ID) + "/policies/" + str(policy_ID)
         return self.__fetch_RESTfulPath(restfulPath)
 
-    ###
-     # Fetch application policies from a controller.
-     # @param app_ID the ID number of the application policies to fetch
-     # @return the fetched data. Null if no data was received.
-    ###
     def fetch_policies_legacy(self,app_ID,selectors=None):
+        """
+        Fetch application policies from a controller - Using the legacy API call
+        :param app_ID: the ID number of the application policies to fetch
+        :returns: the fetched data. Null if no data was received.
+        """
         # https://docs.appdynamics.com/display/PRO44/Configuration+Import+and+Export+API#ConfigurationImportandExportAPI-ExportPolicies
         # export policies to a JSON file.
         # GET /controller/policies/application_id
@@ -679,37 +711,37 @@ class RESTfulAPI:
         params = {"output": "JSON"}
         return self.__fetch_RESTfulPath(restfulPath,params=params)
 
-    ###
-     # Fetch application actions from a controller.
-     # @param app_ID the ID number of the application actions to fetch
-     # @return the fetched data. Null if no data was received.
-    ###
     def fetch_actions(self,app_ID):
+        """
+        Fetch application actions from a controller - Using the new API call
+        :param app_ID: the ID number of the application actions to fetch
+        :returns: the fetched data. Null if no data was received.
+        """
         # Retrieve a List of Actions for a Given Application
         # GET <controller_url>/controller/alerting/rest/v1/applications/<application_id>/actions
         restfulPath = "/controller/alerting/rest/v1/applications/" + str(app_ID) + "/actions"
         params = {"output": "JSON"}
         return self.__fetch_RESTfulPath(restfulPath,params=params)
 
-    ###
-     # Fetch action details from a controller.
-     # @param app_ID the ID number of the application actions to fetch
-     # @param action_ID the ID number of the action to fetch
-     # @return the fetched data. Null if no data was received.
-    ###
     def fetch_action_details(self,app_ID,action_ID):
+        """
+        Fetch action details from a controller.
+        :param app_ID: the ID number of the application actions to fetch
+        :param action_ID: the ID number of the action to fetch
+        :returns: the fetched data. Null if no data was received.
+        """
         # Retrieve Details of a Specified Action
         # GET <controller_url>/controller/alerting/rest/v1/applications/<application_id>/actions/{action-id}
         restfulPath = "/controller/alerting/rest/v1/applications/" + str(app_ID) + "/actions/" + str(action_ID)
         return self.__fetch_RESTfulPath(restfulPath)
 
-    ###
-     # Fetch application actions from a controller.
-     # @param app_ID the ID number of the application actions to fetch
-     # @param selectors fetch only actions filtered by specified selectors
-     # @return the fetched data. Null if no data was received.
-    ###
     def fetch_actions_legacy(self,app_ID,selectors=None):
+        """
+        Fetch application actions from a controller - Using the legacy API call
+        :param app_ID: the ID number of the application actions to fetch
+        :param selectors: fetch only actions filtered by specified selectors
+        :returns: the fetched data. Null if no data was received.
+        """
         # https://docs.appdynamics.com/display/PRO44/Configuration+Import+and+Export+API#ConfigurationImportandExportAPI-ExportActionsfromanApplication
         # Exports all actions in the specified application to a JSON file.
         # GET /controller/actions/application_id
@@ -717,57 +749,57 @@ class RESTfulAPI:
         params = {"output": "JSON"}
         return self.__fetch_RESTfulPath(restfulPath,params=params)
 
-    ###
-     # Fetch application schedules from a controller then add them to the policies dictionary. Provide either an username/password or an access token.
-     # @param app_key the ID number or name of the application schedules to fetch
-     # @param selectors fetch only snapshots filtered by specified selectors
-     # @return the number of fetched schedules. Zero if no schedule was found.
-    ###
-    def fetch_schedules(self,app_key,selectors=None):
-        app_ID = app_key if type(app_key) is int else ApplicationDict().getAppID(app_key)
+    def fetch_schedules(self,app_ID,selectors=None):
+        """
+        Fetch application schedules from a controller then add them to the policies dictionary. Provide either an username/password or an access token.
+        :param app_ID: the ID number or name of the application schedules to fetch
+        :param selectors: fetch only snapshots filtered by specified selectors
+        :returns: the number of fetched schedules. Zero if no schedule was found.
+        """
+        if type(app_ID) is str: app_ID = ApplicationDict().getAppID(app_ID)
         # Retrieve a List of Schedules for a Given Application
         # GET <controller_url>/controller/alerting/rest/v1/applications/<application_id>/schedules
         restfulPath = "/controller/alerting/rest/v1/applications/" + str(app_ID) + "/schedules"
         params = {"output": "JSON"}
         return self.__fetch_RESTfulPath(restfulPath,params=params)
 
-    ###
-     # Fetch schedule details from a controller.
-     # @param app_ID the ID number of the application schedule to fetch
-     # @param schedule_ID the ID number of the schedule to fetch
-     # @return the fetched data. Null if no data was received.
-    ###
     def fetch_schedule_details(self,app_ID,schedule_ID):
+        """
+        Fetch schedule details from a controller.
+        :param app_ID: the ID number of the application schedule to fetch
+        :param schedule_ID: the ID number of the schedule to fetch
+        :returns: the fetched data. Null if no data was received.
+        """
         # Retrieve the Details of a Specified Schedule with a specified ID
         # GET <controller_url>/controller/alerting/rest/v1/applications/<application_id>/schedules/{schedule-id}
         restfulPath = "/controller/alerting/rest/v1/applications/" + str(app_ID) + "/schedules/" + str(schedule_ID)
         params = {"output": "JSON"}
         return self.__fetch_RESTfulPath(restfulPath,params=params)
 
-    ###
-     # Update application schedule from a controller. Provide either an username/password or an access token.
-     # @param app_ID the ID number or name of the application where to update the schedule
-     # @param sched_ID the ID number of the schedule to update
-     # @param scheduleJSON the JSON data of the schedule to update
-     # @return the fetched data. Null if no data was received.
-    ###
     def update_schedule(self,app_ID,sched_ID,scheduleJSON):
+        """
+        Update application schedule from a controller. Provide either an username/password or an access token.
+        :param app_ID: the ID number or name of the application where to update the schedule
+        :param sched_ID: the ID number of the schedule to update
+        :param scheduleJSON: the JSON data of the schedule to update
+        :returns: the fetched data. Null if no data was received.
+        """
         # Updates an existing schedule with a specified JSON payload
         # PUT <controller_url>/controller/alerting/rest/v1/applications/<application_id>/schedules/{schedule-id}
         restfulPath = "/controller/alerting/rest/v1/applications/" + str(app_ID) + "/schedules/" + str(sched_ID)
         return self.__update_RESTful_JSON(restfulPath,scheduleJSON)
 
-    ###
-     # Fetch healtrule violations from a controller.
-     # @param app_ID the ID number of the application healtrule violations to fetch
-     # @param time_range_type could be one of these: {"BEFORE_NOW","BEFORE_TIME","AFTER_TIME","BETWEEN_TIMES"}
-     # @param duration duration in minutes
-     # @param startEpoch range start time in Unix Epoch format
-     # @param endEpoch range end time in Unix Epoch format
-     # @param selectors fetch only events filtered by specified selectors
-     # @return the fetched data. Null if no data was received.
-    ###
     def fetch_healthrule_violations(self,app_ID,time_range_type,duration=None,startEpoch=None,endEpoch=None,selectors=None):
+        """
+        Fetch healtrule violations from a controller.
+        :param app_ID: the ID number of the application healtrule violations to fetch
+        :param time_range_type: could be one of these: {"BEFORE_NOW","BEFORE_TIME","AFTER_TIME","BETWEEN_TIMES"}
+        :param duration: duration in minutes
+        :param startEpoch: range start time in Unix Epoch format
+        :param endEpoch: range end time in Unix Epoch format
+        :param selectors: fetch only events filtered by specified selectors
+        :returns: the fetched data. Null if no data was received.
+        """
         # https://docs.appdynamics.com/display/PRO45/Events+and+Action+Suppression+API
         # Retrieve All Health Rule Violations that have occurred in an application within a specified time frame. 
         # URI /controller/rest/applications/application_id/problems/healthrule-violations
@@ -786,17 +818,17 @@ class RESTfulAPI:
         return self.__fetch_RESTfulPath(restfulPath,params=params)
 
 
-    ###
-     # Fetch snapshot from a controller then add them to the snapshot dictionary. Provide either an username/password or an access token.
-     # @param app_ID the ID number of the application healtrule violations to fetch
-     # @param time_range_type could be one of these: {"BEFORE_NOW","BEFORE_TIME","AFTER_TIME","BETWEEN_TIMES"}
-     # @param duration duration in minutes
-     # @param startEpoch range start time in Unix Epoch format
-     # @param endEpoch range end time in Unix Epoch format
-     # @param selectors fetch only events filtered by specified selectors
-     # @return the fetched data. Null if no data was received.
-    ###
     def fetch_snapshots(self,app_ID,time_range_type,duration=None,startEpoch=None,endEpoch=None,selectors=None):
+        """
+        Fetch snapshot from a controller then add them to the snapshot dictionary. Provide either an username/password or an access token.
+        :param app_ID: the ID number of the application healtrule violations to fetch
+        :param time_range_type: could be one of these: {"BEFORE_NOW","BEFORE_TIME","AFTER_TIME","BETWEEN_TIMES"}
+        :param duration: duration in minutes
+        :param startEpoch: range start time in Unix Epoch format
+        :param endEpoch: range end time in Unix Epoch format
+        :param selectors: fetch only events filtered by specified selectors
+        :returns: the fetched data. Null if no data was received.
+        """
         MAX_RESULTS="9999"
         #Retrieve Transaction Snapshots
         # GET /controller/rest/applications/application_name/request-snapshots
@@ -814,12 +846,12 @@ class RESTfulAPI:
         if selectors: params.update(selectors)
         return self.__fetch_RESTfulPath(restfulPath,params=params)
 
-    ###
-     # Fetch dashboards from a controller.
-     # @param selectors fetch only dashboards filtered by specified selectors
-     # @return the fetched data. Null if no data was received.
-    ###
     def fetch_dashboards(self,selectors=None):
+        """
+        Fetch dashboards from a controller.
+        :param selectors: fetch only dashboards filtered by specified selectors
+        :returns: the fetched data. Null if no data was received.
+        """
         # Export the list of all Custom Dashboards
         # https://community.appdynamics.com/t5/Dashboards/How-to-export-the-list-of-all-Custom-Dashboards-in-the/td-p/30083
         # HTTP call: /controller/restui/dashboards/getAllDashboardsByType/false
@@ -828,24 +860,24 @@ class RESTfulAPI:
         if selectors: params.update(selectors)
         return self.__fetch_RESTfulPath(restfulPath,params=params)
 
-    ###
-     # Fetch custom dashboards from a controller.
-     # @param dashboard_id the ID number of the dashboards to fetch
-     # @return the fetched data. Null if no data was received.
-    ###
     def fetch_custom_dashboard(self,dashboard_id):
+        """
+        Fetch custom dashboards from a controller.
+        :param dashboard_id: the ID number of the dashboards to fetch
+        :returns: the fetched data. Null if no data was received.
+        """
         # Export Custom Dashboards and Templates
         # GET /controller/CustomDashboardImportExportServlet?dashboardId=dashboard_id
         restfulPath = "/controller/CustomDashboardImportExportServlet?dashboardId=" + str(dashboard_id)
         return self.__fetch_RESTfulPath(restfulPath)
 
 
-    ###
-     # Fetch config from a controller.
-     # @param selectors fetch specific configuration filtered by specified configuration name
-     # @return the fetched data. Null if no data was received.
-    ###
     def fetch_configuration(self,selectors=None):
+        """
+        Fetch config from a controller.
+        :param selectors: fetch specific configuration filtered by specified configuration name
+        :returns: the fetched data. Null if no data was received.
+        """
         # Retrieve All Controller Settings
         # GET <controller_url>/controller/rest/configuration
         restfulPath = "/controller/rest/configuration"
@@ -853,12 +885,12 @@ class RESTfulAPI:
         if selectors: restfulPath = restfulPath + "?name=" + selectors
         return self.__fetch_RESTfulPath(restfulPath,params=params)
 
-    ###
-     # Fetch users from a controller.
-     # @param selectors fetch specific user filtered by specified user name or ID
-     # @return the fetched data. Null if no data was received.
-    ###
     def fetch_users(self,selectors=None):
+        """
+        Fetch users from a controller.
+        :param selectors: fetch specific user filtered by specified user name or ID
+        :returns: the fetched data. Null if no data was received.
+        """
         # Get All Users
         # GET <controller_url>/controller/rest/users
         restfulPath = "/controller/api/rbac/v1/users"
@@ -866,31 +898,31 @@ class RESTfulAPI:
         if selectors: restfulPath = restfulPath + selectors
         return self.__fetch_RESTfulPath(restfulPath,params=params)
 
-    ###
-     # Fetch users with extended info from a controller.
-     # @return the fetched data. Null if no data was received.
-    ###
     def fetch_users_extended(self):
+        """
+        Fetch users with extended info from a controller.
+        :returns: the fetched data. Null if no data was received.
+        """
         restfulPath = "/controller/restui/userAdministrationUiService/users"
         params = {"output": "JSON"}
         return self.__fetch_RESTfulPath(restfulPath,params=params)
 
-    ###
-     # Fetch specific user from a controller.
-     # @param userID the ID number of the user to fetch
-     # @return the fetched data. Null if no data was received.
-    ###
     def fetch_user(self,userID):
+        """
+        Fetch specific user from a controller.
+        :param userID: the ID number of the user to fetch
+        :returns: the fetched data. Null if no data was received.
+        """
         # Get User by ID
         # GET /controller/api/rbac/v1/users/userId
         restfulPath = "/controller/api/rbac/v1/users/" + str(userID)
         return self.__fetch_RESTfulPath(restfulPath)
 
-    ###
-     # Get the controller version. Either provide an username/password or let it get an access token automatically.
-     # @return the controller release version number. Null if no data was received.
-    ###
     def get_controller_version(self):
+        """
+        Get the controller version. Either provide an username/password or let it get an access token automatically.
+        :returns: the controller release version number. Null if no data was received.
+        """
         # Retrieve All Controller Settings
         # GET /controller/rest/configuration
         restfulPath = "/controller/rest/configuration",
