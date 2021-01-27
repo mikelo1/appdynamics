@@ -115,7 +115,7 @@ class ApplicationDict(ControllerEntity):
 
     def getAppName(self,appID):
         """
-        Get the name for an application ID. Fetch applications data if not loaded yet.
+        Get the name for an application ID.
         :param appID: the ID of the application
         :returns: the name of the specified application ID. None if the application was not found.
         """
@@ -132,4 +132,17 @@ class ApplicationDict(ControllerEntity):
         """
         if len(self.entityDict) > 0:
             return [ tier['id'] for tier in self.entityDict[str(appID)]['tiers'] ]
+        return None
+
+    def getTierName(self,appID,tierID):
+        """
+        Get the name for a tier ID.
+        :param appID: the ID of the application
+        :param tierID: the ID of the tier
+        :returns: the name of the specified tier ID. None if the tier was not found.
+        """
+        if len(self.entityDict) > 0 and str(appID) in self.entityDict and 'tiers' in self.entityDict[str(appID)]:
+            for tier in self.entityDict[str(appID)]['tiers']:
+                if tier['id'] == tierID:
+                    return tier['name']
         return None

@@ -36,17 +36,17 @@ class BackendDict(AppEntity):
             if str(appID) not in self.entityDict:
                 if 'DEBUG' in locals(): print "Application "+str(appID) +" is not loaded in dictionary."
                 continue
-            for BE in self.entityDict[str(appID)]:
+            for backend in self.entityDict[str(appID)]:
                 # Check if data belongs to a backend
-                if 'exitPointType' not in BE: continue
+                if 'exitPointType' not in backend: continue
                 elif 'header_is_printed' not in locals(): 
                     filewriter.writeheader()
                     header_is_printed=True
 
                 try:
-                    filewriter.writerow({'name': BE['name'].encode('ASCII', 'ignore'),
+                    filewriter.writerow({'name': backend['name'].encode('ASCII', 'ignore'),
                                          'Application': ApplicationDict().getAppName(appID),
-                                         'exitPointType': BE['exitPointType']})
+                                         'exitPointType': backend['exitPointType']})
                 except ValueError as valError:
                     print (valError)
                     if fileName is not None: csvfile.close()
@@ -58,6 +58,20 @@ class EntrypointDict(AppEntity):
     entityAPIFunctions = {'fetch': RESTfulAPI().fetch_entrypoints_TierRules}
 
     ###### FROM HERE PUBLIC FUNCTIONS ######
+
+    def fetch(self,appID,selectors=None):
+        """
+        Fetch entities from controller RESTful API.
+        :param appID: the ID number of the application entities to fetch.
+        :param selectors: fetch only entities filtered by specified selectors
+        :returns: the number of fetched entities. Zero if no entity was found.
+        """
+        ApplicationDict().load_tiers_and_nodes(appID)
+        count = 0
+        for tierID in ApplicationDict().getTiers_ID_List(appID):
+            data = self.entityAPIFunctions['fetch'](tier_ID=tierID,selectors=selectors)
+            count += self.load(streamdata=data,appID=appID)
+        return count
 
     def generate_CSV(self,appID_List,fileName=None):
         """
@@ -77,24 +91,32 @@ class EntrypointDict(AppEntity):
         else:
             csvfile = sys.stdout
 
-        fieldnames = ['name', 'Application', 'exitPointType']
+        fieldnames = ['name', 'Tier', 'matchCondition', 'priority']
         filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
 
         for appID in appID_List:
             if str(appID) not in self.entityDict:
                 if 'DEBUG' in locals(): print "Application "+str(appID) +" is not loaded in dictionary."
                 continue
-            for BE in self.entityDict[str(appID)]:
+            for entrypoint in self.entityDict[str(appID)]:
                 # Check if data belongs to a backend
-                if 'exitPointType' not in BE: continue
+                if 'entryPointType' not in entrypoint: continue
                 elif 'header_is_printed' not in locals(): 
                     filewriter.writeheader()
                     header_is_printed=True
 
+                reload(sys)
+                sys.setdefaultencoding('utf8')
+                name = entrypoint['definitionName'].encode('ascii', 'ignore')
+                tierName = ApplicationDict().getTierName(appID,entrypoint['hierarchicalConfigKey']['attachedEntity']['entityId'])
+                matchCondition = entrypoint['matchPointRule']['uri']['matchType']+"  "+entrypoint['matchPointRule']['uri']['matchPattern']
+                if entrypoint['matchPointRule']['uri']['inverse'] == True: matchCondition = "NOT "+matchCondition
+                
                 try:
-                    filewriter.writerow({'name': BE['name'].encode('ASCII', 'ignore'),
-                                         'Application': ApplicationDict().getAppName(appID),
-                                         'exitPointType': BE['exitPointType']})
+                    filewriter.writerow({'name': name,
+                                         'Tier': tierName,
+                                         'matchCondition': matchCondition,
+                                         'priority': entrypoint['matchPointRule']['priority'] })
                 except ValueError as valError:
                     print (valError)
                     if fileName is not None: csvfile.close()

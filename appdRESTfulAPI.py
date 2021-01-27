@@ -627,9 +627,9 @@ class RESTfulAPI:
         :param selectors: fetch only endpoints filtered by specified selectors
         :returns: the fetched data. Null if no data was received.
         """
-        restfulPath = "/controller/restui/serviceEndpoint/getServiceEndpointMatchConfigs"
-        #data = {"agentType": "APP_AGENT","attachedEntity":{"entityId":app_ID,"entityType":"APPLICATION"} }
-        data = {"agentType": "APP_AGENT","attachedEntity":{"entityId": tier_ID,"entityType": "APPLICATION_COMPONENT"} }
+        #GetAPMSEPTierRules
+        restfulPath = "/controller/restui/serviceEndpoint/getAll"
+        data = {"agentType": "APP_AGENT","attachedEntity": {"entityId": tier_ID,"entityType": "APPLICATION_COMPONENT"} }
         if selectors: params.update(selectors)
         return self.__create_RESTful_JSON(restfulPath,JSONdata=data)
 
