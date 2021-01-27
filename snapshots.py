@@ -5,15 +5,12 @@ import sys
 from datetime import datetime, timedelta
 import time
 from nodes import NodeDict
+from policies import PolicyDict
+from appdRESTfulAPI import RESTfulAPI
 from applications import ApplicationDict
 from entities import AppEntity
 
 class SnapshotDict(AppEntity):
-    snapshotDict = dict()
-
-    def __init__(self):
-        self.snapshotDict = self.entityDict
-
 
 #def fetch_snapshots2(app_ID,minutesBeforeNow,selectors=None,serverURL=None,userName=None,password=None,token=None):
 #    MAX_RESULTS = RESULTS = 9
@@ -63,7 +60,7 @@ class SnapshotDict(AppEntity):
 #
 #    # Add loaded snapshots to the snapshot dictionary
 #    if 'snapshots' in locals():
-#        snapshotDict.update({str(app_ID):snapshots})
+#        entityDict.update({str(app_ID):snapshots})
 #    else:
 #        return 0
 #
@@ -97,10 +94,10 @@ class SnapshotDict(AppEntity):
         filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
 
         for appID in appID_List:
-            if str(appID) not in self.snapshotDict:
+            if str(appID) not in self.entityDict:
                 if 'DEBUG' in locals(): print "Application "+str(appID) +" is not loaded in dictionary."
                 continue
-            for snapshot in self.snapshotDict[str(appID)]:
+            for snapshot in self.entityDict[str(appID)]:
                 # Check if data belongs to an event
                 if 'snapshotExitCalls' not in snapshot: continue
                 elif 'header_is_printed' not in locals(): 
@@ -108,9 +105,9 @@ class SnapshotDict(AppEntity):
                     header_is_printed=True
                 Time = datetime.fromtimestamp(float(snapshot['localStartTime'])/1000).strftime('%Y-%m-%d %H:%M:%S')
                 appID= snapshot['applicationId']
-                appName = ApplicationDict().getAppName(appID) 
-                Tier = NodeDict().getTierName(appID,snapshot['applicationComponentId'])
-                Node = NodeDict().getNodeName(appID,snapshot['applicationComponentNodeId'])
+                appName = ApplicationDict().getAppName(appID)
+                Tier = "" #NodeDict().getTierName(appID,snapshot['applicationComponentId'])
+                Node = "" #NodeDict().getNodeName(appID,snapshot['applicationComponentNodeId'])
                 Summary = snapshot['summary'].encode('ASCII', 'ignore') if 'summary' in snapshot else ""
 
                 try:

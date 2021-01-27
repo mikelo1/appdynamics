@@ -78,7 +78,7 @@ class ApplicationDict(ControllerEntity):
             tiers = json.loads(RESTfulAPI().fetch_tiers(app_ID))
             if tiers is not None:
                 for tier in tiers:
-                    nodes = json.loads(RESTfulAPI().fetch_nodes(app_ID,tier['name']))
+                    nodes = json.loads(RESTfulAPI().fetch_tier_nodes(app_ID,tier['name']))
                     if nodes is not None:
                         tier.update({'nodes':nodes})
                 self.applicationDict.update({str(appID):{'tiers':tiers}})
