@@ -8,6 +8,7 @@ from entities import AppEntity
 
 class ScheduleDict(AppEntity):
     scheduleDict = dict()
+    entityAPIFunctions = {'fetch': RESTfulAPI().fetch_schedules}
 
     def __init__(self):
         self.scheduleDict = self.entityDict

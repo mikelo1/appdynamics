@@ -5,13 +5,11 @@ import sys
 from datetime import datetime, timedelta
 import time
 from applications import ApplicationDict
+from appdRESTfulAPI import RESTfulAPI
 from entities import AppEntity
 
 class EventDict(AppEntity):
-    eventDict = dict()
-
-    def __init__(self):
-        self.eventDict = self.entityDict
+    entityAPIFunctions = {'fetch': RESTfulAPI().fetch_healthrule_violations}
 
     ###
      # toString private method, extracts policy from event
@@ -103,10 +101,10 @@ class EventDict(AppEntity):
 
 
         for appID in appID_List:
-            if str(appID) not in self.eventDict:
+            if str(appID) not in self.entityDict:
                 if 'DEBUG' in locals(): print "Application "+str(appID) +" is not loaded in dictionary."
                 continue
-            for policyviolation in self.eventDict[str(appID)]:
+            for policyviolation in self.entityDict[str(appID)]:
                 # Check if data belongs to an event
                 if 'affectedEntityDefinition' not in policyviolation: continue
                 elif 'header_is_printed' not in locals(): 

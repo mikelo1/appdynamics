@@ -4,10 +4,13 @@ import json
 import csv
 import sys
 from applications import ApplicationDict
+from appdRESTfulAPI import RESTfulAPI
 from entities import AppEntity
 
 class HealthRuleDict(AppEntity):
     healthruleDict = dict()
+    entityAPIFunctions = {'fetch': RESTfulAPI().fetch_health_rules_legacy}
+    #TODO: entityAPIFunctions = {'fetch': RESTfulAPI().fetch_health_rules_with_IDs}
 
     def __init__(self):
         self.healthruleDict = self.entityDict

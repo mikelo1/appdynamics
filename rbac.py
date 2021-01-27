@@ -6,10 +6,7 @@ from appdRESTfulAPI import RESTfulAPI
 from entities import ControllerEntity
 
 class RBACDict(ControllerEntity):
-    rbacDict = dict()
-
-    def __init__(self):
-        self.rbacDict = self.entityDict
+    entityAPIFunctions = {'fetch': RESTfulAPI().fetch_users_extended}
 
     ###### FROM HERE PUBLIC FUNCTIONS ######
 
@@ -32,8 +29,8 @@ class RBACDict(ControllerEntity):
         fieldnames = ['Name', 'Email', 'Roles', 'Groups']
         filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
 
-        for userName in self.rbacDict:
-            user = self.rbacDict[userName]
+        for userName in self.entityDict:
+            user = self.entityDict[userName]
             # Check if data belongs to a user
             if 'providerUniqueName' not in user: continue
             elif 'header_is_printed' not in locals(): 
@@ -57,14 +54,14 @@ class RBACDict(ControllerEntity):
     ###
     def load_details(self):
         count = 0
-        for userName in self.rbacDict:
-            response = RESTfulAPI().fetch_user(self.rbacDict[userName]['id'])
+        for userName in self.entityDict:
+            response = RESTfulAPI().fetch_user(self.entityDict[userName]['id'])
             if response is not None:
                 try:
                     user = json.loads(response)
                 except TypeError as error:
                     print ("load_duser_details: "+str(error))
                     continue
-                self.rbacDict.update({userName:user})
+                self.entityDict.update({userName:user})
                 count += 1
         return count

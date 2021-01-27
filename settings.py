@@ -2,13 +2,11 @@
 import json
 import csv
 import sys
+from appdRESTfulAPI import RESTfulAPI
 from entities import ControllerEntity
 
 class ConfigurationDict(ControllerEntity):
-    configDict = dict()
-
-    def __init__(self):
-        self.configDict = self.entityDict
+    entityAPIFunctions = {'fetch': RESTfulAPI().fetch_configuration}
 
     ###### FROM HERE PUBLIC FUNCTIONS ######
 
@@ -31,8 +29,8 @@ class ConfigurationDict(ControllerEntity):
         fieldnames = ['Name', 'Value', 'Scope', 'Updateable', 'Description']
         filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
              
-        for settingName in self.configDict:
-            setting = self.configDict[settingName]
+        for settingName in self.entityDict:
+            setting = self.entityDict[settingName]
             # Check if data belongs to a controller setting
             if 'updateable' not in setting: continue
             elif 'header_is_printed' not in locals(): 

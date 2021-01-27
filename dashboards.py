@@ -6,19 +6,16 @@ from appdRESTfulAPI import RESTfulAPI
 from entities import ControllerEntity
 
 class DashboardDict(ControllerEntity):
-    dashboardDict = dict()
-
-    def __init__(self):
-        self.dashboardDict = self.entityDict
+    entityAPIFunctions = {'fetch': RESTfulAPI().fetch_dashboards}
 
     ###### FROM HERE PUBLIC FUNCTIONS ######
 
-    ###
-     # Generate CSV output from dashboards data
-     # @param fileName output file name
-     # @return None
-    ###
     def generate_CSV(self, fileName=None):
+        """
+        Generate CSV output from dashboards data
+        :param fileName: output file name
+        :returns: None
+        """
         if fileName is not None:
             try:
                 csvfile = open(fileName, 'w')
@@ -32,8 +29,8 @@ class DashboardDict(ControllerEntity):
         fieldnames = ['Name', 'Height', 'Width', 'CanvasType']
         filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
              
-        for dashboardID in self.dashboardDict:
-            dashboard = self.dashboardDict[dashboardID]
+        for dashboardID in self.entityDict:
+            dashboard = self.entityDict[dashboardID]
             # Check if data belongs to a dashboard
             if 'canvasType' not in dashboard: continue
             elif 'success' in dashboard and dashboard['success']==False: continue
@@ -51,14 +48,15 @@ class DashboardDict(ControllerEntity):
                 return (-1)
         if fileName is not None: csvfile.close()
 
-    ###
-     # Load dashboards details for all dashboards from a controller
-     # @param app_ID the ID number of the application dashboards to fetch
-     # @return the number of fetched dashboards. Zero if no dashboard was found.
-    ###
+
     def load_details(self):
+        """
+        Load dashboards details for all dashboards from a controller
+        :param app_ID: the ID number of the application dashboards to fetch
+        :returns: the number of fetched dashboards. Zero if no dashboard was found.
+        """
         count = 0
-        for dashboardID in self.dashboardDict:
+        for dashboardID in self.entityDict:
             response = RESTfulAPI().fetch_custom_dashboard(dashboardID)
             if response is not None:
                 try:
@@ -66,6 +64,6 @@ class DashboardDict(ControllerEntity):
                 except TypeError as error:
                     print ("load_dashboard_details: "+str(error))
                     continue
-                self.dashboardDict.update({str(dashboardID):dashboard})
+                self.entityDict.update({str(dashboardID):dashboard})
                 count += 1
         return count

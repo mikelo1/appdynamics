@@ -12,7 +12,7 @@ from dashboards import DashboardDict
 from nodes import NodeDict
 from transactiondetection import DetectionruleDict
 from businesstransactions import BusinessTransactionDict
-from backends import BackendDict
+from backends import BackendDict, EntrypointDict
 from healthrules import HealthRuleDict
 from policies import PolicyDict
 from schedules import ScheduleDict
@@ -139,23 +139,25 @@ if len(args) < 1:
     exit()
 
 entityObjects = { 'help': {'class': None, 'function': get_help},
-                  'applications': {'class': ApplicationDict, 'function': RESTfulAPI().fetch_applications},
-                  'nodes': {'class': NodeDict, 'function': RESTfulAPI().fetch_nodes},
-                  'detection-rules': {'class': DetectionruleDict, 'function': RESTfulAPI().fetch_transactiondetection},
-                  'businesstransactions': {'class': BusinessTransactionDict, 'function': RESTfulAPI().fetch_business_transactions},
-                  'backends': {'class': BackendDict, 'function': RESTfulAPI().fetch_backends},                    
-                  'healthrules': {'class': HealthRuleDict, 'function': RESTfulAPI().fetch_health_rules_legacy},
-                  'policies': {'class': PolicyDict, 'function': RESTfulAPI().fetch_policies_legacy},
-                  'actions': {'class': ActionDict, 'function': RESTfulAPI().fetch_actions_legacy},
-                  'schedules': {'class': ScheduleDict, 'function': RESTfulAPI().fetch_schedules},
-                  'dashboards': {'class': DashboardDict, 'function': RESTfulAPI().fetch_dashboards},
-                  'healthrule-violations': {'class': EventDict, 'function': RESTfulAPI().fetch_healthrule_violations},
-                  'snapshots': {'class': SnapshotDict, 'function': RESTfulAPI().fetch_snapshots},
-                  'allothertraffic': {'class': SnapshotDict, 'function': RESTfulAPI().fetch_snapshots},
-                  'config': {'class': ConfigurationDict, 'function': RESTfulAPI().fetch_configuration},
-                  'users': {'class': RBACDict, 'function': RESTfulAPI().fetch_users_extended}
+                  'applications': {'class': ApplicationDict},
+                  'dashboards': {'class': DashboardDict},
+                  'config': {'class': ConfigurationDict},
+                  'users': {'class': RBACDict, 'function': RESTfulAPI().fetch_users_extended,
+                  'nodes': {'class': NodeDict},
+                  'detection-rules': {'class': DetectionruleDict},
+                  'businesstransactions': {'class': BusinessTransactionDict},
+                  'backends': {'class': BackendDict},
+                  'entrypoints': {'class': EntrypointDict},
+                  'healthrules': {'class': HealthRuleDict},
+                  'policies': {'class': PolicyDict},
+                  'actions': {'class': ActionDict},
+                  'schedules': {'class': ScheduleDict},
+                  'healthrule-violations': {'class': EventDict},
+                  'snapshots': {'class': SnapshotDict},
+                  'allothertraffic': {'class': SnapshotDict}
+                  }
                 }
-
+ 
 COMMAND = args[0]
 
 if COMMAND.lower() == "help":
@@ -287,6 +289,10 @@ elif COMMAND.lower() == "get":
 
   ENTITY = args[1]
 
+  if AppD_Configuration().get_current_context(output="None") is None:
+    sys.stderr.write("No context is selected.\n")
+    exit()
+
   # create the filters list, if applies
   selectors = {}
   if options.selector:
@@ -298,14 +304,15 @@ elif COMMAND.lower() == "get":
 
   elif ENTITY in ['applications','dashboards','config','users']:
     entityDict = entityObjects[ENTITY]['class']()
-    data = entityObjects[ENTITY]['function']()
-    entityDict.load(data)
+    #data = entityObjects[ENTITY]['function']()
+    #entityDict.load(data)
+    entityDict.fetch()
     if options.outFormat and options.outFormat == "JSON":
         entityDict.generate_JSON()
     elif not options.outFormat or options.outFormat == "CSV":
         entityDict.generate_CSV()
 
-  elif ENTITY in ['nodes','detection-rules','businesstransactions','backends','healthrules','policies','actions','schedules']:
+  elif ENTITY in ['nodes','detection-rules','businesstransactions','backends','entrypoints','healthrules','policies','actions','schedules']:
     applicationList = get_application_list()
     current_context = AppD_Configuration().get_current_context(output="None")
     index = 0
@@ -317,8 +324,9 @@ elif COMMAND.lower() == "get":
         percentage = index*100/len(applicationList)
         sys.stderr.write("\rget "+ENTITY+" ("+current_context+")... " + str(percentage) + "%")
         sys.stderr.flush()
-        data = entityObjects[ENTITY]['function'](appID,selectors=selectors)
-        entityDict.load(data,appID=appID)
+        #data = entityObjects[ENTITY]['function'](appID,selectors=selectors)
+        #entityDict.load(data,appID=appID)
+        entityDict.fetch(appID=appID)
     sys.stderr.write("\n")
     if options.outFormat and options.outFormat == "JSON":
         entityDict.generate_JSON(appID_List=applicationList)
@@ -356,9 +364,19 @@ elif COMMAND.lower() == "get":
         for i in range(minutes,0,-1440): # loop specified minutes in chunks of 1440 minutes (1 day)
             sinceTime = datetime.today()-timedelta(minutes=i)
             sinceEpoch= long(time.mktime(sinceTime.timetuple())*1000)
-            data = entityObjects[ENTITY]['function'](appID,"AFTER_TIME",duration="1440",startEpoch=sinceEpoch,selectors=selectors)
-            entityDict.load(data,appID=appID)
+            #data = entityObjects[ENTITY]['function'](appID,"AFTER_TIME",duration="1440",startEpoch=sinceEpoch,selectors=selectors)
+            #entityDict.load(data,appID=appID)
+            entityDict.fetch_after_time(appID=appID,duration="1440",sinceEpoch=sinceEpoch)
     sys.stderr.write("\n")
+
+#    a = NodeDict()
+#    b = PolicyDict()
+#    sys.stderr.write(str(ApplicationDict().info())+"\n")
+#    sys.stderr.write(str(a.info())+"\n")
+#    sys.stderr.write(str(b.info())+"\n")
+#    sys.stderr.write(str(SnapshotDict().info())+"\n")
+
+
     if options.outFormat and options.outFormat == "JSON":
         entityDict.generate_JSON(appID_List=applicationList)
     elif not options.outFormat or options.outFormat == "CSV":

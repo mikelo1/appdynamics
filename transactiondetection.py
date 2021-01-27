@@ -4,10 +4,12 @@ import json
 import csv
 import sys
 from applications import ApplicationDict
+from appdRESTfulAPI import RESTfulAPI
 from entities import AppEntity
 
 class DetectionruleDict(AppEntity):
     detectionruleDict = dict()
+    entityAPIFunctions = {'fetch': RESTfulAPI().fetch_transactiondetection}
 
     def __init__(self):
         self.detectionruleDict = self.entityDict

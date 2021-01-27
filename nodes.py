@@ -9,11 +9,7 @@ import time
 from entities import AppEntity
 
 class NodeDict(AppEntity):
-    nodeDict = dict()
-
-    def __init__(self):
-        self.nodeDict = self.entityDict
-
+    entityAPIFunctions = {'fetch': RESTfulAPI().fetch_nodes}
     ###
      # Update nodes availability with the last hour availability percentage
      # @source https://community.appdynamics.com/t5/Controller-SaaS-On-Premise/Export-app-and-machine-agent-status-by-Rest-Api/m-p/38378#M1983
@@ -22,8 +18,8 @@ class NodeDict(AppEntity):
     ###
     def __update_availability_nodes(self,app_ID):
         updated = 0
-        if str(app_ID) in self.nodeDict:
-            nodeList = [ node['id'] for node in self.nodeDict[str(app_ID)] ]
+        if str(app_ID) in self.entityDict:
+            nodeList = [ node['id'] for node in self.entityDict[str(app_ID)] ]
             end_time   = datetime.today()-timedelta(minutes=5)
             start_time = end_time-timedelta(minutes=60)
             start_epoch= long(time.mktime(start_time.timetuple())*1000)
@@ -31,12 +27,12 @@ class NodeDict(AppEntity):
             response = RESTfulAPI().fetch_agent_status(nodeList=nodeList,start_epoch=start_epoch,end_epoch=end_epoch)
             if response is not None:
                 nodesHealth = json.loads(response)
-                for node in self.nodeDict[str(app_ID)]:
+                for node in self.entityDict[str(app_ID)]:
                     for i in range(0, len(nodeList), 1):
                         if nodesHealth['data'][i]['nodeId'] == node['id']:
                             percentage = nodesHealth['data'][i]['healthMetricStats']['appServerAgentAvailability']['percentage']
                             node.update({"availability": percentage})
-                            #self.nodeDict[str(app_ID)] = node
+                            #self.entityDict[str(app_ID)] = node
                             updated = updated +1
                             continue
         return updated
@@ -66,10 +62,10 @@ class NodeDict(AppEntity):
         filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
 
         for appID in appID_List:
-            if str(appID) not in self.nodeDict:
+            if str(appID) not in self.entityDict:
                 if 'DEBUG' in locals(): print ("Application "+str(appID) +" is not loaded in dictionary.")
                 continue
-            for node in self.nodeDict[str(appID)]:
+            for node in self.entityDict[str(appID)]:
                 # Check if data belongs to a node
                 if 'nodeUniqueLocalId' not in node: continue
                 elif 'header_is_printed' not in locals(): 
@@ -95,9 +91,9 @@ class NodeDict(AppEntity):
      # @return the number of fetched nodes. Zero if no node was found.
     ###
     def load_details(self,app_ID):
-        if str(app_ID) in self.nodeDict:
+        if str(app_ID) in self.entityDict:
             index = 0
-            for node in self.nodeDict[str(app_ID)]:
+            for node in self.entityDict[str(app_ID)]:
                 streamdata = RESTfulAPI().fetch_node_details(app_ID,node['id'])
                 if streamdata is None:
                     print ("load_node_details: Failed to retrieve node " + str(node['id']) + " for application " + str(app_ID) )
@@ -107,7 +103,7 @@ class NodeDict(AppEntity):
                 except TypeError as error:
                     print ("load_node_detail: "+str(error))
                     continue
-                self.nodeDict[str(app_ID)][index] = nodeJSON
+                self.entityDict[str(app_ID)][index] = nodeJSON
                 index = index + 1
             return index
         else:
@@ -125,10 +121,10 @@ class NodeDict(AppEntity):
         updated = 0
         for appID in appID_List:
             sys.stderr.write("update nodes " + str(appID) + "...\n")
-            if str(appID) not in self.nodeDict:
+            if str(appID) not in self.entityDict:
                 if self.load(RESTfulAPI().fetch_nodes(appID,selectors=selectors),appID) == 0: continue
             self.__update_availability_nodes(appID)
-            unavailNodeList = [ node['id'] for node in self.nodeDict[str(appID)] if node['availability'] == 0.0 ]
+            unavailNodeList = [ node['id'] for node in self.entityDict[str(appID)] if node['availability'] == 0.0 ]
             for i in range(0,len(unavailNodeList),25):
                 if 'DEBUG' in locals(): print ("Unavailable node list:",unavailNodeList)
                 response = RESTfulAPI().mark_nodes_as_historical(unavailNodeList[i:i+25])
@@ -145,8 +141,8 @@ class NodeDict(AppEntity):
     ###
     def getTierName(self,app_ID,tierID):
         if tierID <= 0: return 0
-        if str(app_ID) in self.nodeDict:
-            for node in self.nodeDict[str(app_ID)]:
+        if str(app_ID) in self.entityDict:
+            for node in self.entityDict[str(app_ID)]:
                 if node['tierId'] == tierID:
                     return node['tierName']
         return ""
@@ -159,8 +155,8 @@ class NodeDict(AppEntity):
     ###
     def getNodeName(self,app_ID,nodeID):
         if nodeID <= 0: return 0
-        if str(app_ID) in self.nodeDict:
-            for node in self.nodeDict[str(app_ID)]:
+        if str(app_ID) in self.entityDict:
+            for node in self.entityDict[str(app_ID)]:
                 if node['id'] == nodeID:
                     return node['name']
         return ""

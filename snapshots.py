@@ -6,11 +6,12 @@ from datetime import datetime, timedelta
 import time
 from nodes import NodeDict
 from policies import PolicyDict
-from appdRESTfulAPI import RESTfulAPI
 from applications import ApplicationDict
+from appdRESTfulAPI import RESTfulAPI
 from entities import AppEntity
 
 class SnapshotDict(AppEntity):
+    entityAPIFunctions = {'fetch': RESTfulAPI().fetch_snapshots}
 
 #def fetch_snapshots2(app_ID,minutesBeforeNow,selectors=None,serverURL=None,userName=None,password=None,token=None):
 #    MAX_RESULTS = RESULTS = 9

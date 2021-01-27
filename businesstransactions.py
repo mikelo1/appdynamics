@@ -3,10 +3,12 @@ import json
 import csv
 import sys
 from applications import ApplicationDict
+from appdRESTfulAPI import RESTfulAPI
 from entities import AppEntity
 
 class BusinessTransactionDict(AppEntity):
     BTDict = dict()
+    entityAPIFunctions = {'fetch': RESTfulAPI().fetch_business_transactions}
 
     def __init__(self):
         self.BTDict = self.entityDict

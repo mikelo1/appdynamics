@@ -8,6 +8,7 @@ from entities import AppEntity
 
 class PolicyDict(AppEntity):
     policyDict = dict()
+    entityAPIFunctions = {'fetch': RESTfulAPI().fetch_policies_legacy}
 
     def __init__(self):
         self.policyDict = self.entityDict
