@@ -7,11 +7,10 @@ from appdRESTfulAPI import RESTfulAPI
 from entities import AppEntity
 
 class BusinessTransactionDict(AppEntity):
-    BTDict = dict()
     entityAPIFunctions = {'fetch': RESTfulAPI().fetch_business_transactions}
 
     def __init__(self):
-        self.BTDict = self.entityDict
+        self.entityDict = dict()
 
     ###### FROM HERE PUBLIC FUNCTIONS ######
 
@@ -39,10 +38,10 @@ class BusinessTransactionDict(AppEntity):
         filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
 
         for appID in appID_List:
-            if str(appID) not in self.BTDict:
+            if str(appID) not in self.entityDict:
                 if 'DEBUG' in locals(): print "Application "+str(appID) +" is not loaded in dictionary."
                 continue
-            for BT in self.BTDict[str(appID)]:
+            for BT in self.entityDict[str(appID)]:
                 # Check if data belongs to a business transaction
                 if 'entryPointType' not in BT: continue
                 elif 'header_is_printed' not in locals(): 
@@ -68,8 +67,8 @@ class BusinessTransactionDict(AppEntity):
     ###
     def get_business_transaction_ID(self,appID,transactionName):
         if appID < 0: return 0
-        if str(appID) in self.BTDict:
-            for transaction in self.BTDict[str(appID)]:
+        if str(appID) in self.entityDict:
+            for transaction in self.entityDict[str(appID)]:
                 if transaction['name'] == transactionName:
                     return transaction['id']
         return 0
@@ -82,8 +81,8 @@ class BusinessTransactionDict(AppEntity):
     ###
     def get_business_transaction_name(self,appID,transactionID):
         if appID <= 0 or transactionID <= 0: return None
-        if str(appID) in self.BTDict:
-            for transaction in BTDict[str(appID)]:
+        if str(appID) in self.entityDict:
+            for transaction in entityDict[str(appID)]:
                 if transaction['id'] == transactionID:
                     return transaction['name']
         return ""
@@ -95,6 +94,6 @@ class BusinessTransactionDict(AppEntity):
     ###
     def get_business_transaction_nameList(self,appID):
         if appID < 0: return None
-        if str(appID) in self.BTDict:
+        if str(appID) in self.entityDict:
             return [transaction['name'] for transaction in custom_transactionDict[str(appID)]]
         return None

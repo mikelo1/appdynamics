@@ -10,6 +10,10 @@ from entities import AppEntity
 
 class NodeDict(AppEntity):
     entityAPIFunctions = {'fetch': RESTfulAPI().fetch_nodes}
+
+    def __init__(self):
+        self.entityDict = dict()
+
     ###
      # Update nodes availability with the last hour availability percentage
      # @source https://community.appdynamics.com/t5/Controller-SaaS-On-Premise/Export-app-and-machine-agent-status-by-Rest-Api/m-p/38378#M1983

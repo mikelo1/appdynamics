@@ -8,6 +8,9 @@ from entities import ControllerEntity
 class DashboardDict(ControllerEntity):
     entityAPIFunctions = {'fetch': RESTfulAPI().fetch_dashboards}
 
+    def __init__(self):
+        self.entityDict = dict()
+
     ###### FROM HERE PUBLIC FUNCTIONS ######
 
     def generate_CSV(self, fileName=None):

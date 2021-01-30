@@ -8,12 +8,11 @@ from appdRESTfulAPI import RESTfulAPI
 from entities import AppEntity
 
 class HealthRuleDict(AppEntity):
-    healthruleDict = dict()
     entityAPIFunctions = {'fetch': RESTfulAPI().fetch_health_rules_legacy}
     #TODO: entityAPIFunctions = {'fetch': RESTfulAPI().fetch_health_rules_with_IDs}
 
     def __init__(self):
-        self.healthruleDict = self.entityDict
+        self.entityDict = dict()
 
     ###
      # private method to translate XML format entity names to JSON format entity names.
@@ -473,10 +472,10 @@ class HealthRuleDict(AppEntity):
         filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
 
         for appID in appID_List:
-            if str(appID) not in self.healthruleDict:
+            if str(appID) not in self.entityDict:
                 if 'DEBUG' in locals(): print "Application "+str(appID) +" is not loaded in dictionary."
                 continue
-            for healthrule in self.healthruleDict[str(appID)]:
+            for healthrule in self.entityDict[str(appID)]:
                 # Check if data belongs to a health rule
                 if 'affectedEntityType' not in healthrule and 'useDataFromLastNMinutes' not in healthrule: continue
                 elif 'header_is_printed' not in locals(): 
@@ -516,14 +515,14 @@ class HealthRuleDict(AppEntity):
                 return 0
 
         if type(healthrules) is dict:
-            self.healthruleDict.update({str(appID):[healthrules]})
+            self.entityDict.update({str(appID):[healthrules]})
         else:
-            self.healthruleDict.update({str(appID):healthrules})
+            self.entityDict.update({str(appID):healthrules})
 
         return len(healthrules)
 
 
     def get_health_rules_matching(self,appID,entityName,entityType):
         pass
-        #for healthrule in self.healthruleDict:
+        #for healthrule in self.entityDict:
         #    if healthrule['affectedEntityType'] == entityType:

@@ -11,6 +11,9 @@ from policies import PolicyDict
 class ActionDict(AppEntity):
     entityAPIFunctions = {'fetch': RESTfulAPI().fetch_actions_legacy}
 
+    def __init__(self):
+        self.entityDict = dict()
+
     def __str_action_properties(self,action):
         """
         toString private method, extracts properties from action

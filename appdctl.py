@@ -83,19 +83,20 @@ def get_help(COMMAND,SUBCOMMAND=None,output=sys.stdout):
                 "  appdctl config SUBCOMMAND [options]\n\n")
 
 def get_application_list():
+    appDict = ApplicationDict()
     if not options.applications and not options.allApplications:
         optParser.error("Missing application (use -A for all applications)")
         return []
     elif options.applications:
       #data = entityObjects['applications']['function']()
       #ApplicationDict().load(data)
-      ApplicationDict().fetch()
-      return [ ApplicationDict().getAppID(appName) for appName in options.applications.split(',') if ApplicationDict().getAppID(appName) is not None ]
+      appDict.fetch()
+      return [ appDict.getAppID(appName) for appName in options.applications.split(',') if appDict.getAppID(appName) is not None ]
     else: # if options.allApplications:
       #data = entityObjects['applications']['function']()
       #ApplicationDict().load(data)
-      ApplicationDict().fetch()
-      return ApplicationDict().get_application_ID_list()
+      appDict.fetch()
+      return appDict.get_application_ID_list()
 
 usage = "usage: %prog [get|login|update|patch] [options]"
 epilog= "examples: %prog get applications"
@@ -370,14 +371,6 @@ elif COMMAND.lower() == "get":
             entityDict.fetch_after_time(appID=appID,duration="1440",sinceEpoch=sinceEpoch)
     sys.stderr.write("\n")
 
-#    a = NodeDict()
-#    b = PolicyDict()
-#    sys.stderr.write(str(ApplicationDict().info())+"\n")
-#    sys.stderr.write(str(a.info())+"\n")
-#    sys.stderr.write(str(b.info())+"\n")
-#    sys.stderr.write(str(SnapshotDict().info())+"\n")
-
-
     if options.outFormat and options.outFormat == "JSON":
         entityDict.generate_JSON(appID_List=applicationList)
     elif not options.outFormat or options.outFormat == "CSV":
@@ -385,7 +378,6 @@ elif COMMAND.lower() == "get":
 
   else:
     optParser.error("incorrect entity \""+ENTITY+"\"")
-
 
 #######################################
 ########### UPDATE COMMAND ############

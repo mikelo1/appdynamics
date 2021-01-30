@@ -8,11 +8,10 @@ from appdRESTfulAPI import RESTfulAPI
 from entities import AppEntity
 
 class DetectionruleDict(AppEntity):
-    detectionruleDict = dict()
     entityAPIFunctions = {'fetch': RESTfulAPI().fetch_transactiondetection}
 
     def __init__(self):
-        self.detectionruleDict = self.entityDict
+        self.entityDict = dict()
 
     ###
      # toString private method, extracts Match Rule List from transaction detection rule
@@ -156,10 +155,10 @@ class DetectionruleDict(AppEntity):
         filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
 
         for appID in appID_List:
-            if str(appID) not in self.detectionruleDict:
+            if str(appID) not in self.entityDict:
                 if 'DEBUG' in locals(): print "Application "+str(appID) +" is not loaded in dictionary."
                 continue        
-            detectionRules = self.detectionruleDict[str(appID)]
+            detectionRules = self.entityDict[str(appID)]
 
             # Verify this ElementTree contains transaction detection rule data
             if detectionRules.find('rule-list') is None: continue
@@ -224,13 +223,13 @@ class DetectionruleDict(AppEntity):
             print ("load_transaction_detection: "+str(error))
             return 0
         # Add loaded detection rules to the transaction detection rules dictionary
-        if str(appID) in self.detectionruleDict:
+        if str(appID) in self.entityDict:
             # Merge new and existing detection rules
             for new_rule in root.find("rule-list"):
-                self.detectionruleDict[str(appID)].find("rule-list").append(new_rule)
+                self.entityDict[str(appID)].find("rule-list").append(new_rule)
         else:
             # Add loaded detection rules to the detectrules dictionary
-            self.detectionruleDict.update({str(appID):root})
+            self.entityDict.update({str(appID):root})
         return len(root.find("rule-list").getchildren())
 
     ###

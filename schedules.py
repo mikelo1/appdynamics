@@ -7,22 +7,21 @@ from applications import ApplicationDict
 from entities import AppEntity
 
 class ScheduleDict(AppEntity):
-    scheduleDict = dict()
     entityAPIFunctions = {'fetch': RESTfulAPI().fetch_schedules}
 
     def __init__(self):
-        self.scheduleDict = self.entityDict
+        self.entityDict = dict()
 
     def __build_test_schedules(app_ID):
         schedules1=json.loads('[{"timezone":"Europe/Brussels","description":"This schedule is active Monday through Friday, during business hours","id":30201,"scheduleConfiguration":{"scheduleFrequency":"WEEKLY","endTime":"17:00","days":["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY"],"startTime":"08:00"},"name":"Weekdays:8am-5pm,Mon-Fri"}]')
         schedules2=json.loads('[{"timezone":"Europe/Brussels","description":"This schedule is active Monday through Friday, during business hours","id":30201,"scheduleConfiguration":{"scheduleFrequency":"WEEKLY","endTime":"17:00","days":["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY"],"startTime":"08:00"},"name":"Weekdays:8am-5pm,Mon-Fri"}]')
         # Add loaded schedules to the schedule dictionary
-        scheduleDict.update({str(app_ID):schedules1})
-        scheduleDict.update({str(app_ID+1):schedules2})
+        entityDict.update({str(app_ID):schedules1})
+        entityDict.update({str(app_ID+1):schedules2})
         if 'DEBUG' in locals():
-            print "Number of entries: " + str(len(scheduleDict))
-            if str(app_ID) in scheduleDict:
-                print (scheduleDict[str(app_ID)])
+            print "Number of entries: " + str(len(entityDict))
+            if str(app_ID) in entityDict:
+                print (entityDict[str(app_ID)])
 
     ###
      # toString private method, extracts start time from schedule
@@ -88,10 +87,10 @@ class ScheduleDict(AppEntity):
 
 
         for appID in appID_List:
-            if str(appID) not in self.scheduleDict:
+            if str(appID) not in self.entityDict:
                 if 'DEBUG' in locals(): print "Application "+str(appID) +" is not loaded in dictionary."
                 continue
-            for schedule in self.scheduleDict[str(appID)]:
+            for schedule in self.entityDict[str(appID)]:
                 # Check if data belongs to a schedule
                 if 'timezone' not in schedule: continue
                 elif 'header_is_printed' not in locals(): 
@@ -117,9 +116,9 @@ class ScheduleDict(AppEntity):
      # @return the number of fetched schedules. Zero if no schedule was found.
     ###
     def load_details(self,app_ID):
-        if str(app_ID) in self.scheduleDict:
+        if str(app_ID) in self.entityDict:
             index = 0
-            for schedule in self.scheduleDict[str(app_ID)]:
+            for schedule in self.entityDict[str(app_ID)]:
                 streamdata = RESTfulAPI().fetch_schedule_details(app_ID,schedule['id'])
                 if streamdata is None:
                     print "load_schedule_details: Failed to retrieve schedule " + str(schedule['id']) + " for application " + str(app_ID)
@@ -129,7 +128,7 @@ class ScheduleDict(AppEntity):
                 except TypeError as error:
                     print ("load_schedule_detail: "+str(error))
                     continue
-                self.scheduleDict[str(app_ID)][index] = scheduleJSON
+                self.entityDict[str(app_ID)][index] = scheduleJSON
                 index = index + 1
             return index
         else:
@@ -173,7 +172,7 @@ class ScheduleDict(AppEntity):
                 sys.stderr.write("update_schedules: Failed to retrieve schedules for application " + str(appID) + "...\n")
                 continue
             sys.stderr.write("update schedules " + ApplicationDict().getAppName(appID) + "...\n")
-            for schedule in self.scheduleDict[str(appID)]:
+            for schedule in self.entityDict[str(appID)]:
                 # Do the replacement in loaded data
                 schedule.update({"timezone": changesJSON['timezone']})
                 # Update controller data

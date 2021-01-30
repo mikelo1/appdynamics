@@ -8,6 +8,9 @@ from entities import ControllerEntity
 class ApplicationDict(ControllerEntity):
     entityAPIFunctions = {'fetch': RESTfulAPI().fetch_applications}
 
+    def __init__(self):
+        self.entityDict = dict()
+
     def __test_applications_with_tiers_and_nodes():
         applications=json.loads('[{"name":"evo-api-logalty-aks","description":"","id":15713322,"accountGuid":"edbe509e-bd4d-4ba9-a588-e761827a8730"},{"name":"ev-cajeros-web-srv","description":"","id":57502,"accountGuid":"edbe509e-bd4d-4ba9-a588-e761827a8730"}]')
         tiers=json.loads('[{"agentType":"APP_AGENT","name":"evo-api-logalty","description":"","id":16314693,"numberOfNodes":21,"type":"Application Server"}]')

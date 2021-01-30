@@ -13,6 +13,9 @@ from entities import AppEntity
 class SnapshotDict(AppEntity):
     entityAPIFunctions = {'fetch': RESTfulAPI().fetch_snapshots}
 
+    def __init__(self):
+        self.entityDict = dict()
+
 #def fetch_snapshots2(app_ID,minutesBeforeNow,selectors=None,serverURL=None,userName=None,password=None,token=None):
 #    MAX_RESULTS = RESULTS = 9
 #    lastSnapshotTimestamp = 0

@@ -7,22 +7,21 @@ from appdRESTfulAPI import RESTfulAPI
 from entities import AppEntity
 
 class PolicyDict(AppEntity):
-    policyDict = dict()
     entityAPIFunctions = {'fetch': RESTfulAPI().fetch_policies_legacy}
 
     def __init__(self):
-        self.policyDict = self.entityDict
+        self.entityDict = dict()
 
     def __build_test_policies(self,app_ID):
         policies1=json.loads('[{"id":1854,"name":"POLICY_SANDBOX","enabled":true,"executeActionsInBatch":true,"frequency":null,"actions":[{"actionName":"gogs@acme.com","actionType":"EMAIL","notes":""}],"events":{"healthRuleEvents":null,"otherEvents":[],"anomalyEvents":["ANOMALY_OPEN_CRITICAL"],"customEvents":[]},"selectedEntities":{"selectedEntityType":"ANY_ENTITY"}]')
         policies2=json.loads('[{"id":1855,"name":"POLICY_SANDBOX","enabled":true,"executeActionsInBatch":true,"frequency":null,"actions":[{"actionName":"gogs@acme.com","actionType":"EMAIL","notes":""}],"events":{"healthRuleEvents":null,"otherEvents":[],"anomalyEvents":["ANOMALY_OPEN_CRITICAL"],"customEvents":[]},"selectedEntities":{"selectedEntityType":"ANY_ENTITY"}]')
         #policies3=json.loads('[{"id":1856,"name":"POLICY_SANDBOX","enabled":true,"executeActionsInBatch":true,"frequency":null,"actions":[{"actionName":"gogs@acme.com","actionType":"EMAIL","notes":""}],"events":{"healthRuleEvents":null,"otherEvents":[],"anomalyEvents":["ANOMALY_OPEN_CRITICAL"],"customEvents":[]},"selectedEntities":{"selectedEntityType":"ANY_ENTITY"}]')
-        policyDict.update({str(app_ID):policies1})
-        policyDict.update({str(app_ID+1):policies2})
-    #    policyDict.update({str(app_ID+1):policies3})
-        print "Number of entries: " + str(len(policyDict))
-        if str(app_ID) in policyDict:
-            print (policyDict[str(app_ID)])
+        entityDict.update({str(app_ID):policies1})
+        entityDict.update({str(app_ID+1):policies2})
+    #    entityDict.update({str(app_ID+1):policies3})
+        print "Number of entries: " + str(len(entityDict))
+        if str(app_ID) in entityDict:
+            print (entityDict[str(app_ID)])
 
     ###
      # toString private method, extracts healthrules from policy
@@ -147,10 +146,10 @@ class PolicyDict(AppEntity):
         filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
 
         for appID in appID_List:
-            if str(appID) not in self.policyDict:
+            if str(appID) not in self.entityDict:
                 if 'DEBUG' in locals(): print "Application "+str(appID) +" is not loaded in dictionary."
                 continue
-            for policy in self.policyDict[str(appID)]:
+            for policy in self.entityDict[str(appID)]:
                 # Check if data belongs to a policy
                 if 'reactorType' not in policy and 'selectedEntities' not in policy: continue
                 elif 'header_is_printed' not in locals(): 
@@ -176,19 +175,19 @@ class PolicyDict(AppEntity):
     ###
     def load_details(self,app_ID):
         index = 0
-        for policy in self.policyDict[str(app_ID)]:
+        for policy in self.entityDict[str(app_ID)]:
             try:
                 policyJSON = json.loads(RESTfulAPI().fetch_policy_details(app_ID,policy['id']))
             except JTypeError as error:
                 print ("load_policy: "+str(error))
                 return None
-            self.policyDict[str(appID)][index] = policyJSON
+            self.entityDict[str(appID)][index] = policyJSON
             index = index + 1
 
     def get_policies_matching_action(self,app_ID,name):
         MatchList = []
-        if str(app_ID) in self.policyDict:
-            for policy in self.policyDict[str(app_ID)]:
+        if str(app_ID) in self.entityDict:
+            for policy in self.entityDict[str(app_ID)]:
                 for policy_action in policy['actions']:
                     if policy_action['actionName'] == name:
                         MatchList.append(policy.name)

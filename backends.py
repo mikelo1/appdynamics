@@ -9,6 +9,9 @@ from entities import AppEntity
 class BackendDict(AppEntity):
     entityAPIFunctions = {'fetch': RESTfulAPI().fetch_backends}
 
+    def __init__(self):
+        self.entityDict = dict()
+
     ###### FROM HERE PUBLIC FUNCTIONS ######
 
     def generate_CSV(self,appID_List,fileName=None):

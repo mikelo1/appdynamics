@@ -11,6 +11,9 @@ from entities import AppEntity
 class EventDict(AppEntity):
     entityAPIFunctions = {'fetch': RESTfulAPI().fetch_healthrule_violations}
 
+    def __init__(self):
+        self.entityDict = dict()
+
     ###
      # toString private method, extracts policy from event
      # @param event JSON data containing an event

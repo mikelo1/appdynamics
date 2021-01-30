@@ -8,6 +8,9 @@ from entities import ControllerEntity
 class ConfigurationDict(ControllerEntity):
     entityAPIFunctions = {'fetch': RESTfulAPI().fetch_configuration}
 
+    def __init__(self):
+        self.entityDict = dict()
+
     ###### FROM HERE PUBLIC FUNCTIONS ######
 
     ###
