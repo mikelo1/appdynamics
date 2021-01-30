@@ -13,12 +13,13 @@ class DetectionruleDict(AppEntity):
     def __init__(self):
         self.entityDict = dict()
 
-    ###
-     # toString private method, extracts Match Rule List from transaction detection rule
-     # @param txMatchRuleData JSON data containing match rules
-     # @return string with a comma separated list of Match Rules
-    ###
+
     def __str_transactiondetection_matchrules(self,txMatchRuleData):
+        """
+        toString private method, extracts Match Rule List from transaction detection rule
+        :param txMatchRuleData: JSON data containing match rules
+        :returns: string with a comma separated list of Match Rules
+        """
         mRuleList = ""
         if txMatchRuleData['type'] == "CUSTOM":
             for mCondition in txMatchRuleData['txcustomrule']['matchconditions']:
@@ -71,12 +72,13 @@ class DetectionruleDict(AppEntity):
 
         return mRuleList
 
-    ###
-     # toString private method, extracts actions from transaction detection rule
-     # @param txMatchRuleData JSON data containing transaction detection rule actions
-     # @return string with a comma separated list of actions
-    ###
+
     def __str_transactiondetection_actions(self,txMatchRuleData):
+        """
+        toString private method, extracts actions from transaction detection rule
+        :param txMatchRuleData: JSON data containing transaction detection rule actions
+        :returns: string with a comma separated list of actions
+        """
         httpSplit = ""
         if txMatchRuleData['type'] == "CUSTOM":
             for action in txMatchRuleData['txcustomrule']['actions']:
@@ -132,13 +134,14 @@ class DetectionruleDict(AppEntity):
 
     ###### FROM HERE PUBLIC FUNCTIONS ######
 
-    ###
-     # Generate CSV output from transaction detection rules data
-     # @param appID_List list of application IDs, in order to obtain transaction detection rules from local transaction detection rules dictionary
-     # @param fileName output file name
-     # @return None
-    ###
+
     def generate_CSV(self,appID_List,fileName=None):
+        """
+        Generate CSV output from transaction detection rules data
+        :param appID_List: list of application IDs, in order to obtain transaction detection rules from local transaction detection rules dictionary
+        :param fileName: output file name
+        :returns: None
+        """
         if type(appID_List) is not list or len(appID_List)==0: return
 
         if fileName is not None:
@@ -199,23 +202,25 @@ class DetectionruleDict(AppEntity):
 
         if fileName is not None: csvfile.close()
 
-    ###
-     # Generate JSON output from transaction detection rules data
-     # @param appID_List list of application IDs, in order to obtain transaction detection rules from local transaction detection rules dictionary
-     # @param fileName output file name
-     # @return None
-    ###
+
     def generate_JSON(self,appID_List,fileName=None):
+        """
+        Generate JSON output from transaction detection rules data
+        :param appID_List: list of application IDs, in order to obtain transaction detection rules from local transaction detection rules dictionary
+        :param fileName: output file name
+        :returns: None
+        """
         print "generate_transactiondetection_JSON: feature not implemented yet."
     # TODO: generate JSON output format
 
-    ###
-     # Load transaction detection rules from a stream data in XML format.
-     # @param streamdata the stream data in JSON format
-     # @param appID the ID number of the application where to load the detection rules data.
-     # @return the number of loaded detection rules. Zero if no detection rule was loaded.
-    ###
+
     def load(self,streamdata,appID=None):
+        """
+        Load transaction detection rules from a stream data in XML format.
+        :param streamdata: the stream data in JSON format
+        :param appID: the ID number of the application where to load the detection rules data.
+        :returns: the number of loaded detection rules. Zero if no detection rule was loaded.
+        """
         if appID is None: appID = 0
         try:
             root = ET.fromstring(streamdata)
@@ -232,12 +237,13 @@ class DetectionruleDict(AppEntity):
             self.entityDict.update({str(appID):root})
         return len(root.find("rule-list").getchildren())
 
-    ###
-     # Get transaction detection rules matching a given URL. Fetch transaction detection data if not loaded yet.
-     # @param app_ID the ID of the application
-     # @return a list of transaction detection names.
-    ###
+
     def get_transactiondetections_matching_URL(self,app_ID,URL):
+        """
+        Get transaction detection rules matching a given URL. Fetch transaction detection data if not loaded yet.
+        :param app_ID: the ID of the application
+        :returns: a list of transaction detection names.
+        """
         pass 
         TD_List = []
         if len(detectionruleList) > 0:

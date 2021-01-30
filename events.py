@@ -14,12 +14,13 @@ class EventDict(AppEntity):
     def __init__(self):
         self.entityDict = dict()
 
-    ###
-     # toString private method, extracts policy from event
-     # @param event JSON data containing an event
-     # @return string with a comma separated list of policy names
-    ###
+
     def __str_event_policy(self,event):
+        """
+        toString private method, extracts policy from event
+        :param event: JSON data containing an event
+        :returns: string with a comma separated list of policy names
+        """
         triggeredEntitytype = event['triggeredEntityDefinition']['entityType']
         if triggeredEntitytype == "POLICY":
             if 'name' in event['triggeredEntityDefinition']:
@@ -29,12 +30,13 @@ class EventDict(AppEntity):
         else:
             return ""
 
-    ###
-     # toString private method, extracts policy from event
-     # @param event JSON data containing an event
-     # @return string with a comma separated list of entity names
-    ###
+
     def __str_event_entity(self,event):
+        """
+        toString private method, extracts policy from event
+        :param event: JSON data containing an event
+        :returns: string with a comma separated list of entity names
+        """
         affectedEntityType = event['affectedEntityDefinition']['entityType']
         if affectedEntityType in ["BUSINESS_TRANSACTION","APPLICATION_DIAGNOSTIC_DATA","MOBILE_APPLICATION"]:
             if 'name' in event['affectedEntityDefinition']:
@@ -44,32 +46,35 @@ class EventDict(AppEntity):
         else:
             return ""
 
-    ###
-     # toString private method, extracts description from event
-     # @param event JSON data containing an event
-     # @return string with the description of the event
-    ###
+
     def __str_event_description(self,event):
+        """
+        toString private method, extracts description from event
+        :param event: JSON data containing an event
+        :returns: string with the description of the event
+        """
         desc_pos = event['description'].find("All of the following conditions were found to be violating")
         Description = event['description'][desc_pos+58:] if desc_pos > 0 else event['description']
         Description = Description.replace("<br>","\n")
         return Description
 
-    ###
-     # toString private method, extracts starting time from event
-     # @param event JSON data containing an event
-     # @return date
-    ###
+
     def __str_event_start_time(self,event):
+        """
+        toString private method, extracts starting time from event
+        :param event: JSON data containing an event
+        :returns: date
+        """
         Start_Time_Epoch = event['startTimeInMillis']
         return datetime.fromtimestamp(float(Start_Time_Epoch)/1000).strftime('%Y-%m-%d %H:%M:%S')
 
-    ###
-     # toString private method, extracts ending time from event
-     # @param event JSON data containing an event
-     # @return date
-    ###
+
     def __str_event_end_time(self,event):
+        """
+        toString private method, extracts ending time from event
+        :param event: JSON data containing an event
+        :returns: date
+        """
         Status = event['incidentStatus']
         if Status != "OPEN":
             End_Time_Epoch = event['endTimeInMillis']
@@ -80,13 +85,14 @@ class EventDict(AppEntity):
 
     ###### FROM HERE PUBLIC FUNCTIONS ######
 
-    ###
-     # Generate CSV output from healthrule violations data
-     # @param appID_List list of application IDs, in order to obtain healtrule violations from local healthrule violations dictionary
-     # @param fileName output file name
-     # @return None
-    ###
+
     def generate_CSV(self,appID_List,fileName=None):
+        """
+        Generate CSV output from healthrule violations data
+        :param appID_List: list of application IDs, in order to obtain healtrule violations from local healthrule violations dictionary
+        :param fileName: output file name
+        :returns: None
+        """
         if type(appID_List) is not list or len(appID_List)==0: return
 
         if fileName is not None:

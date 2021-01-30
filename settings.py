@@ -13,12 +13,13 @@ class ConfigurationDict(ControllerEntity):
 
     ###### FROM HERE PUBLIC FUNCTIONS ######
 
-    ###
-     # Generate CSV output from config data
-     # @param fileName output file name
-     # @return None
-    ###
+
     def generate_CSV(self,fileName=None):
+        """
+        Generate CSV output from config data
+        :param fileName: output file name
+        :returns: None
+        """
         if fileName is not None:
             try:
                 csvfile = open(fileName, 'w')
@@ -51,12 +52,13 @@ class ConfigurationDict(ControllerEntity):
                 return (-1)
         if fileName is not None: csvfile.close()
 
-    ###
-     # Load entities from a JSON stream data.
-     # @param streamdata the stream data in JSON format
-     # @return the number of loaded entities. Zero if no entity was loaded.
-    ###
+
     def load(self,streamdata):
+        """
+        Load entities from a JSON stream data.
+        :param streamdata: the stream data in JSON format
+        :returns: the number of loaded entities. Zero if no entity was loaded.
+        """
         try:
             entities = json.loads(streamdata)
         except TypeError as error:

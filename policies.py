@@ -23,12 +23,13 @@ class PolicyDict(AppEntity):
         if str(app_ID) in entityDict:
             print (entityDict[str(app_ID)])
 
-    ###
-     # toString private method, extracts healthrules from policy
-     # @param policy JSON data containing a policy
-     # @return string with a comma separated list of health rule names
-    ###
+
     def __str_policy_healthrules(self,policy):
+        """
+        toString private method, extracts healthrules from policy
+        :param policy: JSON data containing a policy
+        :returns: string with a comma separated list of health rule names
+        """
         if 'eventFilterTemplate' in policy and policy['eventFilterTemplate']['healthRuleNames'] is not None:
             for healthRule in policy['eventFilterTemplate']['healthRuleNames']:
                 healthrules = healthrules + "," + healthRule['entityName'] if 'healthrules' in locals() else healthRule['entityName']
@@ -38,12 +39,13 @@ class PolicyDict(AppEntity):
         else:
             return "ANY"
 
-    ###
-     # toString private method, extracts entities from policy
-     # @param policy JSON data containing a policy
-     # @return string with a comma separated list of entity names
-    ###
+
     def __str_policy_entities(self,policy):
+        """
+        toString private method, extracts entities from policy
+        :param policy: JSON data containing a policy
+        :returns: string with a comma separated list of entity names
+        """
         if 'entityFilterTemplates' in policy:
             for entTemplate in policy['entityFilterTemplates']:
                 if entTemplate['matchCriteriaType'] == "AllEntities":
@@ -103,12 +105,13 @@ class PolicyDict(AppEntity):
         if 'entities' in locals(): return entities
         else: return "ANY"
 
-    ###
-     # toString private method, extracts actions from policy
-     # @param policy JSON data containing a policy
-     # @return string with a comma separated list of action names
-    ###
+ 
     def __str_policy_actions(self,policy):
+        """
+        toString private method, extracts actions from policy
+        :param policy: JSON data containing a policy
+        :returns: string with a comma separated list of action names
+        """
         if 'actionWrapperTemplates' in policy:
             for action in policy['actionWrapperTemplates']:
                 actions = actions + " " + action['actionTag'] if 'actions' in locals() else action['actionTag']
@@ -119,17 +122,16 @@ class PolicyDict(AppEntity):
         else:
             return "ANY"
 
-        ###### FROM HERE PUBLIC FUNCTIONS ######
-
     ###### FROM HERE PUBLIC FUNCTIONS ######
 
-    ###
-     # Generate CSV output from policies data
-     # @param appID_List list of application IDs, in order to obtain policies from local policies dictionary
-     # @param fileName output file name
-     # @return None
-    ###
+
     def generate_CSV(self,appID_List,fileName=None):
+        """
+        Generate CSV output from policies data
+        :param appID_List: list of application IDs, in order to obtain policies from local policies dictionary
+        :param fileName: output file name
+        :returns: None
+        """
         if type(appID_List) is not list or len(appID_List)==0: return
 
         if fileName is not None:
@@ -168,12 +170,13 @@ class PolicyDict(AppEntity):
         if fileName is not None: csvfile.close()
 
 
-    ###
-     # Load action details for all actions from an application
-     # @param app_ID the ID number of the application actions to fetch
-     # @return the number of fetched actions. Zero if no action was found.
-    ###
+
     def load_details(self,app_ID):
+        """
+        Load action details for all actions from an application
+        :param app_ID: the ID number of the application actions to fetch
+        :returns: the number of fetched actions. Zero if no action was found.
+        """
         index = 0
         for policy in self.entityDict[str(app_ID)]:
             try:

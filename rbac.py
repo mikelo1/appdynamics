@@ -13,12 +13,13 @@ class RBACDict(ControllerEntity):
 
     ###### FROM HERE PUBLIC FUNCTIONS ######
 
-    ###
-     # Generate CSV output from rbac data
-     # @param fileName output file name
-     # @return None
-    ###
+
     def generate_CSV(self, fileName=None):
+        """
+        Generate CSV output from rbac data
+        :param fileName: output file name
+        :returns: None
+        """
         if fileName is not None:
             try:
                 csvfile = open(fileName, 'w')
@@ -50,12 +51,13 @@ class RBACDict(ControllerEntity):
                 return (-1)
         if fileName is not None: csvfile.close()
 
-    ###
-     # Load user details for all users from a controller
-     # @param app_ID the ID number of the application users to fetch
-     # @return the number of fetched users. Zero if no user was found.
-    ###
+
     def load_details(self):
+        """
+        Load user details for all users from a controller
+        :param app_ID: the ID number of the application users to fetch
+        :returns: the number of fetched users. Zero if no user was found.
+        """
         count = 0
         for userName in self.entityDict:
             response = RESTfulAPI().fetch_user(self.entityDict[userName]['id'])

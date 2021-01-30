@@ -521,9 +521,9 @@ class RESTfulAPI:
 
     def fetch_node_details(self,app_ID,node_ID):
         """
-        Fetch action details from a controller.
-        :param app_ID: the ID number of the application actions to fetch
-        :param action_ID: the ID number of the action to fetch
+        Fetch node details from a controller.
+        :param app_ID: the ID number of the application nodes to fetch
+        :param node_ID: the ID number of the node to fetch
         :returns: the fetched data. Null if no data was received.
         """
         # Retrieve Node Information by Node Name
@@ -690,9 +690,9 @@ class RESTfulAPI:
 
     def fetch_policy_details(self,app_ID,policy_ID):
         """
-        Fetch action details from a controller.
-        :param app_ID: the ID number of the application actions to fetch
-        :param action_ID: the ID number of the action to fetch
+        Fetch policy details from a controller.
+        :param app_ID: the ID number of the application policies to fetch
+        :param policy_ID: the ID number of the policy to fetch
         :returns: the fetched data. Null if no data was received.
         """
         # Retrieve Details of a Specified Policy

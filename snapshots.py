@@ -76,13 +76,14 @@ class SnapshotDict(AppEntity):
 
     ###### FROM HERE PUBLIC FUNCTIONS ######
 
-    ###
-     # Generate CSV output from snapshots data
-     # @param appID_List list of application IDs, in order to obtain snapshots from local snapshots dictionary
-     # @param fileName output file name
-     # @return None
-    ###
+
     def generate_CSV(self,appID_List,fileName=None):
+        """
+        Generate CSV output from snapshots data
+        :param appID_List: list of application IDs, in order to obtain snapshots from local snapshots dictionary
+        :param fileName: output file name
+        :returns: None
+        """
         if type(appID_List) is not list or len(appID_List)==0: return
 
         if fileName is not None:

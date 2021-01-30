@@ -14,12 +14,13 @@ class HealthRuleDict(AppEntity):
     def __init__(self):
         self.entityDict = dict()
 
-    ###
-     # private method to translate XML format entity names to JSON format entity names.
-     # @param entityType naming of the entity in the XML file format
-     # @return naming of the entity in the JSON file format. Null if provided entity name could not be interpreted.
-    ###
+
     def __entityXML2JSON(self,XMLentityType):
+        """
+        private method to translate XML format entity names to JSON format entity names.
+        :param entityType: naming of the entity in the XML file format
+        :returns: naming of the entity in the JSON file format. Null if provided entity name could not be interpreted.
+        """
         switcher = {
             "BUSINESS_TRANSACTION": "BUSINESS_TRANSACTION_PERFORMANCE",
             "NODE_HEALTH_TRANSACTION_PERFORMANCE": "TIER_NODE_TRANSACTION_PERFORMANCE",
@@ -36,12 +37,12 @@ class HealthRuleDict(AppEntity):
         }
         return switcher.get(XMLentityType, XMLentityType)
 
-    ###
-     # private method to translate stream containing healthrules in XML format, to JSON format structure
-     # @param streamdata the stream data in XML format
-     # @return stream data in JSON format.
-    ###
     def __parse_healthrules_XML(self,streamdata):
+        """
+        private method to translate stream containing healthrules in XML format, to JSON format structure
+        :param streamdata: the stream data in XML format
+        :returns: stream data in JSON format.
+        """
         try:
             root = ET.fromstring(streamdata)
         except:
@@ -80,13 +81,14 @@ class HealthRuleDict(AppEntity):
 
         return healthrules
 
-    ###
-     # private method to translate ElementTree XML object containing affected-entities-match-criteria data to JSON data
-     # @param element the ElementTree XML object
-     # @param entityType the type of the ElementTree object
-     # @return stream data in JSON format.
-    ###
+
     def __parse_affects_from_XML(self,element,entityType):
+        """
+        private method to translate ElementTree XML object containing affected-entities-match-criteria data to JSON data
+        :param element: the ElementTree XML object
+        :param entityType: the type of the ElementTree object
+        :returns: stream data in JSON format.
+        """
         affects = {"affectedEntityType": self.__entityXML2JSON(entityType)}
 
         # 1) Overall Application Performance (load,response time,num slow calls)
@@ -236,13 +238,14 @@ class HealthRuleDict(AppEntity):
 
         return affects
 
-    ###
-     # private method to translate ElementTree XML object containing critical or warning execution-criteria data to JSON data
-     # @param element the ElementTree XML object
-     # @param entityType the type of the ElementTree object
-     # @return stream data in JSON format.
-    ###
+
     def __parse_evalCriterias_from_XML(self,element):
+        """
+        private method to translate ElementTree XML object containing critical or warning execution-criteria data to JSON data
+        :param element: the ElementTree XML object
+        :param entityType: the type of the ElementTree object
+        :returns: stream data in JSON format.
+        """
         def go_over_condition_tree(element):
             if element.find('type').text == 'leaf':
                 criteria['conditions'].append(parse_condition(element))
@@ -337,12 +340,13 @@ class HealthRuleDict(AppEntity):
         return criteria
 
 
-    ###
-     # toString private method, extracts affects from health rule
-     # @param healthrule JSON data containing a health rule
-     # @return string with a comma separated list of affects
-    ###
+
     def __str_healthrule_affects(self,healthrule):
+        """
+        toString private method, extracts affects from health rule
+        :param healthrule: JSON data containing a health rule
+        :returns: string with a comma separated list of affects
+        """
         if 'affects' not in healthrule:
             Affects=""
         elif healthrule['affects']['affectedEntityType']=="OVERALL_APPLICATION_PERFORMANCE":
@@ -417,12 +421,13 @@ class HealthRuleDict(AppEntity):
         else: Affects=""
         return Affects
 
-    ###
-     # toString private method, extracts critical conditions from health rule
-     # @param healthrule JSON data containing a health rule
-     # @return string with a comma separated list of critical conditions
-    ###
+
     def __str_healthrule_critical_conditions(self,healthrule):
+        """
+        toString private method, extracts critical conditions from health rule
+        :param healthrule: JSON data containing a health rule
+        :returns: string with a comma separated list of critical conditions
+        """
         if 'evalCriterias' not in healthrule or 'criticalCriteria' not in healthrule['evalCriterias'] or healthrule['evalCriterias']['criticalCriteria'] is None:
             CritCondition = ""
         elif 'conditionExpression' in healthrule['evalCriterias']['criticalCriteria']:
@@ -449,13 +454,14 @@ class HealthRuleDict(AppEntity):
 
     ###### FROM HERE PUBLIC METHODS ######
 
-    ###
-     # Generate CSV output from health rules data
-     # @param appID_List list of application IDs, in order to obtain health rules from local health rules dictionary
-     # @param fileName output file name
-     # @return None
-    ###
+
     def generate_CSV(self,appID_List,fileName=None):
+        """
+        Generate CSV output from health rules data
+        :param appID_List: list of application IDs, in order to obtain health rules from local health rules dictionary
+        :param fileName: output file name
+        :returns: None
+        """
         if type(appID_List) is not list or len(appID_List)==0: return
 
         if fileName is not None:
@@ -498,13 +504,14 @@ class HealthRuleDict(AppEntity):
         if 'DEBUG' in locals(): print "INFO: Displayed number of health rules:" + str(len(healthrules))
         if fileName is not None: csvfile.close()
 
-    ###
-     # Load health rules from a stream data in JSON or XML format.
-     # @param streamdata the stream data in JSON or XML format
-     # @param appID the ID number of the application where to load the health rule data.
-     # @return the number of loaded health rules. Zero if no health rule was loaded.
-    ###
+
     def load(self,streamdata,appID=None):
+        """
+        Load health rules from a stream data in JSON or XML format.
+        :param streamdata: the stream data in JSON or XML format
+        :param appID: the ID number of the application where to load the health rule data.
+        :returns: the number of loaded health rules. Zero if no health rule was loaded.
+        """
         if appID is None: appID = 0
         healthrules = self.__parse_healthrules_XML(streamdata)
         if len(healthrules) == 0:

@@ -14,13 +14,14 @@ class NodeDict(AppEntity):
     def __init__(self):
         self.entityDict = dict()
 
-    ###
-     # Update nodes availability with the last hour availability percentage
-     # @source https://community.appdynamics.com/t5/Controller-SaaS-On-Premise/Export-app-and-machine-agent-status-by-Rest-Api/m-p/38378#M1983
-     # @param app_ID the application ID number where to look for node availability
-     # @return the number of updated nodes. Zero if no node was updated.
-    ###
+
     def __update_availability_nodes(self,app_ID):
+        """
+        Update nodes availability with the last hour availability percentage
+        https://community.appdynamics.com/t5/Controller-SaaS-On-Premise/Export-app-and-machine-agent-status-by-Rest-Api/m-p/38378#M1983
+        :param app_ID: the application ID number where to look for node availability
+        :returns: the number of updated nodes. Zero if no node was updated.
+        """
         updated = 0
         if str(app_ID) in self.entityDict:
             nodeList = [ node['id'] for node in self.entityDict[str(app_ID)] ]
@@ -44,13 +45,14 @@ class NodeDict(AppEntity):
 
     ###### FROM HERE PUBLIC FUNCTIONS ######
 
-    ###
-     # Generate CSV output from nodes data
-     # @param appID_List list of application IDs, in order to obtain nodes from local nodes dictionary
-     # @param fileName output file name
-     # @return None
-    ###
+
     def generate_CSV(self,appID_List,fileName=None):
+        """
+        Generate CSV output from nodes data
+        :param appID_List: list of application IDs, in order to obtain nodes from local nodes dictionary
+        :param fileName: output file name
+        :returns: None
+        """
         if type(appID_List) is not list or len(appID_List)==0: return
 
         if fileName is not None:
@@ -89,12 +91,13 @@ class NodeDict(AppEntity):
                     return (-1)
         if fileName is not None: csvfile.close()
 
-    ###
-     # Load node details for all nodes from an application
-     # @param app_ID the ID number of the application nodes to fetch
-     # @return the number of fetched nodes. Zero if no node was found.
-    ###
+
     def load_details(self,app_ID):
+        """
+        Load node details for all nodes from an application
+        :param app_ID: the ID number of the application nodes to fetch
+        :returns: the number of fetched nodes. Zero if no node was found.
+        """
         if str(app_ID) in self.entityDict:
             index = 0
             for node in self.entityDict[str(app_ID)]:
@@ -114,13 +117,14 @@ class NodeDict(AppEntity):
             print (self)
         return 0
 
-    ###
-     # Update node status for a list of applications.
-     # @param appID_List list of application IDs to fetch nodes
-     # @param selectors fetch only nodes filtered by specified selectors
-     # @return the number of updated nodes. Zero if no node was found.
-    ###
+
     def update(self,appID_List,selectors=None):
+        """
+        Update node status for a list of applications.
+        :param appID_List: list of application IDs to fetch nodes
+        :param selectors: fetch only nodes filtered by specified selectors
+        :returns: the number of updated nodes. Zero if no node was found.
+        """
         DEBUG=True
         updated = 0
         for appID in appID_List:
@@ -137,13 +141,14 @@ class NodeDict(AppEntity):
             updated += len(unavailNodeList)
         return updated
 
-    ###
-     # Get the name for a tier ID. Fetch tiers data if not loaded yet.
-     # @param appID the ID of the application
-     # @param tierID the ID of the tier
-     # @return the name of the specified tier ID.
-    ###
+
     def getTierName(self,app_ID,tierID):
+        """
+        Get the name for a tier ID. Fetch tiers data if not loaded yet.
+        :param appID: the ID of the application
+        :param tierID: the ID of the tier
+        :returns: the name of the specified tier ID.
+        """
         if tierID <= 0: return 0
         if str(app_ID) in self.entityDict:
             for node in self.entityDict[str(app_ID)]:
@@ -151,13 +156,14 @@ class NodeDict(AppEntity):
                     return node['tierName']
         return ""
 
-    ###
-     # Get the name for a node ID. Fetch nodes data if not loaded yet.
-     # @param appID the ID of the application
-     # @param nodeID the ID of the node
-     # @return the name of the specified node ID.
-    ###
+
     def getNodeName(self,app_ID,nodeID):
+        """
+        Get the name for a node ID. Fetch nodes data if not loaded yet.
+        :param appID: the ID of the application
+        :param nodeID: the ID of the node
+        :returns: the name of the specified node ID.
+        """
         if nodeID <= 0: return 0
         if str(app_ID) in self.entityDict:
             for node in self.entityDict[str(app_ID)]:

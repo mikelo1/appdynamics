@@ -14,14 +14,14 @@ class BusinessTransactionDict(AppEntity):
 
     ###### FROM HERE PUBLIC FUNCTIONS ######
 
-    ###
-     # Generate CSV output from business transactions data
-     # @param appID_List list of application IDs, in order to obtain business transactions from local business transactions dictionary
-     # @param custom_transactionDict dictionary containing business transactions
-     # @param fileName output file name
-     # @return None
-    ###
     def generate_CSV(self,appID_List,fileName=None):
+        """
+        Generate CSV output from business transactions data
+        :param appID_List: list of application IDs, in order to obtain business transactions from local business transactions dictionary
+        :param custom_transactionDict: dictionary containing business transactions
+        :param fileName: output file name
+        :returns: None
+        """
         if type(appID_List) is not list or len(appID_List)==0: return
 
         if fileName is not None:
@@ -59,13 +59,14 @@ class BusinessTransactionDict(AppEntity):
                     exit(1)
             if fileName is not None: csvfile.close()
 
-    ###
-     # Get the ID for a business transaction name.
-     # @param appID the ID of the application
-     # @param transactionName the name of the business transaction
-     # @return the ID of the specified business transaction name. Zero if no business transaction was found.
-    ###
+
     def get_business_transaction_ID(self,appID,transactionName):
+        """
+        Get the ID for a business transaction name.
+        :param appID: the ID of the application
+        :param transactionName: the name of the business transaction
+        :returns: the ID of the specified business transaction name. Zero if no business transaction was found.
+        """
         if appID < 0: return 0
         if str(appID) in self.entityDict:
             for transaction in self.entityDict[str(appID)]:
@@ -73,13 +74,13 @@ class BusinessTransactionDict(AppEntity):
                     return transaction['id']
         return 0
 
-    ###
-     # Get the name for a business transaction ID. Fetch business transaction data if not loaded yet.
-     # @param appID the ID of the application
-     # @param transactionID the ID of the business transaction
-     # @return the name of the specified business transaction ID. Empty string if no business transaction was found.
-    ###
     def get_business_transaction_name(self,appID,transactionID):
+        """
+        Get the name for a business transaction ID. Fetch business transaction data if not loaded yet.
+        :param appID: the ID of the application
+        :param transactionID: the ID of the business transaction
+        :returns: the name of the specified business transaction ID. Empty string if no business transaction was found.
+        """
         if appID <= 0 or transactionID <= 0: return None
         if str(appID) in self.entityDict:
             for transaction in entityDict[str(appID)]:
@@ -87,12 +88,13 @@ class BusinessTransactionDict(AppEntity):
                     return transaction['name']
         return ""
 
-    ###
-     # Get the list of business transaction names for an application.
-     # @param appID the ID of the application
-     # @return the list of business application names of the specified application ID. None if no business transaction was found.
-    ###
+
     def get_business_transaction_nameList(self,appID):
+        """
+        Get the list of business transaction names for an application.
+        :param appID: the ID of the application
+        :returns: the list of business application names of the specified application ID. None if no business transaction was found.
+        """
         if appID < 0: return None
         if str(appID) in self.entityDict:
             return [transaction['name'] for transaction in custom_transactionDict[str(appID)]]

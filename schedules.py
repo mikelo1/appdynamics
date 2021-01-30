@@ -23,12 +23,13 @@ class ScheduleDict(AppEntity):
             if str(app_ID) in entityDict:
                 print (entityDict[str(app_ID)])
 
-    ###
-     # toString private method, extracts start time from schedule
-     # @param schedule JSON data containing a schedule
-     # @return string with a start time
-    ###
+
     def __str_schedule_start(self,schedule):
+        """
+        toString private method, extracts start time from schedule
+        :param schedule: JSON data containing a schedule
+        :returns: string with a start time
+        """
         if 'scheduleConfiguration' in schedule:
             scheduleConfig = schedule['scheduleConfiguration']
             if 'startCron' in scheduleConfig:
@@ -41,12 +42,13 @@ class ScheduleDict(AppEntity):
                 return scheduleConfig['startTime']
         return ""
 
-    ###
-     # toString private method, extracts end time from schedule
-     # @param schedule JSON data containing a schedule
-     # @return string with a end time
-    ###
+
     def __str_schedule_end(self,schedule):
+        """
+        toString private method, extracts end time from schedule
+        :param schedule: JSON data containing a schedule
+        :returns: string with a end time
+        """
         if 'scheduleConfiguration' in schedule:
             scheduleConfig = schedule['scheduleConfiguration']
             if 'endCron' in scheduleConfig:
@@ -63,13 +65,14 @@ class ScheduleDict(AppEntity):
     ###### FROM HERE PUBLIC FUNCTIONS ######
 
 
-    ###
-     # Generate CSV output from schedules data
-     # @param appID_List list of application IDs, in order to obtain schedules from local schedules dictionary
-     # @param fileName output file name
-     # @return None
-    ###
+
     def generate_CSV(self,appID_List,fileName=None):
+        """
+        Generate CSV output from schedules data
+        :param appID_List: list of application IDs, in order to obtain schedules from local schedules dictionary
+        :param fileName: output file name
+        :returns: None
+        """
         if type(appID_List) is not list or len(appID_List)==0: return
 
         if fileName is not None:
@@ -110,12 +113,13 @@ class ScheduleDict(AppEntity):
                     return (-1)
         if fileName is not None: csvfile.close()
 
-    ###
-     # Load schedule details for all schedules from an application
-     # @param app_ID the ID number of the application schedules to fetch
-     # @return the number of fetched schedules. Zero if no schedule was found.
-    ###
+
     def load_details(self,app_ID):
+        """
+        Load schedule details for all schedules from an application
+        :param app_ID: the ID number of the application schedules to fetch
+        :returns: the number of fetched schedules. Zero if no schedule was found.
+        """
         if str(app_ID) in self.entityDict:
             index = 0
             for schedule in self.entityDict[str(app_ID)]:
@@ -135,14 +139,15 @@ class ScheduleDict(AppEntity):
             print self
         return 0
 
-    ###
-     # Patch schedules for a list of applications, using a schedule data input.
-     # @param appID_List list of application IDs to update schedules
-     # @param source schedule data input in JSON format.
-     # @param selectors update only schedules filtered by specified selectors
-     # @return the number of updated schedules. Zero if no schedule was updated.
-    ###
+
     def patch(self,appID_List,source,selectors=None):
+        """
+        Patch schedules for a list of applications, using a schedule data input.
+        :param appID_List: list of application IDs to update schedules
+        :param source: schedule data input in JSON format.
+        :param selectors: update only schedules filtered by specified selectors
+        :returns: the number of updated schedules. Zero if no schedule was updated.
+        """
         # Verify if the source is a file or stream JSON data
         try:
             # Load data from stream
