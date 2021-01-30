@@ -18,11 +18,8 @@ class AppEntity:
             count += len(self.entityDict[str(appID)])
         return count
 
-    def whoami(self):
-         return self.__class__
-
     def info(self):
-        return "Number of entities in ", self.whoami(), self.count()
+        return "Class ",self.__class__,"Number of entities in ", hex(id(self.entityDict)), self.count()
 
     def fetch(self,appID,selectors=None):
         """
@@ -76,18 +73,23 @@ class AppEntity:
         :param fileName: output file name
         :returns: None
         """
-        if type(appID_List) is not list or len(appID_List)==0: return
-        entityList = [ self.entityDict[str(appID)]  for appID in appID_List ]
+        if type(appID_List) is list and len(appID_List) > 1:
+            entities = [ self.entityDict[str(appID)]  for appID in appID_List ]
+        elif type(appID_List) is list and len(appID_List) == 1:
+            entities = self.entityDict[str(appID_List[0])]
+        else:
+            entities = {}
+
         if fileName is not None:
             try:
                 with open(fileName, 'w') as outfile:
-                    json.dump(entityList, outfile)
+                    json.dump(entities, outfile)
                 outfile.close()
             except:
                 sys.stderr.write("Could not open output file " + fileName + ".")
                 return (-1)
         else:
-            print json.dumps(entityList)
+            print json.dumps(entities)
 
 
 class ControllerEntity:
@@ -102,11 +104,9 @@ class ControllerEntity:
     def count(self):
         return len(self.entityDict)
 
-    def whoami(self):
-        return self.__class__
 
     def info(self):
-        return "Number of entities in ", self.whoami(), self.count()
+        return "Class ",self.__class__,"Number of entities in ", hex(id(self.entityDict)), self.count()
 
     def fetch(self,selectors=None):
         """
