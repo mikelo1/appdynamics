@@ -51,8 +51,8 @@ class AppEntity:
         if appID is None: appID = 0
         try:
             entities = json.loads(streamdata)
-        except TypeError as error:
-            sys.stderr.write("load_entities: "+str(error))
+        except (TypeError,ValueError) as error:
+            if 'DEBUG' in locals(): sys.stderr.write("load_AppEntity("+str(appID)+"): "+str(error)+"\n")
             return 0
         # Add loaded entities to the entities dictionary
         if type(entities) is dict:
@@ -149,8 +149,8 @@ class ControllerEntity:
         """
         try:
             entities = json.loads(streamdata)
-        except TypeError as error:
-            sys.stderr.write("load_entities: "+str(error))
+        except (TypeError,ValueError) as error:
+            if 'DEBUG' in locals(): sys.stderr.write("load_ControllerEntity("+str(appID)+"): "+str(error)+"\n")
             return 0
         for entity in entities:
             # Add loaded entities to the entity dictionary
