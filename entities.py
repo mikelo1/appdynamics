@@ -63,8 +63,22 @@ class AppEntity:
             self.entityDict[str(appID)].extend(entities)
         return len(entities)
 
+    def verify(self,streamdata):
+        """
+        Verify that input stream contains entity data.
+        :param streamdata: the stream data
+        :returns: True if the stream data contains an entyty. False otherwise.
+        """
+        raise NotImplementedError("Don't forget to implement the verify function!")
+
     def generate_CSV(self,appID_List,fileName=None):
-        pass
+        """
+        Generate CSV output from dictionary data
+        :param appID_List: list of application IDs, in order to obtain entities from local entities dictionary
+        :param fileName: output file name
+        :returns: None
+        """
+        raise NotImplementedError("Don't forget to implement the generate_CSV function!")
 
     def generate_JSON(self,appID_List,fileName=None):
         """
@@ -94,6 +108,7 @@ class AppEntity:
 
 class ControllerEntity:
     entityDict = dict()
+    entityAPIFunctions = {} # {'fetch': RESTfulAPI().fetch_entity}
 
     def __init__(self):
         pass
@@ -118,9 +133,22 @@ class ControllerEntity:
         return self.load(streamdata=data)
 
 
-    def generate_CSV(self,fileName=None):
-        pass
+    def verify(self,streamdata):
+        """
+        Verify that input stream contains entity data.
+        :param streamdata: the stream data
+        :returns: True if the stream data contains an entyty. False otherwise.
+        """
+        raise NotImplementedError("Don't forget to implement the verify function!")
 
+    def generate_CSV(self,fileName=None):
+        """
+        Generate CSV output from dictionary data
+        :param appID_List: list of application IDs, in order to obtain entities from local entities dictionary
+        :param fileName: output file name
+        :returns: None
+        """
+        raise NotImplementedError("Don't forget to implement the generate_CSV function!")
 
     def generate_JSON(self,fileName=None):
         """
@@ -128,17 +156,16 @@ class ControllerEntity:
         :param fileName: output file name
         :returns: None
         """
-        data = [ self.entityDict[entityID] for entityID in self.entityDict ]
         if fileName is not None:
             try:
                 with open(fileName, 'w') as outfile:
-                    json.dump(data, outfile)
+                    json.dump(self.entityDict, outfile)
                 outfile.close()
             except:
                 sys.stderr.write("Could not open output file " + fileName + ".")
                 return (-1)
         else:
-            print json.dumps(data)
+            print json.dumps(self.entityDict)
 
 
     def load(self,streamdata):
@@ -152,8 +179,5 @@ class ControllerEntity:
         except (TypeError,ValueError) as error:
             if 'DEBUG' in locals(): sys.stderr.write("load_ControllerEntity("+str(appID)+"): "+str(error)+"\n")
             return 0
-        for entity in entities:
-            # Add loaded entities to the entity dictionary
-            entityID = entity['id']
-            self.entityDict.update({str(entityID):entity})
+        self.entityDict=entities
         return len(entities)
