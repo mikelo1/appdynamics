@@ -634,18 +634,17 @@ class RESTfulAPI:
         return self.__create_RESTful_JSON(restfulPath,JSONdata=data)
 
 
-    def fetch_health_rules(self,app_ID,selectors=None):
+    def fetch_health_rule_details(self,app_ID,entityID):
         """
         Fetch health rules from a controller - Using the new API call
         :param app_ID: the ID number of the health rules to fetch
-        :param selectors: fetch only health rules filtered by specified selectors
+        :param entityID: the ID number of the health rule to fetch
         :returns: the fetched data. Null if no data was received.
         """
-        # Retrieve a list of Health Rules for an Application
-        # GET <controller_url>/controller/alerting/rest/v1/applications/<application_id>/health-rules
-        restfulPath = "/controller/alerting/rest/v1/applications/" + str(app_ID) + "/health-rules"
+        # Retrieve complete details of the health rule for the specified application ID
+        # GET <controller_url>/controller/alerting/rest/v1/applications/<application_id>/health-rules/{health-rule-id}
+        restfulPath = "/controller/alerting/rest/v1/applications/" + str(app_ID) + "/health-rules/" + str(entityID)
         params = {"output": "JSON"}
-        if selectors: params.update(selectors)
         return self.__fetch_RESTfulPath(restfulPath,params=params)
 
     def fetch_health_rules_legacy(self,app_ID,selectors=None):
@@ -662,7 +661,6 @@ class RESTfulAPI:
         if selectors: params.update(selectors)
         return self.__fetch_RESTfulPath(restfulPath,params=params)
 
-
     def fetch_health_rules_with_IDs(self,app_ID,selectors=None):
         """
         Fetch health rules from a controller - Using the legacy API call
@@ -675,6 +673,18 @@ class RESTfulAPI:
         if selectors: params.update(selectors)
         return self.__fetch_RESTfulPath(restfulPath,params=params)
 
+    def update_health_rule(self,app_ID,healthrule_ID,healthruleJSON):
+        """
+        Update application healthrule from a controller. Provide either an username/password or an access token.
+        :param app_ID: the ID number or name of the application where to update the healthrule
+        :param healthrule_ID: the ID number of the healthrule to update
+        :param healthruleJSON: the JSON data of the healthrule to update
+        :returns: the fetched data. Null if no data was received.
+        """
+        # Updates an existing health rule (required fields) with details from the specified health rule ID. See Property Details
+        # PUT <controller_url>/controller/alerting/rest/v1/applications/<application_id>/health-rules/{health-rule-id}
+        restfulPath = "/controller/alerting/rest/v1/applications/" + str(app_ID) + "/health-rules/" + str(healthrule_ID)
+        return self.__update_RESTful_JSON(restfulPath,scheduleJSON)
 
     def fetch_policies(self,app_ID):
         """
