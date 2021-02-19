@@ -2,7 +2,7 @@
 import json
 import csv
 import sys
-from applications import ApplicationDict
+from applications import applications
 from appdRESTfulAPI import RESTfulAPI
 from entities import AppEntity
 
@@ -60,7 +60,7 @@ class BackendDict(AppEntity):
 
 class EntrypointDict(AppEntity):
     entityAPIFunctions = {'fetch': RESTfulAPI().fetch_entrypoints_TierRules}
-    entityKeyword = "entryPointType"
+    entityKeyword = "hierarchicalConfigKey"
 
     ###### FROM HERE PUBLIC FUNCTIONS ######
 
@@ -71,9 +71,9 @@ class EntrypointDict(AppEntity):
         :param selectors: fetch only entities filtered by specified selectors
         :returns: the number of fetched entities. Zero if no entity was found.
         """
-        ApplicationDict().load_tiers_and_nodes(appID)
+        applications.load_tiers_and_nodes(appID)
         count = 0
-        for tierID in ApplicationDict().getTiers_ID_List(appID):
+        for tierID in applications.getTiers_ID_List(appID):
             data = self.entityAPIFunctions['fetch'](tier_ID=tierID,selectors=selectors)
             count += self.load(streamdata=data,appID=appID)
         return count
@@ -113,7 +113,7 @@ class EntrypointDict(AppEntity):
                 reload(sys)
                 sys.setdefaultencoding('utf8')
                 name = entrypoint['definitionName'].encode('ascii', 'ignore')
-                tierName = ApplicationDict().getTierName(appID,entrypoint['hierarchicalConfigKey']['attachedEntity']['entityId'])
+                tierName = applications.getTierName(appID,entrypoint['hierarchicalConfigKey']['attachedEntity']['entityId'])
                 matchCondition = entrypoint['matchPointRule']['uri']['matchType']+"  "+entrypoint['matchPointRule']['uri']['matchPattern']
                 if entrypoint['matchPointRule']['uri']['inverse'] == True: matchCondition = "NOT "+matchCondition
                 
