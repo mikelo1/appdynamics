@@ -2,7 +2,7 @@
 import json
 import csv
 import sys
-from applications import ApplicationDict
+from applications import applications
 from appdRESTfulAPI import RESTfulAPI
 from entities import AppEntity
 from policies import PolicyDict
@@ -134,7 +134,7 @@ class ActionDict(AppEntity):
                     header_is_printed=True
                 try:
                     filewriter.writerow({'ActionName': action['name'].encode('ASCII', 'ignore'),
-                                        'Application': ApplicationDict().getAppName(appID),
+                                        'Application': applications.getAppName(appID),
                                         'ActionType': action['actionType'],
                                         'Recipients': self.__str_action_recipients(action),
                                         'Policies': "", #PolicyDict().get_policies_matching_action(app_ID,action['name']),
@@ -161,3 +161,6 @@ class ActionDict(AppEntity):
                     continue
                 self.entityDict[str(appID)][index] = actionJSON
                 index = index + 1
+
+# Global object that works as Singleton
+actions = ActionDict()

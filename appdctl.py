@@ -4,23 +4,40 @@ import os.path
 import re
 from datetime import datetime, timedelta
 import time
-from appdRESTfulAPI import RESTfulAPI, AppD_Configuration
-from rbac import RBACDict
-from settings import ConfigurationDict
-from applications import ApplicationDict
-from dashboards import DashboardDict
-from nodes import NodeDict
-from transactiondetection import DetectionruleDict
-from businesstransactions import BusinessTransactionDict
-from backends import BackendDict, EntrypointDict
-from healthrules import HealthRuleDict
-from policies import PolicyDict
-from schedules import ScheduleDict
-from actions import ActionDict
-from events import EventDict
-from snapshots import SnapshotDict
+from appdRESTfulAPI import AppD_Configuration
+from applications import applications
+from dashboards import dashboards
+from rbac import users
+from settings import config
+from nodes import nodes
+from transactiondetection import transactiondetection
+from businesstransactions import businesstransactions
+from backends import backends, entrypoints
+from healthrules import healthrules
+from policies import policies
+from actions import actions
+from schedules import schedules
+from events import events
+from snapshots import snapshots
 from optparse import OptionParser, OptionGroup
+import json
 
+entityDict =  { 'applications': applications,
+                'dashboards': dashboards,
+                'config': config,
+                'users': users,
+                'nodes': nodes,
+                'detection-rules': transactiondetection,
+                'businesstransactions': businesstransactions,
+                'backends': backends,
+                'entrypoints': entrypoints,
+                'healthrules': healthrules,
+                'policies': policies,
+                'actions': actions,
+                'schedules': schedules,
+                'healthrule-violations': events,
+                'snapshots': snapshots,
+              }
 
 def time_to_minutes(string):
   total = 0
@@ -83,20 +100,15 @@ def get_help(COMMAND,SUBCOMMAND=None,output=sys.stdout):
                 "  appdctl config SUBCOMMAND [options]\n\n")
 
 def get_application_list():
-    appDict = ApplicationDict()
     if not options.applications and not options.allApplications:
         optParser.error("Missing application (use -A for all applications)")
         return []
     elif options.applications:
-      #data = entityObjects['applications']['function']()
-      #ApplicationDict().load(data)
-      appDict.fetch()
-      return [ appDict.getAppID(appName) for appName in options.applications.split(',') if appDict.getAppID(appName) is not None ]
+      applications.fetch()
+      return [ applications.getAppID(appName) for appName in options.applications.split(',') if applications.getAppID(appName) is not None ]
     else: # if options.allApplications:
-      #data = entityObjects['applications']['function']()
-      #ApplicationDict().load(data)
-      appDict.fetch()
-      return appDict.get_application_ID_list()
+      applications.fetch()
+      return applications.get_application_ID_list()
 
 usage = "usage: %prog [get|login|update|patch] [options]"
 epilog= "examples: %prog get applications"
@@ -140,25 +152,6 @@ optParser.add_option_group(groupQuery)
 if len(args) < 1:
     optParser.error("incorrect number of arguments")
     exit()
-
-entityObjects = { 'help': {'class': None, 'function': get_help},
-                  'applications': {'class': ApplicationDict},
-                  'dashboards': {'class': DashboardDict},
-                  'config': {'class': ConfigurationDict},
-                  'users': {'class': RBACDict},
-                  'nodes': {'class': NodeDict},
-                  'detection-rules': {'class': DetectionruleDict},
-                  'businesstransactions': {'class': BusinessTransactionDict},
-                  'backends': {'class': BackendDict},
-                  'entrypoints': {'class': EntrypointDict},
-                  'healthrules': {'class': HealthRuleDict},
-                  'policies': {'class': PolicyDict},
-                  'actions': {'class': ActionDict},
-                  'schedules': {'class': ScheduleDict},
-                  'healthrule-violations': {'class': EventDict},
-                  'snapshots': {'class': SnapshotDict},
-                  'allothertraffic': {'class': SnapshotDict}
-                }
  
 COMMAND = args[0]
 
@@ -266,23 +259,15 @@ elif COMMAND.lower() == "get":
       sys.stderr.write("Don't know what to do with "+options.filename+"\n")
       exit()
 
-#    functions = { 'load_healthrule-violations':get_healthrule_violations_from_stream,
-#                  'load_snapshots':get_snapshots_from_stream
-#                }
-#    for key in functions:
-#      functions[key](data,outputFormat=options.outFormat)
-#
-#    if 'loadData' in locals():
-#        index = 0
-#        for schedule in schedules:
-#            if 'DEBUG' in locals(): print ("Fetching schedule "+str(schedule['id'])+" for App " + app_ID + "...")
-#            schedFileName=inFileName[:inFileName.find('.json')]+"/"+str(schedule['id'])+".json"
-#            try:
-#                sched_json_file = open(schedFileName)
-#                scheduleJSON = json.load(sched_json_file)
-#            except:
-#                print ("Could not process JSON file " + schedFileName)
-#                continue
+    entityList = [ entity for entity in entityDict if entityDict[entity].verify(streamdata=data) ]
+    if 'DEBUG' in locals(): sys.stderr.write("INFO: Found "+options.filename+" to be a "+str(entity)+" file.\n")
+    if len(entityList) == 0: exit()
+    entityObj = entityDict[entityList[0]]
+    entityObj.load(streamdata=data)
+#    if options.outFormat and options.outFormat == "JSON":
+#      entityObj.generate_JSON(appID_List=[0])
+#    elif not options.outFormat or options.outFormat == "CSV":
+#      entityObj.generate_CSV(appID_List=[0])
     exit()
 
   if len(args) < 2:
@@ -302,38 +287,38 @@ elif COMMAND.lower() == "get":
       selectors.update({selector.split('=')[0]:selector.split('=')[1]})
 
   if ENTITY == 'help':
-    entityObjects[ENTITY]['function'](COMMAND)
+    get_help(COMMAND)
 
   elif ENTITY in ['applications','dashboards','config','users']:
-    entityDict = entityObjects[ENTITY]['class']()
-    #data = entityObjects[ENTITY]['function']()
-    #entityDict.load(data)
-    entityDict.fetch()
+    entityObj = entityDict[ENTITY]
+    entityObj.fetch()
     if options.outFormat and options.outFormat == "JSON":
-        entityDict.generate_JSON()
+        entityObj.generate_JSON()
     elif not options.outFormat or options.outFormat == "CSV":
-        entityDict.generate_CSV()
+        entityObj.generate_CSV()
 
   elif ENTITY in ['nodes','detection-rules','businesstransactions','backends','entrypoints','healthrules','policies','actions','schedules']:
-    applicationList = get_application_list()
     current_context = AppD_Configuration().get_current_context(output="None")
+    applicationList = get_application_list()
+    if len(applicationList) == 0:
+      sys.stderr.write("\rget "+ENTITY+" ("+current_context+"): no application was found.\n")
+      exit()
+
     index = 0
     sys.stderr.write("get "+ENTITY+" ("+current_context+")... 0%")
     sys.stderr.flush()
-    entityDict = entityObjects[ENTITY]['class']()
+    entityObj = entityDict[ENTITY]
     for appID in applicationList:
         index += 1
         percentage = index*100/len(applicationList)
         sys.stderr.write("\rget "+ENTITY+" ("+current_context+")... " + str(percentage) + "%")
         sys.stderr.flush()
-        #data = entityObjects[ENTITY]['function'](appID,selectors=selectors)
-        #entityDict.load(data,appID=appID)
-        entityDict.fetch(appID=appID)
+        entityObj.fetch(appID=appID)
     sys.stderr.write("\n")
     if options.outFormat and options.outFormat == "JSON":
-        entityDict.generate_JSON(appID_List=applicationList)
+        entityObj.generate_JSON(appID_List=applicationList)
     elif not options.outFormat or options.outFormat == "CSV":
-        entityDict.generate_CSV(appID_List=applicationList)
+        entityObj.generate_CSV(appID_List=applicationList)
 
   elif ENTITY in ['healthrule-violations','snapshots','allothertraffic']:
     if options.since is None:
@@ -345,19 +330,24 @@ elif COMMAND.lower() == "get":
     if minutes == 0:
       optParser.error("Specified duration not correctly formatted. (use --since=<days>d<hours>h<minutes>m format)")
       exit()
+
     if ENTITY == "allothertraffic":
-      AllOtherTraffic_ID = get_business_transaction_ID(appID,"_APPDYNAMICS_DEFAULT_TX_")
+      AllOtherTraffic_ID = businesstransactions.get_business_transaction_ID(appID=appID,transactionName="_APPDYNAMICS_DEFAULT_TX_")
       if AllOtherTraffic_ID == 0:
         sys.stderr.write("All Other Traffic transaction not found in application "+str(appID)+"\n")
         exit()
       selectors.update({"business-transaction-ids": ''+str(AllOtherTraffic_ID)+''})
       ENTITY="snapshots"
-    applicationList = get_application_list()
+
     current_context = AppD_Configuration().get_current_context(output="None")
+    applicationList = get_application_list()
+    if len(applicationList) == 0:
+     sys.stderr.write("\rget "+ENTITY+" ("+current_context+"): no application was found.\n")
+     exit()
     index = 0
     sys.stderr.write("get "+ENTITY+" ("+current_context+")... 0%")
     sys.stderr.flush()
-    entityDict = entityObjects[ENTITY]['class']()
+    entityObj = entityDict[ENTITY]
     for appID in applicationList:
         index += 1
         percentage = index*100/len(applicationList)
@@ -366,15 +356,13 @@ elif COMMAND.lower() == "get":
         for i in range(minutes,0,-1440): # loop specified minutes in chunks of 1440 minutes (1 day)
             sinceTime = datetime.today()-timedelta(minutes=i)
             sinceEpoch= long(time.mktime(sinceTime.timetuple())*1000)
-            #data = entityObjects[ENTITY]['function'](appID,"AFTER_TIME",duration="1440",startEpoch=sinceEpoch,selectors=selectors)
-            #entityDict.load(data,appID=appID)
-            entityDict.fetch_after_time(appID=appID,duration="1440",sinceEpoch=sinceEpoch)
+            entityObj.fetch_after_time(appID=appID,duration="1440",sinceEpoch=sinceEpoch)
     sys.stderr.write("\n")
 
     if options.outFormat and options.outFormat == "JSON":
-        entityDict.generate_JSON(appID_List=applicationList)
+        entityObj.generate_JSON(appID_List=applicationList)
     elif not options.outFormat or options.outFormat == "CSV":
-        entityDict.generate_CSV(appID_List=applicationList)
+        entityObj.generate_CSV(appID_List=applicationList)
 
   else:
     optParser.error("incorrect entity \""+ENTITY+"\"")
@@ -392,10 +380,14 @@ elif COMMAND.lower() == "update":
     sys.stderr.write("Usage: appdctl update nodes [options]\n\n")
     exit()
   elif ENTITY in ['nodes']:
+    current_context = AppD_Configuration().get_current_context(output="None")
     applicationList = get_application_list()
+    if len(applicationList) == 0:
+     sys.stderr.write("\rget "+ENTITY+" ("+current_context+"): no application was found.\n")
+     exit()
 
-    entityDict = entityObjects[ENTITY]['class']()
-    entityDict.update(appID_List=applicationList)
+    entityObj = entityDict[ENTITY]
+    entityObj.update(appID_List=applicationList)
 
   else:
     optParser.error("incorrect entity \""+ENTITY+"\"")
@@ -410,17 +402,27 @@ elif COMMAND.lower() == "patch":
 
   ENTITY = args[1]
 
+  # create the filters list, if applies
+  if options.selector:
+    selectors = {}
+    for selector in options.selector.split(','):
+      selectors.update({selector.split('=')[0]:selector.split('=')[1]})
+
   if ENTITY == "help":
-    sys.stderr.write("Usage: appdctl patch [schedules] [options]\n\n")
+    sys.stderr.write("Usage: appdctl patch [healthrules|schedules] [options]\n\n")
     exit()
-  elif ENTITY in ['schedules']:
+  elif ENTITY in ['healthrules','schedules']:
+    current_context = AppD_Configuration().get_current_context(output="None")
     applicationList = get_application_list()
+    if len(applicationList) == 0:
+     sys.stderr.write("\rget "+ENTITY+" ("+current_context+"): no application was found.\n")
+     exit()
 
     if not options.patchJSON:
       optParser.error("Missing patch JSON.")
     else:
-      entityDict = entityObjects[ENTITY]['class']()
-      entityDict.patch(appID_List=applicationList,source=options.patchJSON)
+      entityObj = entityDict[ENTITY]
+      entityObj.patch(appID_List=applicationList,source=options.patchJSON,selectors=selectors)
   else:
     optParser.error("incorrect entity \""+ENTITY+"\"")
 

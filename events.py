@@ -4,7 +4,7 @@ import csv
 import sys
 from datetime import datetime, timedelta
 import time
-from applications import ApplicationDict
+from applications import applications
 from appdRESTfulAPI import RESTfulAPI
 from entities import AppEntity
 
@@ -122,7 +122,7 @@ class EventDict(AppEntity):
                     header_is_printed=True
 
                 app_ID  = policyviolation['deepLinkUrl'][policyviolation['deepLinkUrl'].find("application"):].split('&')[0].split('=')[1]
-                appName = ApplicationDict().getAppName(app_ID)
+                appName = applications.getAppName(app_ID)
 
                 try:
                     filewriter.writerow({'PolicyName': self.__str_event_policy(policyviolation),
@@ -138,3 +138,6 @@ class EventDict(AppEntity):
                     if fileName is not None: csvfile.close()
                     return (-1)
         if fileName is not None: csvfile.close()
+
+# Global object that works as Singleton
+events = EventDict()

@@ -4,9 +4,8 @@ import csv
 import sys
 from datetime import datetime, timedelta
 import time
-from nodes import NodeDict
-from policies import PolicyDict
-from applications import ApplicationDict
+from nodes import nodes
+from applications import applications
 from appdRESTfulAPI import RESTfulAPI
 from entities import AppEntity
 
@@ -111,9 +110,9 @@ class SnapshotDict(AppEntity):
                     header_is_printed=True
                 Time = datetime.fromtimestamp(float(snapshot['localStartTime'])/1000).strftime('%Y-%m-%d %H:%M:%S')
                 appID= snapshot['applicationId']
-                appName = ApplicationDict().getAppName(appID)
-                Tier = "" #NodeDict().getTierName(appID,snapshot['applicationComponentId'])
-                Node = "" #NodeDict().getNodeName(appID,snapshot['applicationComponentNodeId'])
+                appName = applications.getAppName(appID)
+                Tier = "" #nodes.getTierName(appID,snapshot['applicationComponentId'])
+                Node = "" #nodes.getNodeName(appID,snapshot['applicationComponentNodeId'])
                 Summary = snapshot['summary'].encode('ASCII', 'ignore') if 'summary' in snapshot else ""
 
                 try:
@@ -130,3 +129,6 @@ class SnapshotDict(AppEntity):
                     print ("Could not write to the output.")
                     continue
         if fileName is not None: csvfile.close()
+
+# Global object that works as Singleton
+snapshots = SnapshotDict()

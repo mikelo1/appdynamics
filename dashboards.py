@@ -70,3 +70,6 @@ class DashboardDict(ControllerEntity):
                 self.entityDict[count]=dashboardData
                 count += 1
         return count
+
+# Global object that works as Singleton
+dashboards = DashboardDict()

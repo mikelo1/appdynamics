@@ -3,7 +3,7 @@ import json
 import csv
 import sys
 from appdRESTfulAPI import RESTfulAPI
-from applications import ApplicationDict
+from applications import applications
 from entities import AppEntity
 
 class ScheduleDict(AppEntity):
@@ -103,7 +103,7 @@ class ScheduleDict(AppEntity):
                 try:
                     filewriter.writerow({'Name': schedule['name'],
                                          'Description': schedule['description'],
-                                         'Application': ApplicationDict().getAppName(appID),
+                                         'Application': applications.getAppName(appID),
                                          'Timezone': schedule['timezone'],
                                          'Frequency': schedule['scheduleConfiguration']['scheduleFrequency'] if 'scheduleConfiguration' in schedule else "",
                                          'Start': self.__str_schedule_start(schedule),
@@ -177,7 +177,7 @@ class ScheduleDict(AppEntity):
             if self.load(RESTfulAPI().fetch_schedules(appID,selectors=selectors),appID=appID) == 0 or self.load_details(appID) == 0:
                 sys.stderr.write("update_schedules: Failed to retrieve schedules for application " + str(appID) + "...\n")
                 continue
-            sys.stderr.write("update schedules " + ApplicationDict().getAppName(appID) + "...\n")
+            sys.stderr.write("update schedules " + applications.getAppName(appID) + "...\n")
             for schedule in self.entityDict[str(appID)]:
                 # Do the replacement in loaded data
                 schedule.update({"timezone": changesJSON['timezone']})
@@ -185,3 +185,6 @@ class ScheduleDict(AppEntity):
                 if RESTfulAPI().update_schedule(app_ID=appID,sched_ID=schedule['id'],scheduleJSON=schedule) == True:
                     numSchedules = numSchedules + 1
         return numSchedules
+
+# Global object that works as Singleton
+schedules = ScheduleDict()

@@ -2,7 +2,7 @@
 import json
 import csv
 import sys
-from applications import ApplicationDict
+from applications import applications
 from appdRESTfulAPI import RESTfulAPI
 from entities import AppEntity
 
@@ -160,7 +160,7 @@ class PolicyDict(AppEntity):
                     header_is_printed=True
                 try:
                     filewriter.writerow({'Policy': policy['name'].encode('ASCII', 'ignore'),
-                                         'Application': ApplicationDict().getAppName(appID),
+                                         'Application': applications.getAppName(appID),
                                          'Events': self.__str_policy_healthrules(policy),
                                          'Entities': self.__str_policy_entities(policy),
                                          'Actions': self.__str_policy_actions(policy)})
@@ -207,3 +207,7 @@ class PolicyDict(AppEntity):
 ####        get_policies_matching_Database
 ####        get_policies_matching_Service_Endpoint
 ####        get_policies_matching_Error
+
+
+# Global object that works as Singleton
+policies = PolicyDict()

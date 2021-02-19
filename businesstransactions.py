@@ -2,7 +2,7 @@
 import json
 import csv
 import sys
-from applications import ApplicationDict
+from applications import applications
 from appdRESTfulAPI import RESTfulAPI
 from entities import AppEntity
 
@@ -51,7 +51,7 @@ class BusinessTransactionDict(AppEntity):
 
                 try:
                     filewriter.writerow({'name': BT['name'].encode('ASCII', 'ignore'),
-                                         'Application': ApplicationDict().getAppName(appID),
+                                         'Application': applications.getAppName(appID),
                                          'entryPointType': BT['entryPointType'],
                                          'tierName': BT['tierName']})
                 except ValueError as valError:
@@ -100,3 +100,6 @@ class BusinessTransactionDict(AppEntity):
         if str(appID) in self.entityDict:
             return [transaction['name'] for transaction in custom_transactionDict[str(appID)]]
         return None
+
+# Global object that works as Singleton
+businesstransactions = BusinessTransactionDict()

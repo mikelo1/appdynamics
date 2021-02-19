@@ -69,3 +69,6 @@ class RBACDict(ControllerEntity):
                 self.entityDict[count] = userData
                 count += 1
         return count
+
+# Global object that works as Singleton
+users = RBACDict()

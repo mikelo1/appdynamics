@@ -187,3 +187,6 @@ class ApplicationDict(ControllerEntity):
                     for tier in apmApp['tiers']:
                         if tier['id'] == tierID:
                             return tier['name']
+
+# Global object that works as Singleton
+applications = ApplicationDict()

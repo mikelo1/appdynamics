@@ -3,7 +3,7 @@ import xml.etree.ElementTree as ET
 import json
 import csv
 import sys
-from applications import ApplicationDict
+from applications import applications
 from appdRESTfulAPI import RESTfulAPI
 from entities import AppEntity
 
@@ -228,7 +228,7 @@ class DetectionruleDict(AppEntity):
 
                 try:
                     filewriter.writerow({'Name': ruleName,
-                                         'Application': ApplicationDict().getAppName(appID),
+                                         'Application': applications.getAppName(appID),
                                          'MatchRuleList': matchRuleList,
                                          'HttpSplit': httpSplit})
                 except ValueError as valError:
@@ -267,3 +267,6 @@ class DetectionruleDict(AppEntity):
 # TODO: Get Scopes
 # You can use the following endpoint as a start to query the scope within an application
 # https://<controller url>/controller/restui/transactionConfigProto/getScopes/<applicationid>
+
+# Global object that works as Singleton
+transactiondetection = DetectionruleDict()

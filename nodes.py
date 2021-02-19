@@ -3,7 +3,7 @@ import json
 import csv
 import sys
 from appdRESTfulAPI import RESTfulAPI
-from applications import ApplicationDict
+from applications import applications
 from datetime import datetime, timedelta
 import time
 from entities import AppEntity
@@ -81,7 +81,7 @@ class NodeDict(AppEntity):
                 try:
                     filewriter.writerow({'Node': node['name'],
                                          'Tier': node['tierName'],
-                                         'Application': ApplicationDict().getAppName(appID),
+                                         'Application': applications.getAppName(appID),
                                          'AgentVersion': node['appAgentVersion'] if node['agentType']=="APP_AGENT" else node['agentType'],
                                          'MachineName': node['machineName'],
                                          'OSType': node['machineOSType']})
@@ -170,3 +170,6 @@ class NodeDict(AppEntity):
                 if node['id'] == nodeID:
                     return node['name']
         return ""
+
+# Global object that works as Singleton
+nodes = NodeDict()

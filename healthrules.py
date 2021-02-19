@@ -3,7 +3,7 @@ import xml.etree.ElementTree as ET
 import json
 import csv
 import sys
-from applications import ApplicationDict
+from applications import applications
 from appdRESTfulAPI import RESTfulAPI
 from entities import AppEntity
 
@@ -340,6 +340,7 @@ class HealthRuleDict(AppEntity):
         #print criteria
         return criteria
 
+
     def __str_healthrule_affects(self,healthrule):
         """
         toString private method, extracts affects from health rule
@@ -489,7 +490,7 @@ class HealthRuleDict(AppEntity):
 
                 try:
                     filewriter.writerow({'HealthRule': healthrule['name'].encode('ASCII', 'ignore'),
-                                         'Application': ApplicationDict().getAppName(appID),
+                                         'Application': applications.getAppName(appID),
                                          'Duration': healthrule['useDataFromLastNMinutes'] if 'useDataFromLastNMinutes' in healthrule else "",
                                          'Wait_Time': healthrule['useDataFromLastNMinutes'] if 'useDataFromLastNMinutes' in healthrule else "",
                                          'Schedule': healthrule['scheduleName'] if 'scheduleName' in healthrule else "",
@@ -527,8 +528,10 @@ class HealthRuleDict(AppEntity):
 
         return len(healthrules)
 
-
     def get_health_rules_matching(self,appID,entityName,entityType):
         pass
         #for healthrule in self.entityDict:
         #    if healthrule['affectedEntityType'] == entityType:
+
+# Global object that works as Singleton
+healthrules = HealthRuleDict()

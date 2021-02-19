@@ -49,7 +49,7 @@ class BackendDict(AppEntity):
 
                 try:
                     filewriter.writerow({'name': backend['name'].encode('ASCII', 'ignore'),
-                                         'Application': ApplicationDict().getAppName(appID),
+                                         'Application': applications.getAppName(appID),
                                          'exitPointType': backend['exitPointType']})
                 except ValueError as valError:
                     print (valError)
@@ -57,6 +57,8 @@ class BackendDict(AppEntity):
                     exit(1)
         if fileName is not None: csvfile.close()
 
+# Global object that works as Singleton
+backends = BackendDict()
 
 class EntrypointDict(AppEntity):
     entityAPIFunctions = {'fetch': RESTfulAPI().fetch_entrypoints_TierRules}
@@ -127,3 +129,6 @@ class EntrypointDict(AppEntity):
                     if fileName is not None: csvfile.close()
                     exit(1)
         if fileName is not None: csvfile.close()
+
+# Global object that works as Singleton
+entrypoints = EntrypointDict()

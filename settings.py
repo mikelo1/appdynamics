@@ -50,3 +50,6 @@ class ConfigurationDict(ControllerEntity):
                 if fileName is not None: csvfile.close()
                 return (-1)
         if fileName is not None: csvfile.close()
+
+# Global object that works as Singleton
+config = ConfigurationDict()
