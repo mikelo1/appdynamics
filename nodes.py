@@ -10,6 +10,7 @@ from entities import AppEntity
 
 class NodeDict(AppEntity):
     entityAPIFunctions = {'fetch': RESTfulAPI().fetch_nodes}
+    entityKeyword = "nodeUniqueLocalId"
 
     def __init__(self):
         self.entityDict = dict()
@@ -44,7 +45,6 @@ class NodeDict(AppEntity):
 
 
     ###### FROM HERE PUBLIC FUNCTIONS ######
-
 
     def generate_CSV(self,appID_List,fileName=None):
         """

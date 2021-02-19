@@ -12,6 +12,7 @@ from entities import AppEntity
 
 class SnapshotDict(AppEntity):
     entityAPIFunctions = {'fetch': RESTfulAPI().fetch_snapshots}
+    entityKeyword = "snapshotExitCalls"
 
     def __init__(self):
         self.entityDict = dict()

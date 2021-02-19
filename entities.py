@@ -5,6 +5,7 @@ import sys
 class AppEntity:
     entityDict = dict()
     entityAPIFunctions = {} # {'fetch': RESTfulAPI().fetch_entity}
+    entityKeyword = ""
 
     def __init__(self):
         pass
@@ -67,9 +68,18 @@ class AppEntity:
         """
         Verify that input stream contains entity data.
         :param streamdata: the stream data
-        :returns: True if the stream data contains an entyty. False otherwise.
+        :returns: True if the stream data contains an entity. False otherwise.
         """
-        raise NotImplementedError("Don't forget to implement the verify function!")
+        try:
+            dataJSON = json.loads(streamdata)
+        except (TypeError,ValueError) as error:
+            if 'DEBUG' in locals(): sys.stderr.write("verify: "+str(error)+"\n")
+            return False
+        if dataJSON is not None and type(dataJSON) is list:
+            return self.entityKeyword in dataJSON[0]
+        elif dataJSON is not None and type(dataJSON) is dict:
+            return self.entityKeyword in dataJSON
+        return False
 
     def generate_CSV(self,appID_List,fileName=None):
         """
@@ -109,6 +119,7 @@ class AppEntity:
 class ControllerEntity:
     entityDict = dict()
     entityAPIFunctions = {} # {'fetch': RESTfulAPI().fetch_entity}
+    entityKeyword = ""
 
     def __init__(self):
         pass
@@ -139,7 +150,16 @@ class ControllerEntity:
         :param streamdata: the stream data
         :returns: True if the stream data contains an entyty. False otherwise.
         """
-        raise NotImplementedError("Don't forget to implement the verify function!")
+        try:
+            dataJSON = json.loads(streamdata)
+        except (TypeError,ValueError) as error:
+            if 'DEBUG' in locals(): sys.stderr.write("verify: "+str(error)+"\n")
+            return False
+        if dataJSON is not None and type(dataJSON) is list:
+            return self.entityKeyword in dataJSON[0]
+        elif dataJSON is not None and type(dataJSON) is dict:
+            return self.entityKeyword in dataJSON
+        return False
 
     def generate_CSV(self,fileName=None):
         """

@@ -8,6 +8,7 @@ from entities import AppEntity
 
 class BusinessTransactionDict(AppEntity):
     entityAPIFunctions = {'fetch': RESTfulAPI().fetch_business_transactions}
+    entityKeyword = "entryPointType"
 
     def __init__(self):
         self.entityDict = dict()

@@ -10,6 +10,7 @@ from policies import PolicyDict
 
 class ActionDict(AppEntity):
     entityAPIFunctions = {'fetch': RESTfulAPI().fetch_actions_legacy}
+    entityKeyword = "actionType"
 
     def __init__(self):
         self.entityDict = dict()

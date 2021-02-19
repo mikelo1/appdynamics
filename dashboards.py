@@ -7,6 +7,7 @@ from entities import ControllerEntity
 
 class DashboardDict(ControllerEntity):
     entityAPIFunctions = {'fetch': RESTfulAPI().fetch_dashboards}
+    entityKeyword = 'canvasType'
 
     def __init__(self):
         self.entityDict = dict()
@@ -32,8 +33,7 @@ class DashboardDict(ControllerEntity):
         fieldnames = ['Name', 'Height', 'Width', 'CanvasType']
         filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
              
-        for dashboardID in self.entityDict:
-            dashboard = self.entityDict[dashboardID]
+        for dashboard in self.entityDict:
             # Check if data belongs to a dashboard
             if 'canvasType' not in dashboard: continue
             elif 'success' in dashboard and dashboard['success']==False: continue
@@ -59,14 +59,14 @@ class DashboardDict(ControllerEntity):
         :returns: the number of fetched dashboards. Zero if no dashboard was found.
         """
         count = 0
-        for dashboardID in self.entityDict:
-            response = RESTfulAPI().fetch_custom_dashboard(dashboardID)
+        for dashboard in self.entityDict:
+            response = RESTfulAPI().fetch_custom_dashboard(dashboard['id'])
             if response is not None:
                 try:
-                    dashboard = json.loads(response)
+                    dashboardData = json.loads(response)
                 except TypeError as error:
                     print ("load_dashboard_details: "+str(error))
                     continue
-                self.entityDict.update({str(dashboardID):dashboard})
+                self.entityDict[count]=dashboardData
                 count += 1
         return count

@@ -7,12 +7,12 @@ from entities import ControllerEntity
 
 class RBACDict(ControllerEntity):
     entityAPIFunctions = {'fetch': RESTfulAPI().fetch_users_extended}
+    entityKeyword = "providerUniqueName"
 
     def __init__(self):
         self.entityDict = dict()
 
     ###### FROM HERE PUBLIC FUNCTIONS ######
-
 
     def generate_CSV(self, fileName=None):
         """
@@ -33,8 +33,7 @@ class RBACDict(ControllerEntity):
         fieldnames = ['Name', 'Email', 'Roles', 'Groups']
         filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
 
-        for userName in self.entityDict:
-            user = self.entityDict[userName]
+        for user in self.entityDict:
             # Check if data belongs to a user
             if 'providerUniqueName' not in user: continue
             elif 'header_is_printed' not in locals(): 
@@ -59,14 +58,14 @@ class RBACDict(ControllerEntity):
         :returns: the number of fetched users. Zero if no user was found.
         """
         count = 0
-        for userName in self.entityDict:
-            response = RESTfulAPI().fetch_user(self.entityDict[userName]['id'])
+        for user in self.entityDict:
+            response = RESTfulAPI().fetch_user(user['id'])
             if response is not None:
                 try:
-                    user = json.loads(response)
+                    userData = json.loads(response)
                 except TypeError as error:
                     print ("load_duser_details: "+str(error))
                     continue
-                self.entityDict.update({userName:user})
+                self.entityDict[count] = userData
                 count += 1
         return count

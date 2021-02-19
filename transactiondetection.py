@@ -9,6 +9,7 @@ from entities import AppEntity
 
 class DetectionruleDict(AppEntity):
     entityAPIFunctions = {'fetch': RESTfulAPI().fetch_transactiondetection}
+    entityKeyword = "rule-list"
 
     def __init__(self):
         self.entityDict = dict()
@@ -134,6 +135,41 @@ class DetectionruleDict(AppEntity):
 
     ###### FROM HERE PUBLIC FUNCTIONS ######
 
+    def load(self,streamdata,appID=None):
+        """
+        Load transaction detection rules from a stream data in XML format.
+        :param streamdata: the stream data in JSON format
+        :param appID: the ID number of the application where to load the detection rules data.
+        :returns: the number of loaded detection rules. Zero if no detection rule was loaded.
+        """
+        if appID is None: appID = 0
+        try:
+            root = ET.fromstring(streamdata)
+        except TypeError as error:
+            print ("load_transaction_detection: "+str(error))
+            return 0
+        # Add loaded detection rules to the transaction detection rules dictionary
+        if str(appID) in self.entityDict:
+            # Merge new and existing detection rules
+            for new_rule in root.find("rule-list"):
+                self.entityDict[str(appID)].find("rule-list").append(new_rule)
+        else:
+            # Add loaded detection rules to the detectrules dictionary
+            self.entityDict.update({str(appID):root})
+        return len(root.find("rule-list").getchildren())
+
+    def verify(self,streamdata):
+        """
+        Verify that input stream contains entity data.
+        :param streamdata: the stream data
+        :returns: True if the stream data contains an entyty. False otherwise.
+        """
+        try:
+            root = ET.fromstring(streamdata)
+        except (TypeError,ET.ParseError) as error:
+            if 'DEBUG' in locals(): sys.stderr.write("verify: "+str(error)+"\n")
+            return False
+        return root.find("rule-list") is not None
 
     def generate_CSV(self,appID_List,fileName=None):
         """
@@ -212,31 +248,6 @@ class DetectionruleDict(AppEntity):
         """
         print "generate_transactiondetection_JSON: feature not implemented yet."
     # TODO: generate JSON output format
-
-
-    def load(self,streamdata,appID=None):
-        """
-        Load transaction detection rules from a stream data in XML format.
-        :param streamdata: the stream data in JSON format
-        :param appID: the ID number of the application where to load the detection rules data.
-        :returns: the number of loaded detection rules. Zero if no detection rule was loaded.
-        """
-        if appID is None: appID = 0
-        try:
-            root = ET.fromstring(streamdata)
-        except TypeError as error:
-            print ("load_transaction_detection: "+str(error))
-            return 0
-        # Add loaded detection rules to the transaction detection rules dictionary
-        if str(appID) in self.entityDict:
-            # Merge new and existing detection rules
-            for new_rule in root.find("rule-list"):
-                self.entityDict[str(appID)].find("rule-list").append(new_rule)
-        else:
-            # Add loaded detection rules to the detectrules dictionary
-            self.entityDict.update({str(appID):root})
-        return len(root.find("rule-list").getchildren())
-
 
     def get_transactiondetections_matching_URL(self,app_ID,URL):
         """

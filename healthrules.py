@@ -10,6 +10,7 @@ from entities import AppEntity
 class HealthRuleDict(AppEntity):
     entityAPIFunctions = {'fetch': RESTfulAPI().fetch_health_rules_legacy}
     #TODO: entityAPIFunctions = {'fetch': RESTfulAPI().fetch_health_rules_with_IDs}
+    entityKeyword = "affectedEntityType"
 
     def __init__(self):
         self.entityDict = dict()
@@ -338,8 +339,6 @@ class HealthRuleDict(AppEntity):
         #print json.dumps(criteria)
         #print criteria
         return criteria
-
-
 
     def __str_healthrule_affects(self,healthrule):
         """

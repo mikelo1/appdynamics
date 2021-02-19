@@ -7,12 +7,12 @@ from entities import ControllerEntity
 
 class ConfigurationDict(ControllerEntity):
     entityAPIFunctions = {'fetch': RESTfulAPI().fetch_configuration}
+    entityKeyword = 'updateable'
 
     def __init__(self):
         self.entityDict = dict()
 
     ###### FROM HERE PUBLIC FUNCTIONS ######
-
 
     def generate_CSV(self,fileName=None):
         """
@@ -33,8 +33,7 @@ class ConfigurationDict(ControllerEntity):
         fieldnames = ['Name', 'Value', 'Scope', 'Updateable', 'Description']
         filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
              
-        for settingName in self.entityDict:
-            setting = self.entityDict[settingName]
+        for setting in self.entityDict:
             # Check if data belongs to a controller setting
             if 'updateable' not in setting: continue
             elif 'header_is_printed' not in locals(): 
@@ -51,21 +50,3 @@ class ConfigurationDict(ControllerEntity):
                 if fileName is not None: csvfile.close()
                 return (-1)
         if fileName is not None: csvfile.close()
-
-
-    def load(self,streamdata):
-        """
-        Load entities from a JSON stream data.
-        :param streamdata: the stream data in JSON format
-        :returns: the number of loaded entities. Zero if no entity was loaded.
-        """
-        try:
-            entities = json.loads(streamdata)
-        except TypeError as error:
-            sys.stderr.write("load_entities: "+str(error))
-            return 0
-        for entity in entities:
-            # Add loaded entities to the entity dictionary
-            entityID = entity['name']
-            self.entityDict.update({str(entityID):entity})
-        return len(entities)
