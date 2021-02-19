@@ -5,12 +5,27 @@ import sys
 from appdRESTfulAPI import RESTfulAPI
 from entities import ControllerEntity
 
+
 class ApplicationDict(ControllerEntity):
     entityAPIFunctions = {'fetch': RESTfulAPI().fetch_applicationsAllTypes}
     entityKeyword = 'apmApplications'
 
     def __init__(self):
         self.entityDict = dict()
+
+    def __fetch_tiers_and_nodes(self,app_ID):
+        """
+        Fetch tiers and nodes details for one specific application
+        :param app_ID: the ID number of the application tiers and nodes to fetch
+        :returns: a dictionary with tiers and nodes. None if no tier was found.
+        """
+        tiers = json.loads(RESTfulAPI().fetch_tiers(app_ID))
+        if tiers is not None:
+            for tier in tiers:
+                nodes = json.loads(RESTfulAPI().fetch_tier_nodes(app_ID,tier['name']))
+                if nodes is not None:
+                    tier.update({'nodes':nodes})
+            return {'tiers':tiers}
 
     ###### FROM HERE PUBLIC FUNCTIONS ######
 
@@ -73,21 +88,17 @@ class ApplicationDict(ControllerEntity):
         """
         if 'apmApplications' not in self.entityDict or self.entityDict['apmApplications'] is None: return 0
         if type(self.entityDict['apmApplications']) is dict:
-            appList = [self.entityDict['apmApplications']]
+            appList = []
+            if self.entityDict['apmApplications']['id'] == app_ID:
+                self.entityDict['apmApplications'].update(self.__fetch_tiers_and_nodes(app_ID))
+                return len(self.entityDict['apmApplications']['tiers'])
         elif type(self.entityDict['apmApplications']) is list:
-            appList = self.entityDict['apmApplications']
-        for apmApp in appList:
-            if apmApp['id'] == app_ID:
-                # Add tiers and nodes to the application data
-                tiers = json.loads(RESTfulAPI().fetch_tiers(app_ID))
-                if tiers is not None:
-                    for tier in tiers:
-                        nodes = json.loads(RESTfulAPI().fetch_tier_nodes(app_ID,tier['name']))
-                        if nodes is not None:
-                            tier.update({'nodes':nodes})
-                    apmApp.append({'tiers':tiers})
-                    self.entityDict['apmApplications'].update(apmApp)
-                    return len(tiers)
+            count = 0
+            for apmApp in self.entityDict['apmApplications']:
+                if apmApp['id'] == app_ID:
+                    self.entityDict['apmApplications'][count].update(self.__fetch_tiers_and_nodes(app_ID))
+                    return len(self.entityDict['apmApplications'][count]['tiers'])
+                count += 1
 
     def get_application_Name_list(self):
         """
@@ -153,13 +164,12 @@ class ApplicationDict(ControllerEntity):
         :returns: a list with all tier IDs for an application. None if no tier was found.
         """
         if 'apmApplications' not in self.entityDict or self.entityDict['apmApplications'] is None: return None
-        if type(self.entityDict['apmApplications']) is dict:
-            appList = [self.entityDict['apmApplications']]
+        if type(self.entityDict['apmApplications']) is dict and self.entityDict['apmApplications']['id'] == appID:
+            return [ tier['id'] for tier in self.entityDict['apmApplications']['tiers'] ]
         elif type(self.entityDict['apmApplications']) is list:
-            appList = self.entityDict['apmApplications']
-        for apmApp in appList:
-            if apmApp['id'] == app_ID:
-                return [ tier['id'] for tier in apmApp['tiers'] ]
+            for apmApp in self.entityDict['apmApplications']:
+                if apmApp['id'] == appID:
+                    return [ tier['id'] for tier in apmApp['tiers'] ]
 
     def getTierName(self,appID,tierID):
         """
@@ -169,12 +179,11 @@ class ApplicationDict(ControllerEntity):
         :returns: the name of the specified tier ID. None if the tier was not found.
         """
         if 'apmApplications' not in self.entityDict or self.entityDict['apmApplications'] is None: return None
-        if type(self.entityDict['apmApplications']) is dict:
-            appList = [self.entityDict['apmApplications']]
+        if type(self.entityDict['apmApplications']) is dict and self.entityDict['apmApplications']['id'] == appID:
+            return [ tier['name'] for tier in apmApp['tiers'] if tier['id'] == tierID ][0]
         elif type(self.entityDict['apmApplications']) is list:
-            appList = self.entityDict['apmApplications']
-        for apmApp in appList:
-            if apmApp['id'] == app_ID:
-                for tier in apmApp['tiers']:
-                    if tier['id'] == tierID:
-                        return tier['name']
+            for apmApp in self.entityDict['apmApplications']:
+                if apmApp['id'] == appID:
+                    for tier in apmApp['tiers']:
+                        if tier['id'] == tierID:
+                            return tier['name']
