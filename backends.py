@@ -15,15 +15,13 @@ class BackendDict(AppEntity):
 
     ###### FROM HERE PUBLIC FUNCTIONS ######
 
-    def generate_CSV(self,appID_List,fileName=None):
+    def generate_CSV(self,appID_List=None,fileName=None):
         """
         Generate CSV output from backends data
         :param appID:_List list of application IDs, in order to obtain backends from local backends dictionary
         :param fileName: output file name
         :returns: None
         """
-        if type(appID_List) is not list or len(appID_List)==0: return
-
         if fileName is not None:
             try:
                 csvfile = open(fileName, 'w')
@@ -36,11 +34,11 @@ class BackendDict(AppEntity):
         fieldnames = ['name', 'Application', 'exitPointType']
         filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
 
-        for appID in appID_List:
-            if str(appID) not in self.entityDict:
-                if 'DEBUG' in locals(): print "Application "+str(appID) +" is not loaded in dictionary."
+        for appID in self.entityDict:
+            if appID_List is not None and type(appID_List) is list and int(appID) not in appID_List:
+                if 'DEBUG' in locals(): print "Application "+appID +" is not loaded in dictionary."
                 continue
-            for backend in self.entityDict[str(appID)]:
+            for backend in self.entityDict[appID]:
                 # Check if data belongs to a backend
                 if 'exitPointType' not in backend: continue
                 elif 'header_is_printed' not in locals(): 
@@ -80,15 +78,13 @@ class EntrypointDict(AppEntity):
             count += self.load(streamdata=data,appID=appID)
         return count
 
-    def generate_CSV(self,appID_List,fileName=None):
+    def generate_CSV(self,appID_List=None,fileName=None):
         """
         Generate CSV output from backends data
         :param appID:_List list of application IDs, in order to obtain backends from local backends dictionary
         :param fileName: output file name
         :returns: None
         """
-        if type(appID_List) is not list or len(appID_List)==0: return
-
         if fileName is not None:
             try:
                 csvfile = open(fileName, 'w')
@@ -101,11 +97,11 @@ class EntrypointDict(AppEntity):
         fieldnames = ['name', 'Tier', 'matchCondition', 'priority']
         filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
 
-        for appID in appID_List:
-            if str(appID) not in self.entityDict:
-                if 'DEBUG' in locals(): print "Application "+str(appID) +" is not loaded in dictionary."
+        for appID in self.entityDict:
+            if appID_List is not None and type(appID_List) is list and int(appID) not in appID_List:
+                if 'DEBUG' in locals(): print "Application "+appID +" is not loaded in dictionary."
                 continue
-            for entrypoint in self.entityDict[str(appID)]:
+            for entrypoint in self.entityDict[appID]:
                 # Check if data belongs to a backend
                 if 'entryPointType' not in entrypoint: continue
                 elif 'header_is_printed' not in locals(): 

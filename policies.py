@@ -126,15 +126,13 @@ class PolicyDict(AppEntity):
     ###### FROM HERE PUBLIC FUNCTIONS ######
 
 
-    def generate_CSV(self,appID_List,fileName=None):
+    def generate_CSV(self,appID_List=None,fileName=None):
         """
         Generate CSV output from policies data
         :param appID_List: list of application IDs, in order to obtain policies from local policies dictionary
         :param fileName: output file name
         :returns: None
         """
-        if type(appID_List) is not list or len(appID_List)==0: return
-
         if fileName is not None:
             try:
                 csvfile = open(fileName, 'w')
@@ -148,11 +146,11 @@ class PolicyDict(AppEntity):
         fieldnames = ['Policy', 'Application', 'Events', 'Entities', 'Actions']
         filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
 
-        for appID in appID_List:
-            if str(appID) not in self.entityDict:
-                if 'DEBUG' in locals(): print "Application "+str(appID) +" is not loaded in dictionary."
+        for appID in self.entityDict:
+            if appID_List is not None and type(appID_List) is list and int(appID) not in appID_List:
+                if 'DEBUG' in locals(): print "Application "+appID +" is not loaded in dictionary."
                 continue
-            for policy in self.entityDict[str(appID)]:
+            for policy in self.entityDict[appID]:
                 # Check if data belongs to a policy
                 if 'reactorType' not in policy and 'selectedEntities' not in policy: continue
                 elif 'header_is_printed' not in locals(): 

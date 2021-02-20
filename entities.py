@@ -81,7 +81,7 @@ class AppEntity:
             return self.entityKeyword in dataJSON
         return False
 
-    def generate_CSV(self,appID_List,fileName=None):
+    def generate_CSV(self,appID_List=None,fileName=None):
         """
         Generate CSV output from dictionary data
         :param appID_List: list of application IDs, in order to obtain entities from local entities dictionary
@@ -90,19 +90,17 @@ class AppEntity:
         """
         raise NotImplementedError("Don't forget to implement the generate_CSV function!")
 
-    def generate_JSON(self,appID_List,fileName=None):
+    def generate_JSON(self,appID_List=None,fileName=None):
         """
         Generate JSON output from dictionary data
         :param appID_List: list of application IDs, in order to obtain entities from local entities dictionary
         :param fileName: output file name
         :returns: None
         """
-        if type(appID_List) is list and len(appID_List) > 1:
-            entities = [ self.entityDict[str(appID)]  for appID in appID_List ]
-        elif type(appID_List) is list and len(appID_List) == 1:
-            entities = self.entityDict[str(appID_List[0])]
+        if appID_List is not None and type(appID_List) is list and len(appID_List) > 0:
+            entities = [ self.entityDict[str(appID)] for appID in appID_List ]
         else:
-            entities = {}
+            entities = self.entityDict
 
         if fileName is not None:
             try:

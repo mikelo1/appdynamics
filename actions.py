@@ -5,7 +5,7 @@ import sys
 from applications import applications
 from appdRESTfulAPI import RESTfulAPI
 from entities import AppEntity
-from policies import PolicyDict
+from policies import policies
 
 
 class ActionDict(AppEntity):
@@ -101,15 +101,13 @@ class ActionDict(AppEntity):
 
 
 
-    def generate_CSV(self,appID_List,fileName=None):
+    def generate_CSV(self,appID_List=None,fileName=None):
         """
         Generate CSV output from actions data
         :param appID_List: list of application IDs, in order to obtain actions from local actions dictionary
         :param fileName: output file name
         :returns: None
         """
-        if type(appID_List) is not list or len(appID_List)==0: return
-
         if fileName is not None:
             try:
                 csvfile = open(fileName, 'w')
@@ -122,11 +120,11 @@ class ActionDict(AppEntity):
         fieldnames = ['ActionName', 'Application', 'ActionType', 'Recipients', 'Policies', 'CustomProperties']
         filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
 
-        for appID in appID_List:
-            if str(appID) not in self.entityDict:
-                if 'DEBUG' in locals(): print "Application "+str(appID) +" is not loaded in dictionary."
+        for appID in self.entityDict:
+            if appID_List is not None and type(appID_List) is list and int(appID) not in appID_List:
+                if 'DEBUG' in locals(): print "Application "+appID +" is not loaded in dictionary."
                 continue
-            for action in self.entityDict[str(appID)]:
+            for action in self.entityDict[appID]:
                 # Check if data belongs to an action
                 if 'actionType' not in action: continue
                 elif 'header_is_printed' not in locals(): 
@@ -137,7 +135,7 @@ class ActionDict(AppEntity):
                                         'Application': applications.getAppName(appID),
                                         'ActionType': action['actionType'],
                                         'Recipients': self.__str_action_recipients(action),
-                                        'Policies': "", #PolicyDict().get_policies_matching_action(app_ID,action['name']),
+                                        'Policies': "", #policies.get_policies_matching_action(app_ID,action['name']),
                                         'CustomProperties': self.__str_action_properties(action)})
                 except ValueError as valError:
                     print (valError)

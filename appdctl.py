@@ -264,10 +264,10 @@ elif COMMAND.lower() == "get":
     if len(entityList) == 0: exit()
     entityObj = entityDict[entityList[0]]
     entityObj.load(streamdata=data)
-#    if options.outFormat and options.outFormat == "JSON":
-#      entityObj.generate_JSON(appID_List=[0])
-#    elif not options.outFormat or options.outFormat == "CSV":
-#      entityObj.generate_CSV(appID_List=[0])
+    if options.outFormat and options.outFormat == "JSON":
+      entityObj.generate_JSON()
+    elif not options.outFormat or options.outFormat == "CSV":
+      entityObj.generate_CSV()
     exit()
 
   if len(args) < 2:

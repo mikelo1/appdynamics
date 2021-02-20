@@ -171,15 +171,13 @@ class DetectionruleDict(AppEntity):
             return False
         return root.find("rule-list") is not None
 
-    def generate_CSV(self,appID_List,fileName=None):
+    def generate_CSV(self,appID_List=None,fileName=None):
         """
         Generate CSV output from transaction detection rules data
         :param appID_List: list of application IDs, in order to obtain transaction detection rules from local transaction detection rules dictionary
         :param fileName: output file name
         :returns: None
         """
-        if type(appID_List) is not list or len(appID_List)==0: return
-
         if fileName is not None:
             try:
                 csvfile = open(fileName, 'w')
@@ -193,11 +191,11 @@ class DetectionruleDict(AppEntity):
         fieldnames = ['Name', 'Application', 'MatchRuleList', 'HttpSplit']
         filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
 
-        for appID in appID_List:
-            if str(appID) not in self.entityDict:
-                if 'DEBUG' in locals(): print "Application "+str(appID) +" is not loaded in dictionary."
-                continue        
-            detectionRules = self.entityDict[str(appID)]
+        for appID in self.entityDict:
+            if appID_List is not None and type(appID_List) is list and int(appID) not in appID_List:
+                if 'DEBUG' in locals(): print "Application "+appID +" is not loaded in dictionary."
+                continue       
+            detectionRules = self.entityDict[appID]
 
             # Verify this ElementTree contains transaction detection rule data
             if detectionRules.find('rule-list') is None: continue
@@ -239,7 +237,7 @@ class DetectionruleDict(AppEntity):
         if fileName is not None: csvfile.close()
 
 
-    def generate_JSON(self,appID_List,fileName=None):
+    def generate_JSON(self,appID_List=None,fileName=None):
         """
         Generate JSON output from transaction detection rules data
         :param appID_List: list of application IDs, in order to obtain transaction detection rules from local transaction detection rules dictionary

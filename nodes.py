@@ -46,15 +46,13 @@ class NodeDict(AppEntity):
 
     ###### FROM HERE PUBLIC FUNCTIONS ######
 
-    def generate_CSV(self,appID_List,fileName=None):
+    def generate_CSV(self,appID_List=None,fileName=None):
         """
         Generate CSV output from nodes data
         :param appID_List: list of application IDs, in order to obtain nodes from local nodes dictionary
         :param fileName: output file name
         :returns: None
         """
-        if type(appID_List) is not list or len(appID_List)==0: return
-
         if fileName is not None:
             try:
                 csvfile = open(fileName, 'w')
@@ -67,11 +65,11 @@ class NodeDict(AppEntity):
         fieldnames = ['Node', 'Tier', 'Application', 'AgentVersion', 'MachineName', 'OSType']
         filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
 
-        for appID in appID_List:
-            if str(appID) not in self.entityDict:
-                if 'DEBUG' in locals(): print ("Application "+str(appID) +" is not loaded in dictionary.")
+        for appID in self.entityDict:
+            if appID_List is not None and type(appID_List) is list and int(appID) not in appID_List:
+                if 'DEBUG' in locals(): print "Application "+appID +" is not loaded in dictionary."
                 continue
-            for node in self.entityDict[str(appID)]:
+            for node in self.entityDict[appID]:
                 # Check if data belongs to a node
                 if 'nodeUniqueLocalId' not in node: continue
                 elif 'header_is_printed' not in locals(): 
