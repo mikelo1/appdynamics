@@ -330,15 +330,6 @@ elif COMMAND.lower() == "get":
     if minutes == 0:
       optParser.error("Specified duration not correctly formatted. (use --since=<days>d<hours>h<minutes>m format)")
       exit()
-
-    if ENTITY == "allothertraffic":
-      AllOtherTraffic_ID = businesstransactions.get_business_transaction_ID(appID=appID,transactionName="_APPDYNAMICS_DEFAULT_TX_")
-      if AllOtherTraffic_ID == 0:
-        sys.stderr.write("All Other Traffic transaction not found in application "+str(appID)+"\n")
-        exit()
-      selectors.update({"business-transaction-ids": ''+str(AllOtherTraffic_ID)+''})
-      ENTITY="snapshots"
-
     current_context = AppD_Configuration().get_current_context(output="None")
     applicationList = get_application_list()
     if len(applicationList) == 0:
@@ -347,12 +338,20 @@ elif COMMAND.lower() == "get":
     index = 0
     sys.stderr.write("get "+ENTITY+" ("+current_context+")... 0%")
     sys.stderr.flush()
-    entityObj = entityDict[ENTITY]
+    entityObj = entityDict[ENTITY] if ENTITY != "allothertraffic" else entityDict["snapshots"]
     for appID in applicationList:
         index += 1
         percentage = index*100/len(applicationList)
         sys.stderr.write("\rget "+ENTITY+" ("+current_context+")... " + str(percentage) + "%")
         sys.stderr.flush()
+        # AllOtherTraffic snapshots are requested with the _APPDYNAMICS_DEFAULT_TX_ transaction ID
+        if ENTITY == "allothertraffic":
+          businesstransactions.fetch(appID=appID)
+          AllOtherTraffic_ID = businesstransactions.get_business_transaction_ID(appID=appID,transactionName="_APPDYNAMICS_DEFAULT_TX_")
+          if AllOtherTraffic_ID == 0:
+            sys.stderr.write("All Other Traffic transaction not found in application "+str(appID)+"\n")
+            continue
+          selectors.update({"business-transaction-ids": ''+str(AllOtherTraffic_ID)+''})
         for i in range(minutes,0,-1440): # loop specified minutes in chunks of 1440 minutes (1 day)
             sinceTime = datetime.today()-timedelta(minutes=i)
             sinceEpoch= long(time.mktime(sinceTime.timetuple())*1000)
