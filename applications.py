@@ -87,6 +87,7 @@ class ApplicationDict(ControllerEntity):
         :returns: the number of tiers. Zero if no tier was found.
         """
         if 'apmApplications' not in self.entityDict or self.entityDict['apmApplications'] is None: return 0
+        if type(appID) is str: appID = int(appID)
         if type(self.entityDict['apmApplications']) is dict:
             appList = []
             if self.entityDict['apmApplications']['id'] == app_ID:
@@ -148,6 +149,7 @@ class ApplicationDict(ControllerEntity):
         :param appID: the ID of the application
         :returns: the name of the specified application ID. None if the application was not found.
         """
+        if type(appID) is str: appID = int(appID)
         for appType in self.entityDict:
             if type(self.entityDict[appType]) is dict:
                 if self.entityDict[appType]['id'] == appID:
@@ -164,6 +166,7 @@ class ApplicationDict(ControllerEntity):
         :returns: a list with all tier IDs for an application. None if no tier was found.
         """
         if 'apmApplications' not in self.entityDict or self.entityDict['apmApplications'] is None: return None
+        if type(appID) is str: appID = int(appID)
         if type(self.entityDict['apmApplications']) is dict and self.entityDict['apmApplications']['id'] == appID:
             return [ tier['id'] for tier in self.entityDict['apmApplications']['tiers'] ]
         elif type(self.entityDict['apmApplications']) is list:
@@ -179,6 +182,7 @@ class ApplicationDict(ControllerEntity):
         :returns: the name of the specified tier ID. None if the tier was not found.
         """
         if 'apmApplications' not in self.entityDict or self.entityDict['apmApplications'] is None: return None
+        if type(appID) is str: appID = int(appID)
         if type(self.entityDict['apmApplications']) is dict and self.entityDict['apmApplications']['id'] == appID:
             return [ tier['name'] for tier in apmApp['tiers'] if tier['id'] == tierID ][0]
         elif type(self.entityDict['apmApplications']) is list:
