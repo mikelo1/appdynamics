@@ -151,7 +151,7 @@ class ApplicationDict(ControllerEntity):
         for appType in self.entityDict:
             if type(self.entityDict[appType]) is dict:
                 if self.entityDict[appType]['id'] == appID:
-                    return application['name']
+                    return self.entityDict[appType]['name']
             elif type(self.entityDict[appType]) is list:
                 for application in self.entityDict[appType]:
                     if application['id'] == appID:
