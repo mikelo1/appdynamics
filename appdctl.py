@@ -17,7 +17,7 @@ from healthrules import healthrules
 from policies import policies
 from actions import actions
 from schedules import schedules
-from events import events
+from events import events, errors
 from snapshots import snapshots
 from optparse import OptionParser, OptionGroup
 import json
@@ -37,6 +37,7 @@ entityDict =  { 'applications': applications,
                 'schedules': schedules,
                 'healthrule-violations': events,
                 'snapshots': snapshots,
+                'errors': errors
               }
 
 def time_to_minutes(string):
@@ -320,7 +321,7 @@ elif COMMAND.lower() == "get":
     elif not options.outFormat or options.outFormat == "CSV":
         entityObj.generate_CSV(appID_List=applicationList)
 
-  elif ENTITY in ['healthrule-violations','snapshots','allothertraffic']:
+  elif ENTITY in ['healthrule-violations','snapshots','allothertraffic', 'errors']:
     if options.since is None:
       optParser.error("No duration was specified. (use --since=0 for all events)")
       exit()

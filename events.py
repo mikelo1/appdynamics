@@ -86,7 +86,6 @@ class EventDict(AppEntity):
 
     ###### FROM HERE PUBLIC FUNCTIONS ######
 
-
     def generate_CSV(self,appID_List=None,fileName=None):
         """
         Generate CSV output from healthrule violations data
@@ -114,7 +113,7 @@ class EventDict(AppEntity):
             for policyviolation in self.entityDict[appID]:
                 # Check if data belongs to an event
                 if 'affectedEntityDefinition' not in policyviolation: continue
-                elif 'header_is_printed' not in locals(): 
+                elif 'header_is_printed' not in locals():
                     filewriter.writeheader()
                     header_is_printed=True
 
@@ -138,3 +137,77 @@ class EventDict(AppEntity):
 
 # Global object that works as Singleton
 events = EventDict()
+
+
+class ErrorDict(AppEntity):
+    entityAPIFunctions = {'fetch': RESTfulAPI().fetch_errors}
+    entityKeyword = "metricPath"
+
+    def __init__(self):
+        self.entityDict = dict()
+
+    def fetch_after_time(self,appID,duration,sinceEpoch,selectors=None):
+        """
+        Fetch entities from controller RESTful API.
+        :param appID: the ID number of the application entities to fetch.
+        :param selectors: fetch only entities filtered by specified selectors
+        :returns: the number of fetched entities. Zero if no entity was found.
+        """
+        count = 0
+        for tierID in applications.getTiers_ID_List(appID):
+            tierName = applications.getTierName(appID,tierID)
+            data = self.entityAPIFunctions['fetch'](app_ID=appID,tier_ID=tierName,time_range_type="AFTER_TIME",duration=duration,startEpoch=sinceEpoch,selectors=selectors)
+            count += self.load(streamdata=data,appID=appID)
+        return count
+
+    ###### FROM HERE PUBLIC FUNCTIONS ######
+    def generate_CSV(self,appID_List=None,fileName=None):
+        """
+        Generate CSV output from error metrics data
+        :param appID_List: list of application IDs, in order to obtain error metrics from local error metrics dictionary
+        :param fileName: output file name
+        :returns: None
+        """
+        if fileName is not None:
+            try:
+                csvfile = open(fileName, 'w')
+            except:
+                sys.stderr.write ("Could not open output file " + fileName + ".\n")
+                return (-1)
+        else:
+            csvfile = sys.stdout
+
+        # create the csv writer object
+        fieldnames = ['Application', 'ErrorCode', 'Value', 'Max', 'Min', 'Sum', 'Count']
+        filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
+
+        for appID in self.entityDict:
+            if appID_List is not None and type(appID_List) is list and int(appID) not in appID_List:
+                if 'DEBUG' in locals(): print "Application "+appID +" is not loaded in dictionary."
+                continue
+            for errorMetric in self.entityDict[appID]:
+                # Check if data belongs to an event
+                if 'metricPath' not in errorMetric: continue
+                elif len(errorMetric['metricValues']) == 0: continue
+                elif 'header_is_printed' not in locals():
+                    filewriter.writeheader()
+                    header_is_printed=True
+
+                appName = applications.getAppName(appID)
+
+                try:
+                    filewriter.writerow({'Application': appName,
+                                        'ErrorCode': errorMetric['metricPath'].split("|")[2],
+                                        'Value': errorMetric['metricValues'][0]['value'],
+                                        'Max':   errorMetric['metricValues'][0]['max'],
+                                        'Min':   errorMetric['metricValues'][0]['min'],
+                                        'Sum':   errorMetric['metricValues'][0]['sum'],
+                                        'Count': errorMetric['metricValues'][0]['count']})
+                except ValueError as valError:
+                    print (valError)
+                    if fileName is not None: csvfile.close()
+                    return (-1)
+        if fileName is not None: csvfile.close()
+
+# Global object that works as Singleton
+errors = ErrorDict()
