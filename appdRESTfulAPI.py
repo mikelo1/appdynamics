@@ -801,6 +801,48 @@ class RESTfulAPI:
         restfulPath = "/controller/alerting/rest/v1/applications/" + str(app_ID) + "/schedules/" + str(sched_ID)
         return self.__update_RESTful_JSON(restfulPath,scheduleJSON)
 
+    def fetch_metric_hierarchy(self,app_ID,metric_path):
+        """
+        Fetch metrics hierarchy from a controller.
+        :param app_ID: the ID number of the application metrics to fetch
+        :param metric_path: The path to the metric in the metric hierarchy.
+        :returns: the fetched data. Null if no data was received.
+        """
+        # Retrieve Metric Hierarchy
+        # GET /controller/rest/applications/application_name/metrics
+        restfulPath = "/controller/rest/applications/"+ str(app_ID) + "/metrics"
+        params.update({'metric-path': metric_path,'output':'JSON'})
+        return self.__fetch_RESTfulPath(restfulPath,params=params)
+
+    def fetch_metric_data(self,app_ID,metric_path,time_range_type,duration=None,startEpoch=None,endEpoch=None):
+        """
+        Fetch metric data from a controller.
+        :param app_ID: the ID number of the application metrics to fetch
+        :param metric_path: The path to the metric in the metric hierarchy.
+        :param time_range_type: could be one of these: {"BEFORE_NOW","BEFORE_TIME","AFTER_TIME","BETWEEN_TIMES"}
+        :param duration: duration in minutes
+        :param startEpoch: range start time in Unix Epoch format
+        :param endEpoch: range end time in Unix Epoch format
+        :param selectors: fetch only errors filtered by specified selectors
+        :returns: the fetched data. Null if no data was received.
+        """
+        MAX_RESULTS="9999"
+        # Retrieve Metric Data
+        # GET /controller/rest/applications/application_name/metric-data
+        restfulPath = "/controller/rest/applications/"+ str(app_ID) + "/metric-data"
+        if time_range_type == "BEFORE_NOW" and duration is not None:
+            params={"time-range-type": time_range_type,"duration-in-mins": duration}
+        elif time_range_type == "BEFORE_TIME" and duration is not None and endEpoch is not None:
+            params={"time-range-type": time_range_type,"duration-in-mins": duration,"end-time": endEpoch}
+        elif time_range_type == "AFTER_TIME" and duration is not None and startEpoch is not None:
+            params={"time-range-type": time_range_type,"duration-in-mins": duration,"start-time": startEpoch}
+        elif time_range_type == "BETWEEN_TIMES" and startEpoch is not None and endEpoch is not None:
+            params={"time-range-type": time_range_type,"start-time": startEpoch,"end-time": endEpoch}
+        else:
+            return None
+        params.update({'metric-path': metric_path,'rollup': True,'output':'JSON'})
+        return self.__fetch_RESTfulPath(restfulPath,params=params)
+
     def fetch_healthrule_violations(self,app_ID,time_range_type,duration=None,startEpoch=None,endEpoch=None,selectors=None):
         """
         Fetch healtrule violations from a controller.
@@ -829,10 +871,9 @@ class RESTfulAPI:
         if selectors: params.update(selectors)
         return self.__fetch_RESTfulPath(restfulPath,params=params)
 
-
     def fetch_snapshots(self,app_ID,time_range_type,duration=None,startEpoch=None,endEpoch=None,selectors=None):
         """
-        Fetch snapshot from a controller then add them to the snapshot dictionary. Provide either an username/password or an access token.
+        Fetch snapshot from a controller.
         :param app_ID: the ID number of the application healtrule violations to fetch
         :param time_range_type: could be one of these: {"BEFORE_NOW","BEFORE_TIME","AFTER_TIME","BETWEEN_TIMES"}
         :param duration: duration in minutes
@@ -855,6 +896,35 @@ class RESTfulAPI:
             params={"time-range-type": time_range_type,"start-time": startEpoch,"end-time": endEpoch,"output": "JSON"}
         else:
             return None
+        if selectors: params.update(selectors)
+        return self.__fetch_RESTfulPath(restfulPath,params=params)
+
+    def fetch_errors(self,app_ID,tier_ID,time_range_type,duration=None,startEpoch=None,endEpoch=None,selectors=None):
+        """
+        Fetch errors from a controller.
+        :param app_ID: the ID number of the application errors to fetch
+        :param tier_ID: the ID number of the application tier errors to fetch
+        :param time_range_type: could be one of these: {"BEFORE_NOW","BEFORE_TIME","AFTER_TIME","BETWEEN_TIMES"}
+        :param duration: duration in minutes
+        :param startEpoch: range start time in Unix Epoch format
+        :param endEpoch: range end time in Unix Epoch format
+        :param selectors: fetch only errors filtered by specified selectors
+        :returns: the fetched data. Null if no data was received.
+        """
+        MAX_RESULTS="9999"
+        # "controller/rest/applications/{applicationName}/metrics?metric-path=Errors|{tierName}&time-range-type=BEFORE_NOW&duration-in-mins=15&output=JSON"
+        restfulPath = "/controller/rest/applications/"+ str(app_ID) + "/metric-data"#?metric-path=Errors%7CAPIManager%7CSocketException%7CErrors per Minute&time-range-type=BEFORE_NOW&duration-in-mins=60"
+        if time_range_type == "BEFORE_NOW" and duration is not None:
+            params={"time-range-type": time_range_type,"duration-in-mins": duration}
+        elif time_range_type == "BEFORE_TIME" and duration is not None and endEpoch is not None:
+            params={"time-range-type": time_range_type,"duration-in-mins": duration,"end-time": endEpoch}
+        elif time_range_type == "AFTER_TIME" and duration is not None and startEpoch is not None:
+            params={"time-range-type": time_range_type,"duration-in-mins": duration,"start-time": startEpoch}
+        elif time_range_type == "BETWEEN_TIMES" and startEpoch is not None and endEpoch is not None:
+            params={"time-range-type": time_range_type,"start-time": startEpoch,"end-time": endEpoch}
+        else:
+            return None
+        params.update({"metric-path":"Errors|"+str(tier_ID)+"|*|Errors per Minute",'rollup': True,"output":"JSON"})
         if selectors: params.update(selectors)
         return self.__fetch_RESTfulPath(restfulPath,params=params)
 
