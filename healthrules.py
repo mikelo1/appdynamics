@@ -428,28 +428,36 @@ class HealthRuleDict(AppEntity):
         :param healthrule: JSON data containing a health rule
         :returns: string with a comma separated list of critical conditions
         """
-        if 'evalCriterias' not in healthrule or 'criticalCriteria' not in healthrule['evalCriterias'] or healthrule['evalCriterias']['criticalCriteria'] is None:
-            CritCondition = ""
-        elif 'conditionExpression' in healthrule['evalCriterias']['criticalCriteria']:
-            CritCondition = healthrule['evalCriterias']['criticalCriteria']['conditionExpression']
-        elif healthrule['evalCriterias']['criticalCriteria']['conditions'][0]['evalDetail']['evalDetailType'] == "METRIC_EXPRESSION":
-            CritCondition = healthrule['evalCriterias']['criticalCriteria']['conditions'][0]['evalDetail']['metricExpression']
-        elif healthrule['evalCriterias']['criticalCriteria']['conditions'][0]['evalDetail']['evalDetailType'] == "SINGLE_METRIC":
-            evalDetail = healthrule['evalCriterias']['criticalCriteria']['conditions'][0]['evalDetail']
-            if evalDetail['metricEvalDetail']['metricEvalDetailType']=="BASELINE_TYPE":
-                CritCondition = evalDetail['metricPath']+" is "+ \
-                                evalDetail['metricEvalDetail']['baselineCondition']+" "+ \
-                                evalDetail['metricEvalDetail']['baselineName']+" by "+ \
-                                str(evalDetail['metricEvalDetail']['compareValue'])+" "+ \
-                                evalDetail['metricEvalDetail']['baselineUnit']
-            elif evalDetail['metricEvalDetail']['metricEvalDetailType']=="SPECIFIC_TYPE":
-                CritCondition = evalDetail['metricPath']+" is "+ \
-                                evalDetail['metricEvalDetail']['baselineCondition']+" "+ \
-                                str(evalDetail['metricEvalDetail']['compareValue'])
-            else: CritCondition = ""
-        else:
-            CritCondition = ""
-        return CritCondition
+        def str_condition_expression(condition):
+            if 'metricExpression' in condition:
+                return expression.replace( condition['shortName'],
+                                           condition['metricExpression']['metricDefinition']['logicalMetricName'].lower() + " " + \
+                                           condition['operator'].lower() + " " + \
+                                           str(condition['value']) )
+            else:
+                return str_condition_expression(condition['condition1'], str_condition_expression(condition['condition2'],expression) )
+
+        if 'critical' not in healthrule and 'evalCriterias' not in healthrule:
+            if 'DEBUG' in locals(): sys.stderr.write("Unrecognized evaluation criteria for healthrule "+healthrule['name'])
+        elif 'critical' in healthrule and healthrule['critical'] is not None: ## New JSON format
+            conditionExpression = healthrule['critical']['conditionExpression'].replace("AND","and").replace("OR","or")
+            return str_condition_expression(healthrule['critical']['condition'],conditionExpression)
+        elif 'evalCriterias' in healthrule and healthrule['evalCriterias']['criticalCriteria'] is not None: ## Legacy XML format
+            if healthrule['evalCriterias']['criticalCriteria']['conditions'][0]['evalDetail']['evalDetailType'] == "METRIC_EXPRESSION":
+                return healthrule['evalCriterias']['criticalCriteria']['conditions'][0]['evalDetail']['metricExpression']
+            elif healthrule['evalCriterias']['criticalCriteria']['conditions'][0]['evalDetail']['evalDetailType'] == "SINGLE_METRIC":
+                evalDetail = healthrule['evalCriterias']['criticalCriteria']['conditions'][0]['evalDetail']
+                if evalDetail['metricEvalDetail']['metricEvalDetailType']=="BASELINE_TYPE":
+                    return evalDetail['metricPath']+" is "+ \
+                           evalDetail['metricEvalDetail']['baselineCondition']+" "+ \
+                           evalDetail['metricEvalDetail']['baselineName']+" by "+ \
+                           str(evalDetail['metricEvalDetail']['compareValue'])+" "+ \
+                           evalDetail['metricEvalDetail']['baselineUnit']
+                elif evalDetail['metricEvalDetail']['metricEvalDetailType']=="SPECIFIC_TYPE":
+                    return evalDetail['metricPath']+" is "+ \
+                           evalDetail['metricEvalDetail']['baselineCondition']+" "+ \
+                           str(evalDetail['metricEvalDetail']['compareValue'])
+        return ""
 
 
     ###### FROM HERE PUBLIC METHODS ######
