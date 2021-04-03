@@ -55,19 +55,35 @@ application_exists() {
 #if application_exists $APPLICATION ; then echo "Application exists"; else echo "Application does NOT exist."; fi
 
 ###
+ # Fetch access token from a controller.
+ # @param HOSTNAME Full hostname of the Appdynamics controller. i.e.: demo1.appdynamics.com:443
+ # @param APICLIENT Full username, including account. i.e.: myuser@customer1
+ # @param APISECRET password for the specified user and host. i.e.: mypassword
+ # @return the access token string. Empty string if there was a problem getting the access token.
+###
+echo_appd_access_token() {
+  HOSTNAME=$1
+  APICLIENT=$2
+  APISECRET=$3
+  # https://docs.appdynamics.com/display/PRO45/API+Clients#APIClients-using-the-access-token
+  # https://docs.appdynamics.com/display/PRO45/API+Clients
+  curl -s --user "$APICLIENT:$APISECRET" \
+          -X POST -H "Content-Type: application/vnd.appd.cntrl+protobuf;v=1" \
+          -d "grant_type=client_credentials&client_id=$APICLIENT&client_secret=$APISECRET" \
+          "https://${HOSTNAME}/controller/api/oauth/access_token" | grep -o "\"access_token\": \"[^\"]*\"," | awk -F\" '{print $4}'
+}
+
+###
  # Get the Application ID for an application name.
- # @param HOST Full hostname of the Appdynamics controller. i.e.: demo1.appdynamics.com:443
- # @param USER Full username, including account. i.e.: myuser@customer1
- # @param PASS password for the specified user and host. i.e.: mypassword
- # @param APP_NAME Name of the application. i.e.: myApp
+ # @param HOSTNAME Full hostname of the Appdynamics controller. i.e.: demo1.appdynamics.com:443
+ # @param ACCESS_TOKEN Authentication access token.
  # @return the ID of the specified application name. Nothing if the application was not found.
 ###
 get_App_ID() {
-  HOST=$1
-  USER=$2
-  PASS=$3
-  APPLICATION=$4
-  response=$(curl -si --user "$USER:$PASS" https://${HOST}/controller/rest/applications/${APPLICATION})
+  HOSTNAME=$1
+  ACCESS_TOKEN=$2
+  response=$(curl -si -H "Authorization:Bearer $ACCESS_TOKEN" \
+          https://${HOSTNAME}/controller/rest/applications/${APPLICATION})
   respCode=$(echo $response | grep -o "^HTTP\/......." | awk '{print $2}')
   if [ "$respCode" = "200" ]; then
     echo $response | grep -o "<id>.*</id>" | awk -F"[<>]" '{print $3}'
@@ -76,39 +92,32 @@ get_App_ID() {
 
 ###
  # Import / Export of entities to a SaaS or OnPrem Appdynamics controller.
- # @param HOST Full hostname of the Appdynamics controller. i.e.: demo1.appdynamics.com:443
- # @param USER Full username, including account. i.e.: myuser@customer1
- # @param PASS password for the specified user and host. i.e.: mypassword
- # @param APP_NAME Name of the application to be imported/exported. i.e.: myApp
- # @param FILEPATH Path where the JSON file is stored. i.e.: ./myService/PROD
- # @param OPERATION The operation to be executed (retrieve/create/update). i.e.: retrieve
+ # @param HOSTNAME Full hostname of the Appdynamics controller. i.e.: demo1.appdynamics.com:443
+ # @param ACCESS_TOKEN Authentication access token.
+ # @param APP_ID Application ID number to be imported/exported.
 ###
 run_ImpExp() {
-  HOST=$1
-  USER=$2
-  PASS=$3
-  APP_NAME=$4
-  FILEPATH=$5
+  HOSTNAME=$1
+  ACCESS_TOKEN=$2
+  APP_ID=$3
+  FILEPATH=$ENVIRONMENT/$APPLICATION
 
   if [ ! -d ${FILEPATH} ]; then
-   if [ "$OPERATION" == "retrieve" ]; then mkdir -p ${FILEPATH}; else echo "Path does not exist"; return; fi
+   if [ "$OPERATION" == "retrieve" ]; then mkdir -p ${FILEPATH}; else echo "Path ${FILEPATH} does not exist"; return; fi
   fi
 
-  APP_ID=$(get_App_ID $HOST $USER $PASS $APP_NAME)
-  if [ -z $APP_ID ]; then echo "Could not find the App ID for application $APP_NAME."; exit; fi
-
   for ENTITY in health-rules actions policies schedules; do
-    echo -ne "$OPERATION $ENTITY for application $APP_NAME($APP_ID)... "
+    echo -ne "$OPERATION $ENTITY for application $APPLICATION($APP_ID)... "
     if [ $OPERATION = "retrieve" ]; then
-      curl -s -X GET --user "${USER}:${PASS}" -o ${FILEPATH}/${ENTITY}.json \
+      curl -s -X GET -H "Authorization:Bearer $ACCESS_TOKEN" -o ${FILEPATH}/${ENTITY}.json \
                       https://$HOST/controller/alerting/rest/v1/applications/$APP_ID/$ENTITY
       if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; else echo "OK"; fi
       ENTITY_LIST=$(grep -o "\"id\":[0-9]*" ${FILEPATH}/${ENTITY}.json | awk -F: '{print $2}')
       if [ ! -z "$ENTITY_LIST" ] && [ ! -d ${FILEPATH}/${ENTITY} ]; then mkdir -p ${FILEPATH}/${ENTITY}; fi
       for ELEMENT in $ENTITY_LIST; do
-        echo -ne "$OPERATION $ENTITY $ELEMENT for application $APP_NAME($APP_ID)... "
-        curl -s -X GET --user "${USER}:${PASS}" -o ${FILEPATH}/${ENTITY}/${ELEMENT}.json \
-                        https://$HOST/controller/alerting/rest/v1/applications/$APP_ID/$ENTITY/$ELEMENT
+        echo -ne "$OPERATION $ENTITY $ELEMENT for application $APPLICATION($APP_ID)... "
+        curl -s -X GET -H "Authorization:Bearer $ACCESS_TOKEN" -o ${FILEPATH}/${ENTITY}/${ELEMENT}.json \
+                      https://$HOST/controller/alerting/rest/v1/applications/$APP_ID/$ENTITY/$ELEMENT
         if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; else echo "OK"; fi
       done
     elif [ $OPERATION = "create" ]; then
@@ -116,8 +125,8 @@ run_ImpExp() {
       ENTITY_LIST=$(grep -o "\"id\":[0-9]*" ${FILEPATH}/${ENTITY}.json | awk -F: '{print $2}')
       for ELEMENT in $ENTITY_LIST; do
         if [ ! -f ${FILEPATH}/${ENTITY}/${ELEMENT}.json ]; then echo "missing data file ${ENTITY}/${ELEMENT}.json"; continue; fi
-        echo -ne "$OPERATION $ENTITY $ELEMENT for application $APP_NAME($APP_ID)... "
-        curl -sL -w "%{http_code}" -X POST --user "${USER}:${PASS}" \
+        echo -ne "$OPERATION $ENTITY $ELEMENT for application $APPLICATION($APP_ID)... "
+        curl -sL -w "%{http_code}" -X POST -H "Authorization:Bearer $ACCESS_TOKEN" \
                       -H "Content-Type: application/json" --data=@${FILEPATH}/${ENTITY}/${ELEMENT}.json \
                       https://$HOST/controller/alerting/rest/v1/applications/$APP_ID/$ENTITY
         if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; else echo .; fi
@@ -127,8 +136,8 @@ run_ImpExp() {
       ENTITY_LIST=$(grep -o "\"id\":[0-9]*" ${FILEPATH}/${ENTITY}.json | awk -F: '{print $2}')
       for ELEMENT in $ENTITY_LIST; do
         if [ ! -f ${FILEPATH}/${ENTITY}/${ELEMENT}.json ]; then echo "missing data file ${ENTITY}/${ELEMENT}.json"; continue; fi
-        echo -ne "$OPERATION $ENTITY $ELEMENT for application $APP_NAME($APP_ID)... "
-        curl -sL -w "%{http_code}" -X PUT --user "${USER}:${PASS}" \
+        echo -ne "$OPERATION $ENTITY $ELEMENT for application $APPLICATION($APP_ID)... "
+        curl -sL -w "%{http_code}" -X PUT -H "Authorization:Bearer $ACCESS_TOKEN" \
                       -H "Content-Type: application/json" -T ${FILEPATH}/${ENTITY}/${ELEMENT}.json \
                       https://$HOST/controller/alerting/rest/v1/applications/$APP_ID/$ENTITY/$ELEMENT
         if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; else echo .; fi
@@ -138,38 +147,41 @@ run_ImpExp() {
   for FILE in transactiondetection-auto transactiondetection-custom transactiondetection-exclude; do
     ENTITY=`echo $FILE | awk -F[.-] '{print $1}'`
     TYPE=`echo $FILE | awk -F[.-] '{print $2}'`
-    echo -ne "$OPERATION $ENTITY for application $APP_NAME($APP_ID)... "
+    echo -ne "$OPERATION $ENTITY for application $APPLICATION($APP_ID)... "
     if [ $OPERATION = "retrieve" ]; then
-        curl -s --user "${USER}:${PASS}" https://$HOST/controller/$ENTITY/$APP_ID/$TYPE -o ${FILEPATH}/${FILE}.xml
+        curl -s -H "Authorization:Bearer $ACCESS_TOKEN" -o ${FILEPATH}/${FILE}.xml \
+                      https://$HOST/controller/$ENTITY/$APP_ID/$TYPE
         if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; else echo "OK"; fi
     elif [ $OPERATION = "create" ]; then
         if [ ! -f ${FILEPATH}/${FILE}.xml ]; then echo "missing data file ${FILE}.xml"; continue; fi
-        curl -sL -w "%{http_code}" -X POST --user "${USER}:${PASS}" https://$HOST/controller/$ENTITY/$APP_ID/$TYPE -F file=@${FILEPATH}/${FILE}.xml
+        curl -sL -w "%{http_code}" -X POST -H "Authorization:Bearer $ACCESS_TOKEN" -F file=@${FILEPATH}/${FILE}.xml \
+                      https://$HOST/controller/$ENTITY/$APP_ID/$TYPE
         if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; else echo .; fi
     elif [ $OPERATION = "update" ]; then
         if [ ! -f ${FILEPATH}/${FILE}.xml ]; then echo "missing data file ${FILE}.xml"; continue; fi
-        curl -sL -w "%{http_code}" -X POST --user "${USER}:${PASS}" "https://$HOST/controller/$ENTITY/$APP_ID/$TYPE?overwrite=true" -F file=@${FILEPATH}/${FILE}.xml
+        curl -sL -w "%{http_code}" -X POST -H "Authorization:Bearer $ACCESS_TOKEN" -F file=@${FILEPATH}/${FILE}.xml \
+                      "https://$HOST/controller/$ENTITY/$APP_ID/$TYPE?overwrite=true"
         echo .
         if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; else echo .; fi
     fi
   done
   if [ $OPERATION = "retrieve" ]; then
     for ENTITY in business-transactions backends; do
-      echo -ne "$OPERATION $ENTITY for application $APP_NAME($APP_ID)... "
-      curl -sG -X GET --user "${USER}:${PASS}" -o ${FILEPATH}/${ENTITY}.json \
+      echo -ne "$OPERATION $ENTITY for application $APPLICATION($APP_ID)... "
+      curl -sG -X GET -H "Authorization:Bearer $ACCESS_TOKEN" -o ${FILEPATH}/${ENTITY}.json \
                       -d 'output=JSON' \
                       https://$HOST/controller/rest/applications/$APP_ID/$ENTITY
       if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; else echo "OK"; fi
     done
     ENTITY="healthrule-violations"
-    echo -ne "$OPERATION $ENTITY for application $APP_NAME($APP_ID)... "
-    curl -sG -X GET --user "${USER}:${PASS}" -o ${FILEPATH}/${ENTITY}.json \
+    echo -ne "$OPERATION $ENTITY for application $APPLICATION($APP_ID)... "
+    curl -sG -X GET -H "Authorization:Bearer $ACCESS_TOKEN" -o ${FILEPATH}/${ENTITY}.json \
                     -d 'time-range-type=BEFORE_NOW' -d 'duration-in-mins=1440' -d 'output=JSON' \
                       https://$HOST/controller/rest/applications/$APP_ID/problems/$ENTITY
     if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; else echo "OK"; fi
     ENTITY="request-snapshots"
-    echo -ne "$OPERATION $ENTITY for application $APP_NAME($APP_ID)... "
-    curl -sG -X GET --user "${USER}:${PASS}" -o ${FILEPATH}/${ENTITY}.json \
+    echo -ne "$OPERATION $ENTITY for application $APPLICATION($APP_ID)... "
+    curl -sG -X GET -H "Authorization:Bearer $ACCESS_TOKEN" -o ${FILEPATH}/${ENTITY}.json \
                     -d 'time-range-type=BEFORE_NOW' -d 'duration-in-mins=1440' -d 'output=JSON' \
                       https://$HOST/controller/rest/applications/$APP_ID/$ENTITY
     if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; else echo "OK"; fi
@@ -179,85 +191,88 @@ run_ImpExp() {
 ###
  # Import / Export of entities to a SaaS or OnPrem Appdynamics controller, using the legacy REST application.
  # https://docs.appdynamics.com/display/PRO44/Configuration+Import+and+Export+API
- # @param HOST Full hostname of the Appdynamics controller. i.e.: demo1.appdynamics.com:443
- # @param USER Full username, including account. i.e.: myuser@customer1
- # @param PASS password for the specified user and host. i.e.: mypassword
- # @param APP_NAME Name of the application to be imported/exported. i.e.: myApp
- # @param FILEPATH Path where the JSON file is stored. i.e.: ./myService/PROD
- # @param OPERATION The operation to be executed (retrieve/create/update). i.e.: retrieve
+ # @param HOSTNAME Full hostname of the Appdynamics controller. i.e.: demo1.appdynamics.com:443
+ # @param ACCESS_TOKEN Authentication access token.
+ # @param APP_ID Application ID number to be imported/exported.
 ###
 run_ImpExp_legacy() {
-  HOST=$1
-  USER=$2
-  PASS=$3
-  APP_NAME=$4
-  FILEPATH=$5
+  HOSTNAME=$1
+  ACCESS_TOKEN=$2
+  APP_ID=$3
+  FILEPATH=$ENVIRONMENT/$APPLICATION
 
   if [ ! -d ${FILEPATH} ]; then
-   if [ "$OPERATION" == "retrieve" ]; then mkdir -p ${FILEPATH}; else echo "Path does not exist"; return; fi
+   if [ "$OPERATION" == "retrieve" ]; then mkdir -p ${FILEPATH}; else echo "Path ${FILEPATH} does not exist"; return; fi
   fi
-
-  APP_ID=$(get_App_ID $HOST $USER $PASS $APP_NAME)
-
-  if [ -z $APP_ID ]; then echo "Could not find the App ID for application $APP_NAME."; exit; fi
 
   for FILE in healthrules.xml actions.json policies.json; do
     ENTITY=`echo $FILE | awk -F. '{print $1}'`
-    echo -ne "$OPERATION $ENTITY for application $APP_NAME($APP_ID)... "
+    echo -ne "$OPERATION $ENTITY for application $APPLICATION($APP_ID)... "
     if [ $OPERATION = "retrieve" ]; then
-      curl -s -X GET --user "${USER}:${PASS}" https://$HOST/controller/$ENTITY/$APP_ID -o ${FILEPATH}/${FILE}
+      curl -s -X GET -H "Authorization:Bearer $ACCESS_TOKEN" -o ${FILEPATH}/${FILE} \
+                      https://$HOST/controller/$ENTITY/$APP_ID
       if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; else echo "OK"; fi
     elif [ $OPERATION = "create" ] && [ -f ${FILEPATH}/${FILE} ]; then
-      curl -sL -w "%{http_code}" -X POST --user "${USER}:${PASS}" https://$HOST/controller/$ENTITY/$APP_ID -F file=@${FILEPATH}/${FILE}
+      curl -sL -w "%{http_code}" -X POST -H "Authorization:Bearer $ACCESS_TOKEN" -F file=@${FILEPATH}/${FILE} \
+                      https://$HOST/controller/$ENTITY/$APP_ID
       if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; else echo .; fi
     elif [ $OPERATION = "update" ] && [ ${FILEPATH}/${FILE} ];  then
-      curl -sL -w "%{http_code}" -X POST --user "${USER}:${PASS}" "https://$HOST/controller/$ENTITY/$APP_ID?overwrite=true" -F file=@${FILEPATH}/${FILE}
+      curl -sL -w "%{http_code}" -X POST -H "Authorization:Bearer $ACCESS_TOKEN" -F file=@${FILEPATH}/${FILE}\
+                      "https://$HOST/controller/$ENTITY/$APP_ID?overwrite=true"
       if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; else echo .; fi
     fi
   done
   for FILE in transactiondetection-auto transactiondetection-custom; do
     ENTITY=`echo $FILE | awk -F[.-] '{print $1}'`
     TYPE=`echo $FILE | awk -F[.-] '{print $2}'`
-    echo -ne "$OPERATION $ENTITY for application $APP_NAME($APP_ID)... "
+    echo -ne "$OPERATION $ENTITY for application $APPLICATION($APP_ID)... "
     if [ $OPERATION = "retrieve" ]; then
-        curl -s --user "${USER}:${PASS}" https://$HOST/controller/$ENTITY/$APP_ID/$TYPE -o ${FILEPATH}/${FILE}.xml
+        curl -s -H "Authorization:Bearer $ACCESS_TOKEN" \
+                      https://$HOST/controller/$ENTITY/$APP_ID/$TYPE -o ${FILEPATH}/${FILE}.xml
         if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; else echo "OK"; fi
     elif [ $OPERATION = "create" ]; then
-        curl -sL -w "%{http_code}" -X POST --user "${USER}:${PASS}" https://$HOST/controller/$ENTITY/$APP_ID/$TYPE -F file=@${FILEPATH}/${FILE}.xml
+        curl -sL -w "%{http_code}" -X POST -H "Authorization:Bearer $ACCESS_TOKEN" \
+                      https://$HOST/controller/$ENTITY/$APP_ID/$TYPE -F file=@${FILEPATH}/${FILE}.xml
         if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; else echo .; fi
     elif [ $OPERATION = "update" ]; then
-        curl -sL -w "%{http_code}" -X POST --user "${USER}:${PASS}" "https://$HOST/controller/$ENTITY/$APP_ID/$TYPE?overwrite=true" -F file=@${FILEPATH}/${FILE}.xml
+        curl -sL -w "%{http_code}" -X POST -H "Authorization:Bearer $ACCESS_TOKEN" \
+                      "https://$HOST/controller/$ENTITY/$APP_ID/$TYPE?overwrite=true" -F file=@${FILEPATH}/${FILE}.xml
         echo .
         if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; else echo .; fi
     fi
   done
   if [ $OPERATION = "retrieve" ]; then
     for ENTITY in business-transactions backends; do
-      echo -ne "$OPERATION $ENTITY for application $APP_NAME($APP_ID)... "
-      curl -sG -X GET --user "${USER}:${PASS}" -o ${FILEPATH}/${ENTITY}.json \
+      echo -ne "$OPERATION $ENTITY for application $APPLICATION($APP_ID)... "
+      curl -sG -X GET -H "Authorization:Bearer $ACCESS_TOKEN" -o ${FILEPATH}/${ENTITY}.json \
                       -d 'output=JSON' \
                       https://$HOST/controller/rest/applications/$APP_ID/$ENTITY
       if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; else echo "OK"; fi
     done
     ENTITY="healthrule-violations"
-    echo -ne "$OPERATION $ENTITY for application $APP_NAME($APP_ID)... "
-    curl -sG -X GET --user "${USER}:${PASS}" -o ${FILEPATH}/${ENTITY}.json \
+    echo -ne "$OPERATION $ENTITY for application $APPLICATION($APP_ID)... "
+    curl -sG -X GET -H "Authorization:Bearer $ACCESS_TOKEN" -o ${FILEPATH}/${ENTITY}.json \
                     -d 'time-range-type=BEFORE_NOW' -d 'duration-in-mins=1440' -d 'output=JSON' \
                       https://$HOST/controller/rest/applications/$APP_ID/problems/$ENTITY
     if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; else echo "OK"; fi
     ENTITY="request-snapshots"
-    echo -ne "$OPERATION $ENTITY for application $APP_NAME($APP_ID)... "
-    curl -sG -X GET --user "${USER}:${PASS}" -o ${FILEPATH}/${ENTITY}.json \
+    echo -ne "$OPERATION $ENTITY for application $APPLICATION($APP_ID)... "
+    curl -sG -X GET -H "Authorization:Bearer $ACCESS_TOKEN" -o ${FILEPATH}/${ENTITY}.json \
                     -d 'time-range-type=BEFORE_NOW' -d 'duration-in-mins=1440' -d 'output=JSON' \
                       https://$HOST/controller/rest/applications/$APP_ID/$ENTITY
     if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; else echo "OK"; fi
   fi
 }
 
-USER=`grep $ENVIRONMENT -A6 $CRED_FILE | grep username | awk -F"[:@]" '{print $2}' | sed 's/\s//g'`
-ACCOUNT=`grep $ENVIRONMENT -A6 $CRED_FILE | grep username | awk -F"[:@]" '{print $3}' | sed 's/\s//g'`
-PASS=`grep $ENVIRONMENT -A6 $CRED_FILE | grep password | awk -F: '{print $2}' | sed 's/\s//g'`
+USER=`grep $ENVIRONMENT -A6 $CRED_FILE | grep apiclient | awk -F"[:@]" '{print $2}' | sed 's/\s//g'`
+ACCOUNT=`grep $ENVIRONMENT -A6 $CRED_FILE | grep apiclient | awk -F"[:@]" '{print $3}' | sed 's/\s//g'`
+PASS=`grep $ENVIRONMENT -A6 $CRED_FILE | grep apisecret | awk -F: '{print $2}' | sed 's/\s//g' | base64 -d`
 HOST=`grep $ENVIRONMENT -A6 $CRED_FILE | grep url | awk -F: '{print $3}' | sed 's/\///g'`
 #env_name=`echo $ENVIRONMENT | awk -F"." '{print $3}' | tr '[:lower:]' '[:upper:]'`
+#echo $USER@$ACCOUNT $PASS $HOST $ENVIRONMENT/$APPLICATION
 
-run_ImpExp_legacy $HOST ${USER}@${ACCOUNT} $PASS $APPLICATION $ENVIRONMENT/$APPLICATION $OPERATION
+ACCESS_TOKEN=$(echo_appd_access_token $HOST ${USER}@${ACCOUNT} $PASS)
+APP_ID=$(get_App_ID $HOST $ACCESS_TOKEN)
+if [ -z $APP_ID ]; then echo "Could not find the App ID for application $APP_NAME."; exit; fi
+
+run_ImpExp_legacy $HOST ${ACCESS_TOKEN} $APP_ID
