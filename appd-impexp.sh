@@ -110,14 +110,14 @@ run_ImpExp() {
     echo -ne "$OPERATION $ENTITY for application $APPLICATION($APP_ID)... "
     if [ $OPERATION = "retrieve" ]; then
       curl -s -X GET -H "Authorization:Bearer $ACCESS_TOKEN" -o ${FILEPATH}/${ENTITY}.json \
-                      https://$HOST/controller/alerting/rest/v1/applications/$APP_ID/$ENTITY
+                      https://$HOSTNAME/controller/alerting/rest/v1/applications/$APP_ID/$ENTITY
       if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; else echo "OK"; fi
       ENTITY_LIST=$(grep -o "\"id\":[0-9]*" ${FILEPATH}/${ENTITY}.json | awk -F: '{print $2}')
       if [ ! -z "$ENTITY_LIST" ] && [ ! -d ${FILEPATH}/${ENTITY} ]; then mkdir -p ${FILEPATH}/${ENTITY}; fi
       for ELEMENT in $ENTITY_LIST; do
         echo -ne "$OPERATION $ENTITY $ELEMENT for application $APPLICATION($APP_ID)... "
         curl -s -X GET -H "Authorization:Bearer $ACCESS_TOKEN" -o ${FILEPATH}/${ENTITY}/${ELEMENT}.json \
-                      https://$HOST/controller/alerting/rest/v1/applications/$APP_ID/$ENTITY/$ELEMENT
+                      https://$HOSTNAME/controller/alerting/rest/v1/applications/$APP_ID/$ENTITY/$ELEMENT
         if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; else echo "OK"; fi
       done
     elif [ $OPERATION = "create" ]; then
@@ -128,7 +128,7 @@ run_ImpExp() {
         echo -ne "$OPERATION $ENTITY $ELEMENT for application $APPLICATION($APP_ID)... "
         curl -sL -w "%{http_code}" -X POST -H "Authorization:Bearer $ACCESS_TOKEN" \
                       -H "Content-Type: application/json" --data=@${FILEPATH}/${ENTITY}/${ELEMENT}.json \
-                      https://$HOST/controller/alerting/rest/v1/applications/$APP_ID/$ENTITY
+                      https://$HOSTNAME/controller/alerting/rest/v1/applications/$APP_ID/$ENTITY
         if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; else echo .; fi
       done
     elif [ $OPERATION = "update" ];  then
@@ -139,7 +139,7 @@ run_ImpExp() {
         echo -ne "$OPERATION $ENTITY $ELEMENT for application $APPLICATION($APP_ID)... "
         curl -sL -w "%{http_code}" -X PUT -H "Authorization:Bearer $ACCESS_TOKEN" \
                       -H "Content-Type: application/json" -T ${FILEPATH}/${ENTITY}/${ELEMENT}.json \
-                      https://$HOST/controller/alerting/rest/v1/applications/$APP_ID/$ENTITY/$ELEMENT
+                      https://$HOSTNAME/controller/alerting/rest/v1/applications/$APP_ID/$ENTITY/$ELEMENT
         if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; else echo .; fi
       done
     fi
@@ -150,17 +150,17 @@ run_ImpExp() {
     echo -ne "$OPERATION $ENTITY for application $APPLICATION($APP_ID)... "
     if [ $OPERATION = "retrieve" ]; then
         curl -s -H "Authorization:Bearer $ACCESS_TOKEN" -o ${FILEPATH}/${FILE}.xml \
-                      https://$HOST/controller/$ENTITY/$APP_ID/$TYPE
+                      https://$HOSTNAME/controller/$ENTITY/$APP_ID/$TYPE
         if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; else echo "OK"; fi
     elif [ $OPERATION = "create" ]; then
         if [ ! -f ${FILEPATH}/${FILE}.xml ]; then echo "missing data file ${FILE}.xml"; continue; fi
         curl -sL -w "%{http_code}" -X POST -H "Authorization:Bearer $ACCESS_TOKEN" -F file=@${FILEPATH}/${FILE}.xml \
-                      https://$HOST/controller/$ENTITY/$APP_ID/$TYPE
+                      https://$HOSTNAME/controller/$ENTITY/$APP_ID/$TYPE
         if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; else echo .; fi
     elif [ $OPERATION = "update" ]; then
         if [ ! -f ${FILEPATH}/${FILE}.xml ]; then echo "missing data file ${FILE}.xml"; continue; fi
         curl -sL -w "%{http_code}" -X POST -H "Authorization:Bearer $ACCESS_TOKEN" -F file=@${FILEPATH}/${FILE}.xml \
-                      "https://$HOST/controller/$ENTITY/$APP_ID/$TYPE?overwrite=true"
+                      "https://$HOSTNAME/controller/$ENTITY/$APP_ID/$TYPE?overwrite=true"
         echo .
         if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; else echo .; fi
     fi
@@ -170,20 +170,20 @@ run_ImpExp() {
       echo -ne "$OPERATION $ENTITY for application $APPLICATION($APP_ID)... "
       curl -sG -X GET -H "Authorization:Bearer $ACCESS_TOKEN" -o ${FILEPATH}/${ENTITY}.json \
                       -d 'output=JSON' \
-                      https://$HOST/controller/rest/applications/$APP_ID/$ENTITY
+                      https://$HOSTNAME/controller/rest/applications/$APP_ID/$ENTITY
       if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; else echo "OK"; fi
     done
     ENTITY="healthrule-violations"
     echo -ne "$OPERATION $ENTITY for application $APPLICATION($APP_ID)... "
     curl -sG -X GET -H "Authorization:Bearer $ACCESS_TOKEN" -o ${FILEPATH}/${ENTITY}.json \
                     -d 'time-range-type=BEFORE_NOW' -d 'duration-in-mins=1440' -d 'output=JSON' \
-                      https://$HOST/controller/rest/applications/$APP_ID/problems/$ENTITY
+                      https://$HOSTNAME/controller/rest/applications/$APP_ID/problems/$ENTITY
     if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; else echo "OK"; fi
     ENTITY="request-snapshots"
     echo -ne "$OPERATION $ENTITY for application $APPLICATION($APP_ID)... "
     curl -sG -X GET -H "Authorization:Bearer $ACCESS_TOKEN" -o ${FILEPATH}/${ENTITY}.json \
                     -d 'time-range-type=BEFORE_NOW' -d 'duration-in-mins=1440' -d 'output=JSON' \
-                      https://$HOST/controller/rest/applications/$APP_ID/$ENTITY
+                      https://$HOSTNAME/controller/rest/applications/$APP_ID/$ENTITY
     if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; else echo "OK"; fi
   fi
 }
@@ -210,15 +210,15 @@ run_ImpExp_legacy() {
     echo -ne "$OPERATION $ENTITY for application $APPLICATION($APP_ID)... "
     if [ $OPERATION = "retrieve" ]; then
       curl -s -X GET -H "Authorization:Bearer $ACCESS_TOKEN" -o ${FILEPATH}/${FILE} \
-                      https://$HOST/controller/$ENTITY/$APP_ID
+                      https://$HOSTNAME/controller/$ENTITY/$APP_ID
       if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; else echo "OK"; fi
     elif [ $OPERATION = "create" ] && [ -f ${FILEPATH}/${FILE} ]; then
       curl -sL -w "%{http_code}" -X POST -H "Authorization:Bearer $ACCESS_TOKEN" -F file=@${FILEPATH}/${FILE} \
-                      https://$HOST/controller/$ENTITY/$APP_ID
+                      https://$HOSTNAME/controller/$ENTITY/$APP_ID
       if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; else echo .; fi
     elif [ $OPERATION = "update" ] && [ ${FILEPATH}/${FILE} ];  then
-      curl -sL -w "%{http_code}" -X POST -H "Authorization:Bearer $ACCESS_TOKEN" -F file=@${FILEPATH}/${FILE}\
-                      "https://$HOST/controller/$ENTITY/$APP_ID?overwrite=true"
+      curl -sL -w "%{http_code}" -X POST -H "Authorization:Bearer $ACCESS_TOKEN" -F file=@${FILEPATH}/${FILE} \
+                      "https://$HOSTNAME/controller/$ENTITY/$APP_ID?overwrite=true"
       if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; else echo .; fi
     fi
   done
@@ -228,15 +228,15 @@ run_ImpExp_legacy() {
     echo -ne "$OPERATION $ENTITY for application $APPLICATION($APP_ID)... "
     if [ $OPERATION = "retrieve" ]; then
         curl -s -H "Authorization:Bearer $ACCESS_TOKEN" \
-                      https://$HOST/controller/$ENTITY/$APP_ID/$TYPE -o ${FILEPATH}/${FILE}.xml
+                      https://$HOSTNAME/controller/$ENTITY/$APP_ID/$TYPE -o ${FILEPATH}/${FILE}.xml
         if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; else echo "OK"; fi
     elif [ $OPERATION = "create" ]; then
         curl -sL -w "%{http_code}" -X POST -H "Authorization:Bearer $ACCESS_TOKEN" \
-                      https://$HOST/controller/$ENTITY/$APP_ID/$TYPE -F file=@${FILEPATH}/${FILE}.xml
+                      https://$HOSTNAME/controller/$ENTITY/$APP_ID/$TYPE -F file=@${FILEPATH}/${FILE}.xml
         if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; else echo .; fi
     elif [ $OPERATION = "update" ]; then
         curl -sL -w "%{http_code}" -X POST -H "Authorization:Bearer $ACCESS_TOKEN" \
-                      "https://$HOST/controller/$ENTITY/$APP_ID/$TYPE?overwrite=true" -F file=@${FILEPATH}/${FILE}.xml
+                      "https://$HOSTNAME/controller/$ENTITY/$APP_ID/$TYPE?overwrite=true" -F file=@${FILEPATH}/${FILE}.xml
         echo .
         if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; else echo .; fi
     fi
@@ -246,20 +246,20 @@ run_ImpExp_legacy() {
       echo -ne "$OPERATION $ENTITY for application $APPLICATION($APP_ID)... "
       curl -sG -X GET -H "Authorization:Bearer $ACCESS_TOKEN" -o ${FILEPATH}/${ENTITY}.json \
                       -d 'output=JSON' \
-                      https://$HOST/controller/rest/applications/$APP_ID/$ENTITY
+                      https://$HOSTNAME/controller/rest/applications/$APP_ID/$ENTITY
       if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; else echo "OK"; fi
     done
     ENTITY="healthrule-violations"
     echo -ne "$OPERATION $ENTITY for application $APPLICATION($APP_ID)... "
     curl -sG -X GET -H "Authorization:Bearer $ACCESS_TOKEN" -o ${FILEPATH}/${ENTITY}.json \
                     -d 'time-range-type=BEFORE_NOW' -d 'duration-in-mins=1440' -d 'output=JSON' \
-                      https://$HOST/controller/rest/applications/$APP_ID/problems/$ENTITY
+                      https://$HOSTNAME/controller/rest/applications/$APP_ID/problems/$ENTITY
     if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; else echo "OK"; fi
     ENTITY="request-snapshots"
     echo -ne "$OPERATION $ENTITY for application $APPLICATION($APP_ID)... "
     curl -sG -X GET -H "Authorization:Bearer $ACCESS_TOKEN" -o ${FILEPATH}/${ENTITY}.json \
                     -d 'time-range-type=BEFORE_NOW' -d 'duration-in-mins=1440' -d 'output=JSON' \
-                      https://$HOST/controller/rest/applications/$APP_ID/$ENTITY
+                      https://$HOSTNAME/controller/rest/applications/$APP_ID/$ENTITY
     if [ $? -ne 0 ]; then echo "Something went wrong with the cURL command."; else echo "OK"; fi
   fi
 }
