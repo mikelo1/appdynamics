@@ -428,20 +428,37 @@ class HealthRuleDict(AppEntity):
         :param healthrule: JSON data containing a health rule
         :returns: string with a comma separated list of critical conditions
         """
-        def str_condition_expression(condition):
+        def str_custom_condition_expression(condition,expression):
+            # In custom conditions the expression is given, only need to replace shortNames by metric name
             if 'metricExpression' in condition:
                 return expression.replace( condition['shortName'],
                                            condition['metricExpression']['metricDefinition']['logicalMetricName'].lower() + " " + \
                                            condition['operator'].lower() + " " + \
                                            str(condition['value']) )
             else:
-                return str_condition_expression(condition['condition1'], str_condition_expression(condition['condition2'],expression) )
+                return str_custom_condition_expression(condition['condition1'],
+                                                str_custom_condition_expression(condition['condition2'],expression) )
+        def str_condition_expression(condition,operator):
+            # In the rest of conditions, no expression is given, need to create it from scratch
+            if 'metricExpression' in condition and 'metricDefinition' in condition['metricExpression']:
+                metricExp = condition['metricExpression']['metricDefinition']['logicalMetricName'].lower() + " " + \
+                            condition['operator'].lower() + " " + str(condition['value'])
+                return metricExp
+            elif 'metricExpression' in condition and condition['conditionExpression'] is not None:
+                return condition['conditionExpression']
+            else:
+                return str_condition_expression(condition['condition1'],operator) + " " + operator + " " + \
+                       str_condition_expression(condition['condition2'],operator)
 
         if 'critical' not in healthrule and 'evalCriterias' not in healthrule:
             if 'DEBUG' in locals(): sys.stderr.write("Unrecognized evaluation criteria for healthrule "+healthrule['name'])
         elif 'critical' in healthrule and healthrule['critical'] is not None: ## New JSON format
-            conditionExpression = healthrule['critical']['conditionExpression'].replace("AND","and").replace("OR","or")
-            return str_condition_expression(healthrule['critical']['condition'],conditionExpression)
+            if healthrule['critical']['conditionAggregationType'] == "CUSTOM":
+                conditionExpression = healthrule['critical']['conditionExpression'].replace("AND","and").replace("OR","or")
+                return str_custom_condition_expression(healthrule['critical']['condition'],conditionExpression)
+            else:
+                operator = "OR" if healthrule['critical']['conditionAggregationType'] == "ANY" else "AND"
+                return str_condition_expression(healthrule['critical']['condition'],operator)
         elif 'evalCriterias' in healthrule and healthrule['evalCriterias']['criticalCriteria'] is not None: ## Legacy XML format
             if healthrule['evalCriterias']['criticalCriteria']['conditions'][0]['evalDetail']['evalDetailType'] == "METRIC_EXPRESSION":
                 return healthrule['evalCriterias']['criticalCriteria']['conditions'][0]['evalDetail']['metricExpression']
