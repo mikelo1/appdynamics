@@ -130,7 +130,7 @@ class EventDict(AppEntity):
                                         'Application': appName,
                                         'Description': self.__str_event_description(policyviolation)})
                 except ValueError as valError:
-                    print (valError)
+                    sys.stderr.write(valError+"\n")
                     if fileName is not None: csvfile.close()
                     return (-1)
         if fileName is not None: csvfile.close()
