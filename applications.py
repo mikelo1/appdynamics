@@ -147,7 +147,7 @@ class ApplicationDict(ControllerEntity):
         :param appID: the ID of the application
         :returns: the name of the specified application ID. None if the application was not found.
         """
-        if type(appID) is str: appID = int(appID)
+        if type(appID) in [str,unicode]: appID = int(appID)
         for appType in self.entityDict:
             if type(self.entityDict[appType]) is dict:
                 if self.entityDict[appType]['id'] == appID:
