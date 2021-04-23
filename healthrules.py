@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# -*- coding: UTF-8 -*-
 import xml.etree.ElementTree as ET
 import json
 import csv
@@ -8,9 +9,210 @@ from appdRESTfulAPI import RESTfulAPI
 from entities import AppEntity
 
 class HealthRuleDict(AppEntity):
-    entityAPIFunctions = {'fetch': RESTfulAPI().fetch_health_rules_legacy}
-    #TODO: entityAPIFunctions = {'fetch': RESTfulAPI().fetch_health_rules_with_IDs}
+    entityAPIFunctions = {'fetch': RESTfulAPI().fetch_health_rules_with_IDs,
+                          'fetchByID': RESTfulAPI().fetch_health_rule_details,
+                          'update': RESTfulAPI().update_health_rule}
+    entityKeyword = "affectedEntityDefinitionRule"
+
+    def __init__(self):
+        self.entityDict = dict()
+
+    def __str_healthrule_affects(self,healthrule):
+        """
+        toString private method, extracts affects from health rule
+        :param healthrule: JSON data containing a health rule
+        :returns: string with a comma separated list of affects
+        """
+        HR_Type=   {"OVERALL_APPLICATION":"Overall application performance",
+                    "BUSINESS_TRANSACTION":"Business transaction performance",
+                    "NODE_HEALTH_TRANSACTION_PERFORMANCE":"Tier/Node Health - Transaction Performance",
+                    "INFRASTRUCTURE":"Tier/Node Health - Hardware,JVM,CLR",
+                    "":"Tier/Node Health - JMX",
+                    "NETVIZ":"Advanced Network",
+                    "SIM":"Servers",
+                    "BACKEND":"Databases & Remote Services",
+                    "ERROR":"Error Rates",
+                    "SERVICEENDPOINTS":"Service Endpoints",
+                    "INFORMATION_POINT":"Information Points",
+                     "EUMPAGES":"User Experience - Browser Apps",
+                    "":"User Experience - Mobile Apps",
+                    "":"Database Health",
+                    "":"Server Health",
+                    "":"Custom"
+                    }
+        HR_affects={"ALL":"All Entities in the Application.",
+                    "ALL_ADDS":"All Service Endpoints in the Application.",
+                    "ALL_BACKENDS":"All Databases & Remote Services in the Application.",
+                    "ALL_INFO_POINTS":"All Information Points in the Application.",
+                    "ALL_MACHINES":"All Servers.",
+                    "ALL_TIERS":"All Tiers in the Application.",
+                    "ANY":"All Nodes in the Application.",
+                    "APPLICATION":"Overall application performance.",
+                    "BTS_OF_SPFICIC_TIERS":"Business Transactions within the specified tiers:",
+                    "CUSTOM":"Matching the following criteria:",
+                    "ERRORS_OF_SPECIFIC_TIERS":"Errors within the specified Tiers:",
+                    "MACHINES_OF_SPECIFIC_TIER":"All Servers of a specific Tier:",
+                    "NAME_MATCH":"Matching the following criteria:",
+                    "NODES_OF_SPECIFC_TIERS":"Nodes within the specified Tiers:",
+                    "SPECIFC":"These specified Nodes:",
+                    "SPECIFIC":"These specified Entities:",
+                    "SPECIFIC_ADDS":"These specified Service Endpoints:",
+                    "SPECIFIC_MACHINES":"Specific Servers:",
+                    "SPECIFIC_TIERS":"These specific Tiers:"
+                    }
+
+        if 'affectedEntityDefinitionRule' in healthrule:
+            if healthrule['affectedEntityDefinitionRule'] is None:
+                return "No Affects."
+            elif 'nodeMatchCriteria' in healthrule['affectedEntityDefinitionRule'] and healthrule['affectedEntityDefinitionRule']['nodeMatchCriteria'] is not None:
+                aemc    =healthrule['affectedEntityDefinitionRule']['nodeMatchCriteria']
+                aemcType=healthrule['affectedEntityDefinitionRule']['nodeMatchCriteria']['type']
+            elif 'matchCriteriaType' in healthrule['affectedEntityDefinitionRule'] and healthrule['affectedEntityDefinitionRule']['matchCriteriaType'] is not None:                
+                aemc    =healthrule['affectedEntityDefinitionRule']
+                aemcType=healthrule['affectedEntityDefinitionRule']['matchCriteriaType']
+            else:
+                aemc    =healthrule['affectedEntityDefinitionRule']
+                aemcType=healthrule['affectedEntityDefinitionRule']['type']
+
+            if   aemcType in ["BTS_OF_SPFICIC_TIERS","ERRORS_OF_SPECIFIC_TIERS","MACHINES_OF_SPECIFIC_TIER","NODES_OF_SPECIFC_TIERS","SPECIFIC_TIERS"]:
+                tiers = ','.join(map(lambda x: str(x),aemc['componentIds'])) if (len(aemc['componentIds']) > 0) else ""
+                return HR_Type[healthrule['type']] + " | " + HR_affects[aemcType] + " " + tiers
+            elif aemcType=="SPECIFC":
+                nodes = ','.join(map(lambda x: str(x),aemc['nodeIds'])) if (len(aemc['nodeIds']) > 0) else ""
+                return HR_Type[healthrule['type']] + " | " + HR_affects[aemcType] + " " + nodes
+            elif aemcType=="SPECIFIC":
+                if 'businessTransactionIds' in aemc and aemc['businessTransactionIds'] is not None:
+                    entities = ','.join(map(lambda x: str(x),aemc['businessTransactionIds'])) if (len(aemc['businessTransactionIds']) > 0) else ""
+                elif 'errorIds' in aemc and aemc['errorIds'] is not None:
+                    entities = ','.join(map(lambda x: str(x),aemc['errorIds'])) if (len(aemc['errorIds']) > 0) else ""
+                return HR_Type[healthrule['type']] + " | " + HR_affects[aemcType] + " " + entities
+            elif aemcType=="SPECIFIC_ADDS":
+                serviceendpoints = ','.join(map(lambda x: str(x),aemc['addIds'])) if (len(aemc['addIds']) > 0) else ""
+                return HR_Type[healthrule['type']] + " | " + HR_affects[aemcType] + " " + serviceendpoints
+            elif aemcType=="SPECIFIC_MACHINES":
+                servers = ','.join(map(lambda x: str(x),aemc['machineInstanceIds'])) if (len(aemc['machineInstanceIds']) > 0) else ""
+                return HR_Type[healthrule['type']] + " | " + HR_affects[aemcType] + " " + servers
+            elif aemcType in ["CUSTOM","NAME_MATCH"]:
+                if   'nameMatch' in aemc and aemc['nameMatch'] is not None: nmc=aemc['nameMatch']
+                elif 'nameMatchCriteria' in aemc and aemc['nameMatchCriteria'] is not None: nmc=aemc['nameMatchCriteria']
+                elif 'nodeNameMatchCriteria' in aemc and aemc['nodeNameMatchCriteria'] is not None: nmc=aemc['nodeNameMatchCriteria']
+                elif 'latestEnvironmentVariables' in aemc or 'latestVmSystemProperties' in aemc: nmc=None
+                else: return HR_Type[healthrule['type']] + " | " + HR_affects[aemcType]
+                if nmc is not None and 'inverse' in nmc and nmc['inverse'] == True:
+                    return HR_Type[healthrule['type']] + " | " + HR_affects[aemcType] + " NOT " + nmc['matchType'] + " " + nmc['matchPattern']
+                elif nmc is not None and 'inverse' in nmc:
+                    return HR_Type[healthrule['type']] + " | " + HR_affects[aemcType] + " " + nmc['matchType'] + " " + nmc['matchPattern']
+                else:
+                    envVars = sysProp = ""
+                    if aemc['latestEnvironmentVariables'] is not None:
+                        envVars = ','.join([ str(var['name']+"="+var['value']) for var in aemc['latestEnvironmentVariables'] ])
+                    if aemc['latestVmSystemProperties'] is not None:
+                        sysProp = ','.join([ str(var['name']+"="+var['value']) for var in aemc['latestVmSystemProperties'] ])
+                    return HR_Type[healthrule['type']] + " | " + HR_affects[aemcType] + " " + envVars + " " + sysProp
+            else:
+                return HR_Type[healthrule['type']] + " | " + HR_affects[aemcType]
+
+    def __str_healthrule_critical_conditions(self,healthrule):
+        """
+        toString private method, extracts critical conditions from health rule
+        :param healthrule: JSON data containing a health rule
+        :returns: string with a comma separated list of critical conditions
+        """
+        def str_custom_condition_expression(condition,expression):
+            # In custom conditions the expression is given, only need to replace shortNames by metric name
+            if 'metricExpression' in condition:
+                return expression.replace( condition['shortName'],
+                                           condition['metricExpression']['metricDefinition']['logicalMetricName'].lower() + " " + \
+                                           condition['operator'].lower() + " " + \
+                                           str(condition['value']) )
+            else:
+                return str_custom_condition_expression(condition['condition1'],
+                                                str_custom_condition_expression(condition['condition2'],expression) )
+        def str_condition_expression(condition,operator):
+            # In the rest of conditions, no expression is given, need to create it from scratch
+            if 'metricExpression' in condition and 'metricDefinition' in condition['metricExpression']:
+                metricExp = condition['metricExpression']['metricDefinition']['logicalMetricName'].lower() + " " + \
+                            condition['operator'].lower() + " " + str(condition['value'])
+                return metricExp
+            elif 'metricExpression' in condition and condition['conditionExpression'] is not None:
+                return condition['conditionExpression']
+            else:
+                return str_condition_expression(condition['condition1'],operator) + " " + operator + " " + \
+                       str_condition_expression(condition['condition2'],operator)
+
+        if 'critical' not in healthrule and 'evalCriterias' not in healthrule:
+            if 'DEBUG' in locals(): sys.stderr.write("Unrecognized evaluation criteria for healthrule "+healthrule['name'])
+        elif healthrule['critical'] is not None: ## New JSON format
+            if healthrule['critical']['conditionAggregationType'] == "CUSTOM":
+                conditionExpression = healthrule['critical']['conditionExpression'].replace("AND","and").replace("OR","or")
+                return str_custom_condition_expression(healthrule['critical']['condition'],conditionExpression)
+            else:
+                operator = "OR" if healthrule['critical']['conditionAggregationType'] == "ANY" else "AND"
+                return str_condition_expression(healthrule['critical']['condition'],operator)
+        return ""
+
+
+    ###### FROM HERE PUBLIC METHODS ######
+
+
+    def generate_CSV(self,appID_List=None,fileName=None):
+        """
+        Generate CSV output from health rules data
+        :param appID_List: list of application IDs, in order to obtain health rules from local health rules dictionary
+        :param fileName: output file name
+        :returns: None
+        """
+        if fileName is not None:
+            try:
+                csvfile = open(fileName, 'w')
+            except:
+                print ("Could not open output file " + fileName + ".")
+                return (-1)
+        else:
+            csvfile = sys.stdout
+
+        # create the csv writer object
+        fieldnames = ['HealthRule', 'Application', 'Duration', 'Wait_Time', 'Schedule', 'Enabled', 'Affects', 'Critical_Condition']
+        filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
+
+        for appID in self.entityDict:
+            if appID_List is not None and type(appID_List) is list and int(appID) not in appID_List:
+                if 'DEBUG' in locals(): print "Application "+appID +" is not loaded in dictionary."
+                continue
+            for healthrule in self.entityDict[appID]:
+                # Check if data belongs to a health rule
+                if self.entityKeyword not in healthrule: continue
+                elif 'header_is_printed' not in locals(): 
+                    filewriter.writeheader()
+                    header_is_printed=True
+
+                try:
+                    filewriter.writerow({'HealthRule': healthrule['name'].encode('ASCII', 'ignore'),
+                                         'Application': applications.getAppName(appID),
+                                         'Duration': healthrule['useDataFromLastNMinutes'] if 'useDataFromLastNMinutes' in healthrule else "",
+                                         'Wait_Time': healthrule['useDataFromLastNMinutes'] if 'useDataFromLastNMinutes' in healthrule else "",
+                                         'Schedule': healthrule['scheduleName'] if 'scheduleName' in healthrule else "",
+                                         'Enabled': healthrule['enabled'],
+                                         'Affects': self.__str_healthrule_affects(healthrule),
+                                         'Critical_Condition': self.__str_healthrule_critical_conditions(healthrule) })
+                except ValueError as valError:
+                    print (valError)
+                    if fileName is not None: csvfile.close()
+                    return (-1)
+        if 'DEBUG' in locals(): print "INFO: Displayed number of health rules:" + str(len(healthrules))
+        if fileName is not None: csvfile.close()
+
+    def get_health_rules_matching(self,appID,entityName,entityType):
+        pass
+        #for healthrule in self.entityDict:
+        #    if healthrule['affectedEntityType'] == entityType:
+
+class HealthRuleXMLDict(AppEntity):
+    entityAPIFunctions = {'fetch': RESTfulAPI().fetch_health_rules_legacy,
+                          'fetchByID': RESTfulAPI().fetch_health_rule_details,
+                          'update': RESTfulAPI().update_health_rule}
     entityKeyword = "affectedEntityType"
+    #entityKeyword = "useDataFromLastNMinutes"
 
     def __init__(self):
         self.entityDict = dict()
@@ -355,12 +557,9 @@ class HealthRuleDict(AppEntity):
             if healthrule['affects']['affectedBusinessTransactions']['businessTransactionScope']=="ALL_BUSINESS_TRANSACTIONS":
                 Affects="All Business Transactions"
             elif healthrule['affects']['affectedBusinessTransactions']['businessTransactionScope']=="BUSINESS_TRANSACTIONS_IN_SPECIFIC_TIERS":
-                tierList = healthrule['affects']['affectedBusinessTransactions']['SpecificTiers']
-                tiers = ','.join(map(lambda x: str(x),tierList)) if (len(tierList) > 0) else ""
+                
                 Affects = "Business Transactions in Tiers " + tiers
             elif healthrule['affects']['affectedBusinessTransactions']['businessTransactionScope']=="SPECIFIC_BUSINESS_TRANSACTIONS":
-                BTList = healthrule['affects']['affectedBusinessTransactions']['businessTransactions']
-                BTs = ','.join(map(lambda x: str(x),BTList)) if (len(BTList) > 0) else ""
                 Affects = "Business Transactions in Tiers " + BTs
             elif healthrule['affects']['affectedBusinessTransactions']['businessTransactionScope']=="BUSINESS_TRANSACTIONS_MATCHING_PATTERN":
                 patternMatcher = healthrule['affects']['affectedBusinessTransactions']['patternMatcher']
@@ -385,8 +584,6 @@ class HealthRuleDict(AppEntity):
                     tiers = ','.join(map(lambda x: str(x),tierList)) if (len(tierList) > 0) else ""
                     Affects = "All nodes from Tiers " + tiers
                 elif healthrule['affects']['affectedEntities']['affectedNodes']['affectedNodeScope']=="SPECIFIC_NODES":
-                    nodeList = healthrule['affects']['affectedEntities']['affectedNodes']['nodes']
-                    nodes = ','.join(map(lambda x: str(x),nodeList)) if (len(nodeList) > 0) else ""
                     Affects = "Specific Nodes " + nodes
                 elif healthrule['affects']['affectedEntities']['affectedNodes']['affectedNodeScope']=="NODES_MATCHING_PATTERN":
                     patternMatcher = healthrule['affects']['affectedEntities']['affectedNodes']['patternMatcher']
@@ -450,16 +647,9 @@ class HealthRuleDict(AppEntity):
                 return str_condition_expression(condition['condition1'],operator) + " " + operator + " " + \
                        str_condition_expression(condition['condition2'],operator)
 
-        if 'critical' not in healthrule and 'evalCriterias' not in healthrule:
+        if 'evalCriterias' not in healthrule:
             if 'DEBUG' in locals(): sys.stderr.write("Unrecognized evaluation criteria for healthrule "+healthrule['name'])
-        elif 'critical' in healthrule and healthrule['critical'] is not None: ## New JSON format
-            if healthrule['critical']['conditionAggregationType'] == "CUSTOM":
-                conditionExpression = healthrule['critical']['conditionExpression'].replace("AND","and").replace("OR","or")
-                return str_custom_condition_expression(healthrule['critical']['condition'],conditionExpression)
-            else:
-                operator = "OR" if healthrule['critical']['conditionAggregationType'] == "ANY" else "AND"
-                return str_condition_expression(healthrule['critical']['condition'],operator)
-        elif 'evalCriterias' in healthrule and healthrule['evalCriterias']['criticalCriteria'] is not None: ## Legacy XML format
+        elif healthrule['evalCriterias']['criticalCriteria'] is not None: ## Legacy XML format
             if healthrule['evalCriterias']['criticalCriteria']['conditions'][0]['evalDetail']['evalDetailType'] == "METRIC_EXPRESSION":
                 return healthrule['evalCriterias']['criticalCriteria']['conditions'][0]['evalDetail']['metricExpression']
             elif healthrule['evalCriterias']['criticalCriteria']['conditions'][0]['evalDetail']['evalDetailType'] == "SINGLE_METRIC":
@@ -506,7 +696,7 @@ class HealthRuleDict(AppEntity):
                 continue
             for healthrule in self.entityDict[appID]:
                 # Check if data belongs to a health rule
-                if 'affectedEntityType' not in healthrule and 'useDataFromLastNMinutes' not in healthrule: continue
+                if self.entityKeyword not in healthrule: continue
                 elif 'header_is_printed' not in locals(): 
                     filewriter.writeheader()
                     header_is_printed=True
@@ -551,11 +741,6 @@ class HealthRuleDict(AppEntity):
 
         return len(healthrules)
 
-
-    def get_health_rules_matching(self,appID,entityName,entityType):
-        pass
-        #for healthrule in self.entityDict:
-        #    if healthrule['affectedEntityType'] == entityType:
 
 # Global object that works as Singleton
 healthrules = HealthRuleDict()
