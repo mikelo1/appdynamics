@@ -8,7 +8,7 @@ from entities import ControllerEntity
 
 class ApplicationDict(ControllerEntity):
     entityAPIFunctions = {'fetch': RESTfulAPI().fetch_applicationsAllTypes}
-    entityKeyword = 'apmApplications'
+    entityJSONKeyword = 'apmApplications'
 
     def __init__(self):
         self.entityDict = dict()

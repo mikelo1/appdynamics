@@ -8,7 +8,7 @@ from entities import AppEntity
 
 class BackendDict(AppEntity):
     entityAPIFunctions = {'fetch': RESTfulAPI().fetch_backends}
-    entityKeyword = "exitPointType"
+    entityJSONKeyword = "exitPointType"
 
     def __init__(self):
         self.entityDict = dict()
@@ -60,7 +60,7 @@ backends = BackendDict()
 
 class EntrypointDict(AppEntity):
     entityAPIFunctions = {'fetch': RESTfulAPI().fetch_entrypoints_TierRules}
-    entityKeyword = "hierarchicalConfigKey"
+    entityJSONKeyword = "hierarchicalConfigKey"
 
     ###### FROM HERE PUBLIC FUNCTIONS ######
 

@@ -10,7 +10,7 @@ from entities import AppEntity
 
 class NodeDict(AppEntity):
     entityAPIFunctions = {'fetch': RESTfulAPI().fetch_nodes}
-    entityKeyword = "nodeUniqueLocalId"
+    entityJSONKeyword = "nodeUniqueLocalId"
 
     def __init__(self):
         self.entityDict = dict()

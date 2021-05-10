@@ -7,7 +7,7 @@ from entities import ControllerEntity
 
 class ConfigurationDict(ControllerEntity):
     entityAPIFunctions = {'fetch': RESTfulAPI().fetch_configuration}
-    entityKeyword = 'updateable'
+    entityJSONKeyword = 'updateable'
 
     def __init__(self):
         self.entityDict = dict()

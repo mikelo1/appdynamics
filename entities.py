@@ -1,11 +1,13 @@
 #!/usr/bin/python
 import json
+import xml.etree.ElementTree as ET
 import sys
 
 class AppEntity:
     entityDict = dict()
     entityAPIFunctions = {} # {'fetch': RESTfulAPI().fetch_entity}
-    entityKeyword = ""
+    entityJSONKeyword = ""
+    entityXMLKeyword = ""
 
     def __init__(self):
         pass
@@ -73,12 +75,19 @@ class AppEntity:
         try:
             dataJSON = json.loads(streamdata)
         except (TypeError,ValueError) as error:
-            if 'DEBUG' in locals(): sys.stderr.write("verify: "+str(error)+"\n")
-            return False
+            if 'DEBUG' in locals(): sys.stderr.write("verify "+ str(self.__class__) +": "+str(error)+"\n")
+            try:
+                root = ET.fromstring(streamdata)
+            except (TypeError,ET.ParseError) as error:
+                if 'DEBUG' in locals(): sys.stderr.write("verify "+ str(self.__class__)+": "+str(error)+"\n")
+                return False
+            # Input data is XML format
+            return root.find(self.entityXMLKeyword) is not None
+        # Input data is JSON format
         if dataJSON is not None and type(dataJSON) is list:
-            return self.entityKeyword in dataJSON[0]
+            return self.entityJSONKeyword in dataJSON[0]
         elif dataJSON is not None and type(dataJSON) is dict:
-            return self.entityKeyword in dataJSON
+            return self.entityJSONKeyword in dataJSON
         return False
 
     def generate_CSV(self,appID_List=None,fileName=None):
@@ -117,7 +126,7 @@ class AppEntity:
 class ControllerEntity:
     entityDict = dict()
     entityAPIFunctions = {} # {'fetch': RESTfulAPI().fetch_entity}
-    entityKeyword = ""
+    entityJSONKeyword = ""
 
     def __init__(self):
         pass
@@ -151,12 +160,19 @@ class ControllerEntity:
         try:
             dataJSON = json.loads(streamdata)
         except (TypeError,ValueError) as error:
-            if 'DEBUG' in locals(): sys.stderr.write("verify: "+str(error)+"\n")
-            return False
+            if 'DEBUG' in locals(): sys.stderr.write("verify "+ str(self.__class__) +": "+str(error)+"\n")
+            try:
+                root = ET.fromstring(streamdata)
+            except (TypeError,ET.ParseError) as error:
+                if 'DEBUG' in locals(): sys.stderr.write("verify "+ str(self.__class__)+": "+str(error)+"\n")
+                return False
+            # Input data is XML format
+            return root.find(self.entityXMLKeyword) is not None
+        # Input data is JSON format
         if dataJSON is not None and type(dataJSON) is list:
-            return self.entityKeyword in dataJSON[0]
+            return self.entityJSONKeyword in dataJSON[0]
         elif dataJSON is not None and type(dataJSON) is dict:
-            return self.entityKeyword in dataJSON
+            return self.entityJSONKeyword in dataJSON
         return False
 
     def generate_CSV(self,fileName=None):

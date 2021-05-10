@@ -9,7 +9,7 @@ from entities import AppEntity
 
 class DetectionruleDict(AppEntity):
     entityAPIFunctions = {'fetch': RESTfulAPI().fetch_transactiondetection}
-    entityKeyword = "rule-list"
+    entityXMLKeyword = "rule-list"
 
     def __init__(self):
         self.entityDict = dict()
@@ -157,19 +157,6 @@ class DetectionruleDict(AppEntity):
             # Add loaded detection rules to the detectrules dictionary
             self.entityDict.update({str(appID):root})
         return len(root.find("rule-list").getchildren())
-
-    def verify(self,streamdata):
-        """
-        Verify that input stream contains entity data.
-        :param streamdata: the stream data
-        :returns: True if the stream data contains an entyty. False otherwise.
-        """
-        try:
-            root = ET.fromstring(streamdata)
-        except (TypeError,ET.ParseError) as error:
-            if 'DEBUG' in locals(): sys.stderr.write("verify: "+str(error)+"\n")
-            return False
-        return root.find("rule-list") is not None
 
     def generate_CSV(self,appID_List=None,fileName=None):
         """

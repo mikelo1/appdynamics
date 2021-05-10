@@ -10,7 +10,7 @@ from entities import AppEntity
 
 class EventDict(AppEntity):
     entityAPIFunctions = {'fetch': RESTfulAPI().fetch_healthrule_violations}
-    entityKeyword = "affectedEntityDefinition"
+    entityJSONKeyword = "affectedEntityDefinition"
 
     def __init__(self):
         self.entityDict = dict()
@@ -141,7 +141,7 @@ events = EventDict()
 
 class ErrorDict(AppEntity):
     entityAPIFunctions = {'fetch': RESTfulAPI().fetch_errors}
-    entityKeyword = "metricPath"
+    entityJSONKeyword = "metricPath"
 
     def __init__(self):
         self.entityDict = dict()

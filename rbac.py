@@ -7,7 +7,7 @@ from entities import ControllerEntity
 
 class RBACDict(ControllerEntity):
     entityAPIFunctions = {'fetch': RESTfulAPI().fetch_users_extended}
-    entityKeyword = "providerUniqueName"
+    entityJSONKeyword = "providerUniqueName"
 
     def __init__(self):
         self.entityDict = dict()

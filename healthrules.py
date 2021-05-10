@@ -12,7 +12,7 @@ class HealthRuleDict(AppEntity):
     entityAPIFunctions = {'fetch': RESTfulAPI().fetch_health_rules_with_IDs,
                           'fetchByID': RESTfulAPI().fetch_health_rule_details,
                           'update': RESTfulAPI().update_health_rule}
-    entityKeyword = "affectedEntityDefinitionRule"
+    entityJSONKeyword = "affectedEntityDefinitionRule"
 
     def __init__(self):
         self.entityDict = dict()

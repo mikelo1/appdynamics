@@ -7,7 +7,7 @@ from entities import ControllerEntity
 
 class DashboardDict(ControllerEntity):
     entityAPIFunctions = {'fetch': RESTfulAPI().fetch_dashboards}
-    entityKeyword = 'canvasType'
+    entityJSONKeyword = 'canvasType'
 
     def __init__(self):
         self.entityDict = dict()

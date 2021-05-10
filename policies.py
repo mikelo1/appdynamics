@@ -8,7 +8,7 @@ from entities import AppEntity
 
 class PolicyDict(AppEntity):
     entityAPIFunctions = {'fetch': RESTfulAPI().fetch_policies_legacy}
-    entityKeyword = "reactorType"
+    entityJSONKeyword = "reactorType"
 
     def __init__(self):
         self.entityDict = dict()
