@@ -127,6 +127,7 @@ class ControllerEntity:
     entityDict = dict()
     entityAPIFunctions = {} # {'fetch': RESTfulAPI().fetch_entity}
     entityJSONKeyword = ""
+    entityXMLKeyword = ""
 
     def __init__(self):
         pass
