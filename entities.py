@@ -90,6 +90,9 @@ class AppEntity:
             return self.entityJSONKeyword in dataJSON
         return False
 
+    def apply(self,appID,filePath):
+        return self.entityAPIFunctions['import'](app_ID=appID,filePath=filePath)
+
     def generate_CSV(self,appID_List=None,fileName=None):
         """
         Generate CSV output from dictionary data
@@ -175,6 +178,9 @@ class ControllerEntity:
         elif dataJSON is not None and type(dataJSON) is dict:
             return self.entityJSONKeyword in dataJSON
         return False
+
+    def apply(self,filePath):
+        return self.entityAPIFunctions['import'](filePath=filePath)
 
     def generate_CSV(self,fileName=None):
         """

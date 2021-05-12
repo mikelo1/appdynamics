@@ -236,12 +236,21 @@ class RESTfulAPI:
 
     def __init__(self):
         pass
+        #self._session = None
 
     def __str__(self):
         return json.dumps(self.BTDict)
 
     def __str__(self):
         return "({0},{1})".format(self.appD_Config.get_configFileName,self.basicAuth)
+
+    ### TO DO: Implement sessions
+#    def _get_session(self):
+#        if not self._session:
+#            from requests.sessions import Session
+#            self._session = Session()
+#            self._session.verify = self.verify
+#        return self._session
 
     def __fetch_access_token(self,serverURL,API_username,API_password):
         """
@@ -356,33 +365,35 @@ class RESTfulAPI:
         return response.content
 
 
-    def __create_RESTful_JSON(self,RESTfulPath,JSONdata,serverURL=None,userName=None,password=None):
+    def __update_RESTfulPath(self,RESTfulPath,streamdata,method,headers=None,serverURL=None,userName=None,password=None):
         """
         Update data from a controller. Either provide an username/password or let it get an access token automatically.
         :param RESTfulPath: RESTful path to upload data
-        :param JSONdata: the data to be updated in JSON format
+        :param streamdata: the data to be updated, in JSON or XML format
+        :param method: HTTP method, could be either POST or PUT.
+        :param headers: additional request headers. i.e: Content-Type:application/json, Accept:text/xml, ...
         :param serverURL: Full hostname of the Appdynamics controller. i.e.: https://demo1.appdynamics.com:443
         :param userName: Full username, including account. i.e.: myuser@customer1
-         :param password: password for the specified user and host. i.e.: mypassword
-        :returns: True if the update was successful. False if no schedule was updated.
+        :param password: password for the specified user and host. i.e.: mypassword
+        :returns: response of the update request. None if no data was updated.
         """
-        if 'DEBUG' in locals(): print ("Creating RESTful path " + RESTfulPath + " with provided JSON data...")
+        if 'DEBUG' in locals(): print ("Updating RESTful path " + RESTfulPath + " with provided stream data...")
+        data = json.dumps(streamdata) if type(streamdata) is dict else streamdata
+        requestMethod = requests.post if method=="POST" else requests.put
         if serverURL is None: serverURL = AppD_Configuration().get_current_context_serverURL()
         if userName and password:
             try:
-                response = requests.post(serverURL + RESTfulPath,
-                                        headers={"Content-Type": "application/json","Accept": "application/json"},
-                                        auth=(userName, password), data=json.dumps(JSONdata))
+                response = requestMethod(serverURL + RESTfulPath, headers=headers, auth=(userName, password), data=data)
             except requests.exceptions.InvalidURL:
                 sys.stderr.write ("Invalid URL: " + serverURL + RESTfulPath + ". Do you have the right controller hostname and RESTful path?\n")
                 return None
         else:
             token = self.__get_access_token()
             if token is None: return None
+            if headers is not None: headers.update({"Authorization": "Bearer "+token})
+            else: headers = {"Authorization": "Bearer "+token}
             try:
-                response = requests.post(serverURL + RESTfulPath,
-                                        headers={"Content-Type": "application/json", "Accept": "application/json", "Authorization": "Bearer "+token},
-                                        data=json.dumps(JSONdata))
+                response = requestMethod(serverURL + RESTfulPath, headers=headers, data=data)
             except requests.exceptions.InvalidURL:
                 sys.stderr.write ("Invalid URL: " + serverURL + RESTfulPath + ". Do you have the right controller hostname and RESTful path?\n")
                 return None
@@ -399,33 +410,35 @@ class RESTfulAPI:
             return None
         return response.content
 
-    def __update_RESTful_JSON(self,RESTfulPath,JSONdata,serverURL=None,userName=None,password=None):
+    def __import_RESTfulPath(self,RESTfulPath,filePath,method,headers=None,serverURL=None,userName=None,password=None):
         """
         Update data from a controller. Either provide an username/password or let it get an access token automatically.
         :param RESTfulPath: RESTful path to upload data
-        :param JSONdata: the data to be updated in JSON format
+        :param filePath: path to the datasource file
+        :param method: HTTP method, could be either POST or PUT.
+        :param headers: additional request headers. i.e: Content-Type:application/json, Accept:text/xml, ...
         :param serverURL: Full hostname of the Appdynamics controller. i.e.: https://demo1.appdynamics.com:443
         :param userName: Full username, including account. i.e.: myuser@customer1
         :param password: password for the specified user and host. i.e.: mypassword
         :returns: True if the update was successful. False if no schedule was updated.
         """
-        if 'DEBUG' in locals(): print ("Updating RESTful path " + RESTfulPath + " with provided JSON data...")
+        if 'DEBUG' in locals(): print ("Importing RESTful path " + RESTfulPath + " with provided datasource file...")
+        requestMethod = requests.post if method=="POST" else requests.put
+        files={'files': open(filePath,'rb')}
         if serverURL is None: serverURL = AppD_Configuration().get_current_context_serverURL()
         if userName and password:
             try:
-                response = requests.put(serverURL + RESTfulPath,
-                                        headers={"Content-Type": "application/json"},
-                                        auth=(userName, password), data=json.dumps(JSONdata))
+                response = requestMethod(serverURL + RESTfulPath, headers=headers, auth=(userName, password), files=files)
             except requests.exceptions.InvalidURL:
                 sys.stderr.write ("Invalid URL: " + serverURL + RESTfulPath + ". Do you have the right controller hostname and RESTful path?\n")
                 return False
         else:
             token = self.__get_access_token()
-            if token is None: return False
+            if token is None: return None
+            if headers is not None: headers.update({"Authorization": "Bearer "+token})
+            else: headers = {"Authorization": "Bearer "+token}
             try:
-                response = requests.put(serverURL + RESTfulPath,
-                                        headers={"Content-Type": "application/json", "Authorization": "Bearer "+token},
-                                        data=json.dumps(JSONdata))
+                response = requestMethod(serverURL + RESTfulPath, headers=headers, files=files)
             except requests.exceptions.InvalidURL:
                 sys.stderr.write ("Invalid URL: " + serverURL + RESTfulPath + ". Do you have the right controller hostname and RESTful path?\n")
                 return False
@@ -438,10 +451,7 @@ class RESTfulAPI:
                 sys.stderr.write("Description not available\n")
             if 'DEBUG' in locals():
                 print ("   header:", response.headers)
-                print ("Writing content to file: response.txt")
-                file1 = open("response.txt","w")
-                file1.write(response.content)
-                file1.close()
+                print (response.content)
             return False
         return True
 
@@ -546,7 +556,7 @@ class RESTfulAPI:
         params     = {"requestFilter":nodeList,"offset":0,"limit":-1,"searchFilters":[],"columnSorts":[],
                       "resultColumns":["APP_AGENT_STATUS","HEALTH"],
                       "timeRangeStart":start_epoch,"timeRangeEnd":end_epoch}
-        return self.__create_RESTful_JSON(restfulPath,JSONdata=params)
+        return self.__update_RESTfulPath(restfulPath,streamdata=params,method="POST",headers={"Content-Type": "application/json","Accept": "application/json"})
 
     def mark_nodes_as_historical(self,nodeList):
         """
@@ -559,7 +569,7 @@ class RESTfulAPI:
         # POST /controller/rest/mark-nodes-historical?application-component-node-ids=value
         nodeList_str = ','.join(map(lambda x: str(x),nodeList))
         restfulPath= "/controller/rest/mark-nodes-historical?application-component-node-ids="+nodeList_str
-        return self.__create_RESTful_JSON(restfulPath,JSONdata="")
+        return self.__update_RESTfulPath(restfulPath,streamdata="",method="POST",headers={"Content-Type": "application/json","Accept": "application/json"})
 
 
     def fetch_transactiondetection(self,app_ID,selectors=None):
@@ -577,19 +587,18 @@ class RESTfulAPI:
         if selectors: params.update(selectors)
         return self.__fetch_RESTfulPath(restfulPath,params=params)
 
-    def update_transactiondetection(self,app_ID,rule_name,detectionruleXML):
+    def import_transactiondetection(self,app_ID,filePath):
         """
-        Update application transaction detection rule from a controller.
-        :param app_ID: the ID number of the application where to update the transaction detection rule
-        :param rule_name: the name of the transaction detection rule to update
-        :param detectionruleXML: the XML data of the transaction detection rule to update
+        Import application transaction detection rules to a controller.
+        :param app_ID: the ID number of the application where to import transaction detection rules
+        :param filePath: path to the datasource file
         :returns: the fetched data. Null if no data was received.
         """
         # Import automatic detection rules in XML format
         # POST /controller/transactiondetection/application_id/[scope_name]/rule_type/[entry_point_type]/[rule_name] -F file=@exported_file_name.xml
         # https://docs.appdynamics.com/display/PRO45/Configuration+Import+and+Export+API#ConfigurationImportandExportAPI-ImportTransactionDetectionRules
-        restfulPath = "/controller/transactiondetection/" + str(app_ID) + "/custom/" + rule_name
-        return self.__update_RESTful_XML(restfulPath,detectionruleXML)
+        restfulPath = "/controller/transactiondetection/" + str(app_ID) + "/custom?overwrite=true"
+        return self.__import_RESTfulPath(restfulPath,method="POST",filePath=filePath)
 
     def fetch_business_transactions(self,app_ID,selectors=None):
         """
@@ -631,7 +640,7 @@ class RESTfulAPI:
         restfulPath = "/controller/restui/serviceEndpoint/getAll"
         data = {"agentType": "APP_AGENT","attachedEntity": {"entityId": tier_ID,"entityType": "APPLICATION_COMPONENT"} }
         if selectors: params.update(selectors)
-        return self.__create_RESTful_JSON(restfulPath,JSONdata=data)
+        return self.__update_RESTfulPath(restfulPath,streamdata=data,method="POST",headers={"Content-Type": "application/json","Accept": "application/json"})
 
 
     def fetch_health_rule_details(self,app_ID,entityID):
@@ -684,7 +693,7 @@ class RESTfulAPI:
         # Updates an existing health rule (required fields) with details from the specified health rule ID. See Property Details
         # PUT <controller_url>/controller/alerting/rest/v1/applications/<application_id>/health-rules/{health-rule-id}
         restfulPath = "/controller/alerting/rest/v1/applications/" + str(app_ID) + "/health-rules/" + str(healthrule_ID)
-        return self.__update_RESTful_JSON(restfulPath,scheduleJSON)
+        return self.__update_RESTful_JSON(restfulPath,streamdata=healthruleJSON,method="PUT",headers={"Content-Type": "application/json"})
 
     def fetch_policies(self,app_ID):
         """
@@ -799,7 +808,7 @@ class RESTfulAPI:
         # Updates an existing schedule with a specified JSON payload
         # PUT <controller_url>/controller/alerting/rest/v1/applications/<application_id>/schedules/{schedule-id}
         restfulPath = "/controller/alerting/rest/v1/applications/" + str(app_ID) + "/schedules/" + str(sched_ID)
-        return self.__update_RESTful_JSON(restfulPath,scheduleJSON)
+        return self.__update_RESTfulPath(restfulPath,streamdata=scheduleJSON,method="PUT",headers={"Content-Type": "application/json"})
 
     def fetch_metric_hierarchy(self,app_ID,metric_path):
         """

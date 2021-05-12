@@ -111,6 +111,15 @@ def get_application_list():
       applications.fetch()
       return applications.get_application_ID_list()
 
+def get_entity_type(data):
+    entityList = [ entity for entity in entityDict if entityDict[entity].verify(streamdata=data) ]
+    if len(entityList) == 0:
+      sys.stderr.write("INFO: Could not recognize data.\n")
+      exit()
+    if 'DEBUG' in locals(): sys.stderr.write("INFO: Found to be a "+str(entityList[0])+" file.\n")
+    return entityList[0]
+
+
 usage = "usage: %prog [get|login|update|patch] [options]"
 epilog= "examples: %prog get applications"
 
@@ -157,7 +166,7 @@ if len(args) < 1:
 COMMAND = args[0]
 
 if COMMAND.lower() == "help":
-  sys.stderr.write("Usage: appdctl [get|login|update|patch] [options]\n\n")
+  sys.stderr.write("Usage: appdctl [get|login|update|patch|config|apply] [options]\n\n")
 
 #######################################
 ############ LOGIN COMMAND ############
@@ -260,10 +269,7 @@ elif COMMAND.lower() == "get":
       sys.stderr.write("Don't know what to do with "+options.filename+"\n")
       exit()
 
-    entityList = [ entity for entity in entityDict if entityDict[entity].verify(streamdata=data) ]
-    if 'DEBUG' in locals(): sys.stderr.write("INFO: Found "+options.filename+" to be a "+str(entity)+" file.\n")
-    if len(entityList) == 0: exit()
-    entityObj = entityDict[entityList[0]]
+    entityObj = entityDict[get_entity_type(data)]
     entityObj.load(streamdata=data)
     if options.outFormat and options.outFormat == "JSON":
       entityObj.generate_JSON()
@@ -403,8 +409,8 @@ elif COMMAND.lower() == "patch":
   ENTITY = args[1]
 
   # create the filters list, if applies
+  selectors = {}
   if options.selector:
-    selectors = {}
     for selector in options.selector.split(','):
       selectors.update({selector.split('=')[0]:selector.split('=')[1]})
 
@@ -426,5 +432,46 @@ elif COMMAND.lower() == "patch":
   else:
     optParser.error("incorrect entity \""+ENTITY+"\"")
 
+#######################################
+############ APPLY COMMAND ############
+#######################################
+elif COMMAND.lower() == "apply":
+  if len(args) == 2 and args[1] == "help":
+    sys.stderr.write("Usage: appdctl apply -f <source_file> -a <application(s)>\n\n")
+    exit()
+  elif options.filename:
+    if options.filename == "-":
+      data = sys.stdin.read()
+    elif os.path.isfile(options.filename):
+      data = open(options.filename).read()
+    elif options.filename.startswith("http"):
+      sys.stderr.write(os.path.basename(__file__)+": URL resources not implemented yet.\n")
+      exit()
+    else:
+      sys.stderr.write("Don't know what to do with "+options.filename+"\n")
+      exit()
+
+    entityObj = entityDict[get_entity_type(data)]
+    current_context = AppD_Configuration().get_current_context(output="None")
+    applicationList = get_application_list()
+    if len(applicationList) == 0:
+     sys.stderr.write("\rapply ("+current_context+"): no application was found.\n")
+     exit()
+
+    index = 0
+    for appID in applicationList:
+        index += 1
+        percentage = index*100/len(applicationList)
+        sys.stderr.write("\rapply ("+current_context+")... " + str(percentage) + "%")
+        sys.stderr.flush()
+        entityObj.apply(appID=appID,filePath=options.filename)
+    sys.stderr.write("\n")
+
+  else:
+    optParser.error("no input file specified.")
+
+#######################################
+################ ELSE #################
+#######################################
 else:
     optParser.error("Incorrect or not implemented command ["+COMMAND+"]")

@@ -8,7 +8,8 @@ from appdRESTfulAPI import RESTfulAPI
 from entities import AppEntity
 
 class DetectionruleDict(AppEntity):
-    entityAPIFunctions = {'fetch': RESTfulAPI().fetch_transactiondetection}
+    entityAPIFunctions = {'fetch': RESTfulAPI().fetch_transactiondetection,
+                          'import': RESTfulAPI().import_transactiondetection}
     entityXMLKeyword = "rule-list"
 
     def __init__(self):
