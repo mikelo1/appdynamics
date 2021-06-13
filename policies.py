@@ -7,7 +7,8 @@ from appdRESTfulAPI import RESTfulAPI
 from entities import AppEntity
 
 class PolicyDict(AppEntity):
-    entityAPIFunctions = {'fetch': RESTfulAPI().fetch_policies_legacy}
+    entityAPIFunctions = {'fetch': RESTfulAPI().fetch_policies_legacy,
+                          'fetchByID': RESTfulAPI().fetch_policy_by_ID}
     entityJSONKeyword = "reactorType"
 
     def __init__(self):
@@ -19,7 +20,7 @@ class PolicyDict(AppEntity):
         #policies3=json.loads('[{"id":1856,"name":"POLICY_SANDBOX","enabled":true,"executeActionsInBatch":true,"frequency":null,"actions":[{"actionName":"gogs@acme.com","actionType":"EMAIL","notes":""}],"events":{"healthRuleEvents":null,"otherEvents":[],"anomalyEvents":["ANOMALY_OPEN_CRITICAL"],"customEvents":[]},"selectedEntities":{"selectedEntityType":"ANY_ENTITY"}]')
         entityDict.update({str(app_ID):policies1})
         entityDict.update({str(app_ID+1):policies2})
-    #    entityDict.update({str(app_ID+1):policies3})
+        #entityDict.update({str(app_ID+1):policies3})
         print "Number of entries: " + str(len(entityDict))
         if str(app_ID) in entityDict:
             print (entityDict[str(app_ID)])
@@ -168,23 +169,6 @@ class PolicyDict(AppEntity):
                     return (-1)
         if fileName is not None: csvfile.close()
 
-
-
-    def load_details(self,app_ID):
-        """
-        Load action details for all actions from an application
-        :param app_ID: the ID number of the application actions to fetch
-        :returns: the number of fetched actions. Zero if no action was found.
-        """
-        index = 0
-        for policy in self.entityDict[str(app_ID)]:
-            try:
-                policyJSON = json.loads(RESTfulAPI().fetch_policy_details(app_ID,policy['id']))
-            except JTypeError as error:
-                print ("load_policy: "+str(error))
-                return None
-            self.entityDict[str(appID)][index] = policyJSON
-            index = index + 1
 
     def get_policies_matching_action(self,app_ID,name):
         MatchList = []

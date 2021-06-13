@@ -9,7 +9,8 @@ from policies import policies
 
 
 class ActionDict(AppEntity):
-    entityAPIFunctions = {'fetch': RESTfulAPI().fetch_actions_legacy}
+    entityAPIFunctions = {'fetch': RESTfulAPI().fetch_actions_legacy,
+                          'fetchByID': RESTfulAPI().fetch_action_by_ID}
     entityJSONKeyword = "actionType"
 
     def __init__(self):
@@ -100,7 +101,6 @@ class ActionDict(AppEntity):
     ###### FROM HERE PUBLIC FUNCTIONS ######
 
 
-
     def generate_CSV(self,appID_List=None,fileName=None):
         """
         Generate CSV output from actions data
@@ -142,23 +142,6 @@ class ActionDict(AppEntity):
                     if fileName is not None: csvfile.close()
                     return (-1)
         if fileName is not None: csvfile.close()
-
-
-    def load_details(self,app_ID):
-        """
-        Load action details for all actions from an application
-        :param app_ID: the ID number of the application actions to fetch
-        :returns: the number of fetched actions. Zero if no action was found.
-        """
-        if str(appID) in self.entityDict:
-            index = 0
-            for action in self.entityDict[str(appID)]:
-                actionJSON = RESTfulAPI().fetch_action_details(app_ID,actions['id'])
-                if actionsJSON is None:
-                    print "load_action_details: Failed to retrieve action " + str(action['id']) + " for application " + str(app_ID)
-                    continue
-                self.entityDict[str(appID)][index] = actionJSON
-                index = index + 1
 
 # Global object that works as Singleton
 actions = ActionDict()

@@ -7,7 +7,8 @@ from applications import applications
 from entities import AppEntity
 
 class ScheduleDict(AppEntity):
-    entityAPIFunctions = {'fetch': RESTfulAPI().fetch_schedules}
+    entityAPIFunctions = {'fetch': RESTfulAPI().fetch_schedules,
+                          'fetchByID': RESTfulAPI().fetch_schedule_by_ID}
     entityJSONKeyword = "timezone"
 
     def __init__(self):
@@ -111,33 +112,6 @@ class ScheduleDict(AppEntity):
                     return (-1)
         if fileName is not None: csvfile.close()
 
-
-    def load_details(self,app_ID):
-        """
-        Load schedule details for all schedules from an application
-        :param app_ID: the ID number of the application schedules to fetch
-        :returns: the number of fetched schedules. Zero if no schedule was found.
-        """
-        if str(app_ID) in self.entityDict:
-            index = 0
-            for schedule in self.entityDict[str(app_ID)]:
-                streamdata = RESTfulAPI().fetch_schedule_details(app_ID,schedule['id'])
-                if streamdata is None:
-                    print "load_schedule_details: Failed to retrieve schedule " + str(schedule['id']) + " for application " + str(app_ID)
-                    continue
-                try:
-                    scheduleJSON = json.loads(streamdata)
-                except TypeError as error:
-                    print ("load_schedule_detail: "+str(error))
-                    continue
-                self.entityDict[str(app_ID)][index] = scheduleJSON
-                index = index + 1
-            return index
-        else:
-            print self
-        return 0
-
-
     def patch(self,appID_List,source,selectors=None):
         """
         Patch schedules for a list of applications, using a schedule data input.
@@ -171,7 +145,7 @@ class ScheduleDict(AppEntity):
         numSchedules = 0
         for appID in appID_List:
             # Reload schedules data for provided application
-            if self.load(RESTfulAPI().fetch_schedules(appID,selectors=selectors),appID=appID) == 0 or self.load_details(appID) == 0:
+            if self.fetch_with_details(appID) == 0:
                 sys.stderr.write("update_schedules: Failed to retrieve schedules for application " + str(appID) + "...\n")
                 continue
             sys.stderr.write("update schedules " + applications.getAppName(appID) + "...\n")

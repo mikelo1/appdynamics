@@ -9,10 +9,11 @@ from appdRESTfulAPI import RESTfulAPI
 from entities import AppEntity
 
 class HealthRuleDict(AppEntity):
-    entityAPIFunctions = {'fetch': RESTfulAPI().fetch_health_rules_with_IDs,
-                          'fetchByID': RESTfulAPI().fetch_health_rule_details,
-                          'update': RESTfulAPI().update_health_rule}
+    entityAPIFunctions = {'fetch': RESTfulAPI().fetch_health_rules_JSON}
+                         # 'fetchByID': RESTfulAPI().fetch_health_rule_by_ID}
+                         # 'update': RESTfulAPI().update_health_rule}
     entityJSONKeyword = "affectedEntityDefinitionRule"
+    entityXMLKeyword  = "health-rules"
 
     def __init__(self):
         self.entityDict = dict()
@@ -181,7 +182,7 @@ class HealthRuleDict(AppEntity):
                 continue
             for healthrule in self.entityDict[appID]:
                 # Check if data belongs to a health rule
-                if self.entityKeyword not in healthrule: continue
+                if self.entityJSONKeyword not in healthrule: continue
                 elif 'header_is_printed' not in locals(): 
                     filewriter.writeheader()
                     header_is_printed=True
@@ -208,11 +209,11 @@ class HealthRuleDict(AppEntity):
         #    if healthrule['affectedEntityType'] == entityType:
 
 class HealthRuleXMLDict(AppEntity):
-    entityAPIFunctions = {'fetch': RESTfulAPI().fetch_health_rules_legacy,
-                          'fetchByID': RESTfulAPI().fetch_health_rule_details,
-                          'update': RESTfulAPI().update_health_rule}
-    entityKeyword = "affectedEntityType"
-    #entityKeyword = "useDataFromLastNMinutes"
+    entityAPIFunctions = {'fetch': RESTfulAPI().fetch_health_rules_XML,
+                          'import': RESTfulAPI().import_health_rules_XML}
+    entityJSONKeyword = "affectedEntityType"
+    #entityJSONKeyword = "useDataFromLastNMinutes"
+    entityXMLKeyword  = "health-rules"
 
     def __init__(self):
         self.entityDict = dict()
@@ -696,7 +697,7 @@ class HealthRuleXMLDict(AppEntity):
                 continue
             for healthrule in self.entityDict[appID]:
                 # Check if data belongs to a health rule
-                if self.entityKeyword not in healthrule: continue
+                if self.entityJSONKeyword not in healthrule: continue
                 elif 'header_is_printed' not in locals(): 
                     filewriter.writeheader()
                     header_is_printed=True

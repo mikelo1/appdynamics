@@ -120,7 +120,7 @@ def get_entity_type(data):
     return entityList[0]
 
 
-usage = "usage: %prog [get|login|update|patch] [options]"
+usage = "usage: %prog [get|config|apply|patch] [options]"
 epilog= "examples: %prog get applications"
 
 optParser = OptionParser(usage=usage, version="%prog 0.1", epilog=epilog)
@@ -166,43 +166,7 @@ if len(args) < 1:
 COMMAND = args[0]
 
 if COMMAND.lower() == "help":
-  sys.stderr.write("Usage: appdctl [get|login|update|patch|config|apply] [options]\n\n")
-
-#######################################
-############ LOGIN COMMAND ############
-#######################################
-elif COMMAND.lower() == "login":
-
-  if len(args) == 2 and args[1] == "help":
-    get_help(COMMAND)
-  else:
-    if options.controllerURL and options.apiClient:
-      server = options.controllerURL
-      username = options.apiClient
-    else:
-      server = None
-      appD_Config = AppD_Configuration()
-      current_server = appD_Config.get_current_context_serverURL()
-      if current_server is None: current_server = "https://localhost:8090"
-      server = raw_input("AppDynamics Controller server [" + current_server + "]: ")
-      if len(server) == 0: server = current_server
-      if not server.startswith("http"):
-        sys.stderr.write("Missing HTTP protocol in the URL. Please try login again.\n")
-        exit()
-      current_user = appD_Config.get_current_context_username()
-      if current_user is None: current_user = "APIClient@customer1"
-      username = raw_input("API Client username [" + current_user + "]: ")
-      if len(username) == 0: username = current_user
-      if not username.find('@'):
-        sys.stderr.write("Missing account in username. Please try login again.\n")
-        exit()
-
-    if options.basicAuthFile:
-      token=get_access_token(server,username,options.basicAuthFile)
-    else:
-      token=get_access_token(server,username)
-    if token is not None:
-      print "Login successful. "
+  sys.stderr.write(usage+"\n\n")
 
 #######################################
 ############ CONFIG COMMAND ###########
@@ -373,30 +337,6 @@ elif COMMAND.lower() == "get":
   else:
     optParser.error("incorrect entity \""+ENTITY+"\"")
 
-#######################################
-########### UPDATE COMMAND ############
-#######################################
-elif COMMAND.lower() == "update":
-  if len(args) < 2:
-      optParser.error("incorrect number of arguments")
-      exit()
-
-  ENTITY = args[1]
-  if ENTITY == "help":
-    sys.stderr.write("Usage: appdctl update nodes [options]\n\n")
-    exit()
-  elif ENTITY in ['nodes']:
-    current_context = AppD_Configuration().get_current_context(output="None")
-    applicationList = get_application_list()
-    if len(applicationList) == 0:
-     sys.stderr.write("\rget "+ENTITY+" ("+current_context+"): no application was found.\n")
-     exit()
-
-    entityObj = entityDict[ENTITY]
-    entityObj.update(appID_List=applicationList)
-
-  else:
-    optParser.error("incorrect entity \""+ENTITY+"\"")
 
 #######################################
 ############ PATCH COMMAND ############
@@ -431,6 +371,7 @@ elif COMMAND.lower() == "patch":
       entityObj.patch(appID_List=applicationList,source=options.patchJSON,selectors=selectors)
   else:
     optParser.error("incorrect entity \""+ENTITY+"\"")
+
 
 #######################################
 ############ APPLY COMMAND ############
@@ -469,6 +410,33 @@ elif COMMAND.lower() == "apply":
 
   else:
     optParser.error("no input file specified.")
+
+
+#######################################
+########### UPDATE COMMAND ############
+#######################################
+elif COMMAND.lower() == "update":
+  if len(args) < 2:
+      optParser.error("incorrect number of arguments")
+      exit()
+
+  ENTITY = args[1]
+  if ENTITY == "help":
+    sys.stderr.write("Usage: appdctl update nodes [options]\n\n")
+    exit()
+  elif ENTITY in ['nodes']:
+    current_context = AppD_Configuration().get_current_context(output="None")
+    applicationList = get_application_list()
+    if len(applicationList) == 0:
+     sys.stderr.write("\rget "+ENTITY+" ("+current_context+"): no application was found.\n")
+     exit()
+
+    entityObj = entityDict[ENTITY]
+    entityObj.update(appID_List=applicationList)
+
+  else:
+    optParser.error("incorrect entity \""+ENTITY+"\"")
+
 
 #######################################
 ################ ELSE #################

@@ -529,7 +529,7 @@ class RESTfulAPI:
         if selectors: params.update(selectors)
         return self.__fetch_RESTfulPath(restfulPath,params=params)
 
-    def fetch_node_details(self,app_ID,node_ID):
+    def fetch_node_by_ID(self,app_ID,node_ID):
         """
         Fetch node details from a controller.
         :param app_ID: the ID number of the application nodes to fetch
@@ -642,21 +642,7 @@ class RESTfulAPI:
         if selectors: params.update(selectors)
         return self.__update_RESTfulPath(restfulPath,streamdata=data,method="POST",headers={"Content-Type": "application/json","Accept": "application/json"})
 
-
-    def fetch_health_rule_details(self,app_ID,entityID):
-        """
-        Fetch health rules from a controller - Using the new API call
-        :param app_ID: the ID number of the health rules to fetch
-        :param entityID: the ID number of the health rule to fetch
-        :returns: the fetched data. Null if no data was received.
-        """
-        # Retrieve complete details of the health rule for the specified application ID
-        # GET <controller_url>/controller/alerting/rest/v1/applications/<application_id>/health-rules/{health-rule-id}
-        restfulPath = "/controller/alerting/rest/v1/applications/" + str(app_ID) + "/health-rules/" + str(entityID)
-        params = {"output": "JSON"}
-        return self.__fetch_RESTfulPath(restfulPath,params=params)
-
-    def fetch_health_rules_legacy(self,app_ID,selectors=None):
+    def fetch_health_rules_XML(self,app_ID,selectors=None):
         """
         Fetch health rules from a controller - Using the legacy API call
         :param app_ID: the ID number of the health rules to fetch
@@ -670,9 +656,9 @@ class RESTfulAPI:
         if selectors: params.update(selectors)
         return self.__fetch_RESTfulPath(restfulPath,params=params)
 
-    def fetch_health_rules_with_IDs(self,app_ID,selectors=None):
+    def fetch_health_rules_JSON(self,app_ID,selectors=None):
         """
-        Fetch health rules from a controller - Using the legacy API call
+        Fetch health rules from a controller - Using the RESTUI API call
         :param app_ID: the ID number of the health rules to fetch
         :param selectors: fetch only health rules filtered by specified selectors
         :returns: the fetched data. Null if no data was received.
@@ -681,6 +667,32 @@ class RESTfulAPI:
         params = {"Content-Type": "application/json","resultColumns": ["LAST_APP_SERVER_RESTART_TIME", "VM_RUNTIME_VERSION", "MACHINE_AGENT_STATUS", "APP_AGENT_VERSION", "APP_AGENT_STATUS", "HEALTH"]}
         if selectors: params.update(selectors)
         return self.__fetch_RESTfulPath(restfulPath,params=params)
+
+    def fetch_health_rule_by_ID(self,app_ID,entityID):
+        """
+        Fetch health rules from a controller - Using the new API call
+        :param app_ID: the ID number of the health rules to fetch
+        :param entityID: the ID number of the health rule to fetch
+        :returns: the fetched data. Null if no data was received.
+        """
+        # Retrieve complete details of the health rule for the specified application ID
+        # GET <controller_url>/controller/alerting/rest/v1/applications/<application_id>/health-rules/{health-rule-id}
+        restfulPath = "/controller/alerting/rest/v1/applications/" + str(app_ID) + "/health-rules/" + str(entityID)
+        params = {"output": "JSON"}
+        return self.__fetch_RESTfulPath(restfulPath,params=params)
+
+    def import_health_rules_XML(self,app_ID,filePath):
+        """
+        Import application healthrules to a controller.
+        :param app_ID: the ID number of the application where to import healthrules
+        :param filePath: path to the datasource file
+        :returns: the fetched data. Null if no data was received.
+        """
+        # Import Health Rules into an Application
+        # You can import health rules defined in an XML file into a business application.
+        # POST /controller/healthrules/application_id?overwrite=true_or_false
+        restfulPath = "/controller/healthrules/" + str(app_ID) + "?overwrite=true"
+        return self.__import_RESTfulPath(restfulPath,method="POST",filePath=filePath)
 
     def update_health_rule(self,app_ID,healthrule_ID,healthruleJSON):
         """
@@ -707,7 +719,7 @@ class RESTfulAPI:
         params = {"output": "JSON"}
         return self.__fetch_RESTfulPath(restfulPath,params=params)
 
-    def fetch_policy_details(self,app_ID,policy_ID):
+    def fetch_policy_by_ID(self,app_ID,policy_ID):
         """
         Fetch policy details from a controller.
         :param app_ID: the ID number of the application policies to fetch
@@ -744,7 +756,7 @@ class RESTfulAPI:
         params = {"output": "JSON"}
         return self.__fetch_RESTfulPath(restfulPath,params=params)
 
-    def fetch_action_details(self,app_ID,action_ID):
+    def fetch_action_by_ID(self,app_ID,action_ID):
         """
         Fetch action details from a controller.
         :param app_ID: the ID number of the application actions to fetch
@@ -784,7 +796,7 @@ class RESTfulAPI:
         params = {"output": "JSON"}
         return self.__fetch_RESTfulPath(restfulPath,params=params)
 
-    def fetch_schedule_details(self,app_ID,schedule_ID):
+    def fetch_schedule_by_ID(self,app_ID,schedule_ID):
         """
         Fetch schedule details from a controller.
         :param app_ID: the ID number of the application schedule to fetch
@@ -951,7 +963,7 @@ class RESTfulAPI:
         if selectors: params.update(selectors)
         return self.__fetch_RESTfulPath(restfulPath,params=params)
 
-    def fetch_custom_dashboard(self,dashboard_id):
+    def fetch_dashboard_by_ID(self,dashboard_id):
         """
         Fetch custom dashboards from a controller.
         :param dashboard_id: the ID number of the dashboards to fetch
@@ -998,7 +1010,7 @@ class RESTfulAPI:
         params = {"output": "JSON"}
         return self.__fetch_RESTfulPath(restfulPath,params=params)
 
-    def fetch_user(self,userID):
+    def fetch_user_by_ID(self,userID):
         """
         Fetch specific user from a controller.
         :param userID: the ID number of the user to fetch

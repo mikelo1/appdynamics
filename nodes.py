@@ -9,7 +9,8 @@ import time
 from entities import AppEntity
 
 class NodeDict(AppEntity):
-    entityAPIFunctions = {'fetch': RESTfulAPI().fetch_nodes}
+    entityAPIFunctions = {'fetch': RESTfulAPI().fetch_nodes,
+                          'fetchByID': RESTfulAPI().fetch_node_by_ID}
     entityJSONKeyword = "nodeUniqueLocalId"
 
     def __init__(self):
@@ -88,33 +89,6 @@ class NodeDict(AppEntity):
                     if fileName is not None: csvfile.close()
                     return (-1)
         if fileName is not None: csvfile.close()
-
-
-    def load_details(self,app_ID):
-        """
-        Load node details for all nodes from an application
-        :param app_ID: the ID number of the application nodes to fetch
-        :returns: the number of fetched nodes. Zero if no node was found.
-        """
-        if str(app_ID) in self.entityDict:
-            index = 0
-            for node in self.entityDict[str(app_ID)]:
-                streamdata = RESTfulAPI().fetch_node_details(app_ID,node['id'])
-                if streamdata is None:
-                    print ("load_node_details: Failed to retrieve node " + str(node['id']) + " for application " + str(app_ID) )
-                    continue
-                try:
-                    nodeJSON = json.loads(streamdata)
-                except TypeError as error:
-                    print ("load_node_detail: "+str(error))
-                    continue
-                self.entityDict[str(app_ID)][index] = nodeJSON
-                index = index + 1
-            return index
-        else:
-            print (self)
-        return 0
-
 
     def update(self,appID_List,selectors=None):
         """

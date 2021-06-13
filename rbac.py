@@ -6,7 +6,8 @@ from appdRESTfulAPI import RESTfulAPI
 from entities import ControllerEntity
 
 class RBACDict(ControllerEntity):
-    entityAPIFunctions = {'fetch': RESTfulAPI().fetch_users_extended}
+    entityAPIFunctions = {'fetch': RESTfulAPI().fetch_users_extended,
+                          'fetchByID': RESTfulAPI().fetch_user_by_ID}
     entityJSONKeyword = "providerUniqueName"
 
     def __init__(self):
@@ -50,25 +51,6 @@ class RBACDict(ControllerEntity):
                 return (-1)
         if fileName is not None: csvfile.close()
 
-
-    def load_details(self):
-        """
-        Load user details for all users from a controller
-        :param app_ID: the ID number of the application users to fetch
-        :returns: the number of fetched users. Zero if no user was found.
-        """
-        count = 0
-        for user in self.entityDict:
-            response = RESTfulAPI().fetch_user(user['id'])
-            if response is not None:
-                try:
-                    userData = json.loads(response)
-                except TypeError as error:
-                    print ("load_duser_details: "+str(error))
-                    continue
-                self.entityDict[count] = userData
-                count += 1
-        return count
 
 # Global object that works as Singleton
 users = RBACDict()

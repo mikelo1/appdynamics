@@ -6,7 +6,8 @@ from appdRESTfulAPI import RESTfulAPI
 from entities import ControllerEntity
 
 class DashboardDict(ControllerEntity):
-    entityAPIFunctions = {'fetch': RESTfulAPI().fetch_dashboards}
+    entityAPIFunctions = {'fetch': RESTfulAPI().fetch_dashboards,
+                          'fetchByID': RESTfulAPI().fetch_dashboard_by_ID}
     entityJSONKeyword = 'canvasType'
 
     def __init__(self):
@@ -50,26 +51,6 @@ class DashboardDict(ControllerEntity):
                 if fileName is not None: csvfile.close()
                 return (-1)
         if fileName is not None: csvfile.close()
-
-
-    def load_details(self):
-        """
-        Load dashboards details for all dashboards from a controller
-        :param app_ID: the ID number of the application dashboards to fetch
-        :returns: the number of fetched dashboards. Zero if no dashboard was found.
-        """
-        count = 0
-        for dashboard in self.entityDict:
-            response = RESTfulAPI().fetch_custom_dashboard(dashboard['id'])
-            if response is not None:
-                try:
-                    dashboardData = json.loads(response)
-                except TypeError as error:
-                    print ("load_dashboard_details: "+str(error))
-                    continue
-                self.entityDict[count]=dashboardData
-                count += 1
-        return count
 
 # Global object that works as Singleton
 dashboards = DashboardDict()
