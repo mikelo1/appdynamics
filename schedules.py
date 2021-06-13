@@ -8,7 +8,8 @@ from entities import AppEntity
 
 class ScheduleDict(AppEntity):
     entityAPIFunctions = {'fetch': RESTfulAPI().fetch_schedules,
-                          'fetchByID': RESTfulAPI().fetch_schedule_by_ID}
+                          'fetchByID': RESTfulAPI().fetch_schedule_by_ID,
+                          'update': RESTfulAPI().update_schedule}
     entityJSONKeyword = "timezone"
 
     def __init__(self):
@@ -67,7 +68,6 @@ class ScheduleDict(AppEntity):
     ###### FROM HERE PUBLIC FUNCTIONS ######
 
 
-
     def generate_CSV(self,appID_List=None,fileName=None):
         """
         Generate CSV output from schedules data
@@ -111,51 +111,6 @@ class ScheduleDict(AppEntity):
                     if fileName is not None: csvfile.close()
                     return (-1)
         if fileName is not None: csvfile.close()
-
-    def patch(self,appID_List,source,selectors=None):
-        """
-        Patch schedules for a list of applications, using a schedule data input.
-        :param appID_List: list of application IDs to update schedules
-        :param source: schedule data input in JSON format.
-        :param selectors: update only schedules filtered by specified selectors
-        :returns: the number of updated schedules. Zero if no schedule was updated.
-        """
-        # Verify if the source is a file or stream JSON data
-        try:
-            # Load data from stream
-            changesJSON = json.loads(source)
-        except:
-            try:
-                # Load data from file
-                json_file = open(source)
-                changesJSON = json.load(json_file)
-                json_file.close()
-            except IOError:
-                print("Could not process source data.")
-                return 0
-
-        ### TODO: patch for one specific scheduleID (name|description|scheduleConfiguration)
-        if 'name' in changesJSON or 'description' in changesJSON or 'scheduleConfiguration' in changesJSON:
-            print "Warn: schedule (name|description|scheduleConfiguration) patching not implemented yet."
-
-        if 'timezone' not in changesJSON:
-            print "Only timezone patch is currently supported."
-            return 0
-
-        numSchedules = 0
-        for appID in appID_List:
-            # Reload schedules data for provided application
-            if self.fetch_with_details(appID) == 0:
-                sys.stderr.write("update_schedules: Failed to retrieve schedules for application " + str(appID) + "...\n")
-                continue
-            sys.stderr.write("update schedules " + applications.getAppName(appID) + "...\n")
-            for schedule in self.entityDict[str(appID)]:
-                # Do the replacement in loaded data
-                schedule.update({"timezone": changesJSON['timezone']})
-                # Update controller data
-                if RESTfulAPI().update_schedule(app_ID=appID,sched_ID=schedule['id'],scheduleJSON=schedule) == True:
-                    numSchedules = numSchedules + 1
-        return numSchedules
 
 # Global object that works as Singleton
 schedules = ScheduleDict()

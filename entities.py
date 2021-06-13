@@ -7,7 +7,8 @@ class AppEntity:
     entityDict = dict()
     entityAPIFunctions = {} # {'fetch':     RESTfulAPI().fetch_entity
                             #  'fetchByID': RESTfulAPI().fetch_entity_by_ID,
-                            #  'import':    RESTfulAPI().import_entity}
+                            #  'import':    RESTfulAPI().import_entity,
+                            #  'update':    RESTfulAPI().update_entity}
     entityJSONKeyword = ""
     entityXMLKeyword = ""
 
@@ -82,7 +83,7 @@ class AppEntity:
         """
         Load entities with details for all entities within an application
         :param streamdata: the stream data with the entity list, in JSON format
-        :param app_ID: the ID number of the application to fetch entities
+        :param appID: the ID number of the application to fetch entities
         :returns: the number of fetched entities. Zero if no entity was found.
         """
         if appID is None: appID = 0
@@ -127,7 +128,58 @@ class AppEntity:
         return False
 
     def apply(self,appID,filePath):
+        """
+        Update entities within an application, using an entity data input file.
+        :param filePath: the path to the file where data is stored
+        :param appID: the ID number of the application to fetch entities
+        :returns: True if the update was successful. False if no data was updated.
+        """
         return self.entityAPIFunctions['import'](app_ID=appID,filePath=filePath)
+
+    # https://nvie.com/posts/modifying-deeply-nested-structures/
+    # https://www.geeksforgeeks.org/python-update-nested-dictionary/
+    # https://stackoverflow.com/questions/3232943/update-value-of-a-nested-dictionary-of-varying-depth
+    def patch(self,appID,streamdata,selectors=None):
+        """
+        Patch entities for a list of applications, using an entity data input.
+        :param appID: the ID number of the application to patch entities
+        :param streamdata: the stream data with the entity configuration, in JSON format
+        :param selectors: update only entities filtered by specified selectors
+        :returns: the number of updated entities. Zero if no entity was updated.
+        """
+        # Verify if the source is a file or stream JSON data
+        DEBUG=True
+        try:
+            changesJSON = json.loads(streamdata)
+        except ValueError as error:
+            if 'DEBUG' in locals(): sys.stderr.write("patch_entity: "+str(error)+"\n")
+            return 0
+
+        #if selectors is not None and 'entitynames' in selectors:
+        #    entityNames = selectors['entitynames'].split(',')
+
+        # Reload entity data for provided application
+        if self.fetch_with_details(appID) == 0:
+            sys.stderr.write("patch_entity: Failed to retrieve entities for application " + str(appID) + "...\n")
+            return 0
+
+        # Generate the list of entity IDs to be patched
+        #if 'entityNames' in locals():
+        #    entityIDs = [ entity['id'] for entity in self.entityDict[str(appID)] if entity['name'] in entityNames ]
+        #else:
+        #    entityIDs = [ entity['id'] for entity in self.entityDict[str(appID)] ]
+        #print entityIDs
+
+        # Run the patching
+        count = 0
+        for entity in self.entityDict[str(appID)]:
+            # Do the replacement in loaded data
+            entity.update(changesJSON)
+            # Update controller data
+            if self.entityAPIFunctions['update'](app_ID=appID,entity_ID=entity['id'],dataJSON=entity) == True:
+                count = count + 1
+        return count
+
 
     def generate_CSV(self,appID_List=None,fileName=None):
         """

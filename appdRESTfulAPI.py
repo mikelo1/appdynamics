@@ -420,7 +420,7 @@ class RESTfulAPI:
         :param serverURL: Full hostname of the Appdynamics controller. i.e.: https://demo1.appdynamics.com:443
         :param userName: Full username, including account. i.e.: myuser@customer1
         :param password: password for the specified user and host. i.e.: mypassword
-        :returns: True if the update was successful. False if no schedule was updated.
+        :returns: True if the update was successful. False if no data was updated.
         """
         if 'DEBUG' in locals(): print ("Importing RESTful path " + RESTfulPath + " with provided datasource file...")
         requestMethod = requests.post if method=="POST" else requests.put
@@ -809,18 +809,18 @@ class RESTfulAPI:
         params = {"output": "JSON"}
         return self.__fetch_RESTfulPath(restfulPath,params=params)
 
-    def update_schedule(self,app_ID,sched_ID,scheduleJSON):
+    def update_schedule(self,app_ID,entity_ID,dataJSON):
         """
         Update application schedule from a controller. Provide either an username/password or an access token.
         :param app_ID: the ID number or name of the application where to update the schedule
-        :param sched_ID: the ID number of the schedule to update
-        :param scheduleJSON: the JSON data of the schedule to update
+        :param entity_ID: the ID number of the schedule to update
+        :param dataJSON: the JSON data of the schedule to update
         :returns: the fetched data. Null if no data was received.
         """
         # Updates an existing schedule with a specified JSON payload
         # PUT <controller_url>/controller/alerting/rest/v1/applications/<application_id>/schedules/{schedule-id}
-        restfulPath = "/controller/alerting/rest/v1/applications/" + str(app_ID) + "/schedules/" + str(sched_ID)
-        return self.__update_RESTfulPath(restfulPath,streamdata=scheduleJSON,method="PUT",headers={"Content-Type": "application/json"})
+        restfulPath = "/controller/alerting/rest/v1/applications/" + str(app_ID) + "/schedules/" + str(entity_ID)
+        return self.__update_RESTfulPath(restfulPath,streamdata=dataJSON,method="PUT",headers={"Content-Type": "application/json"})
 
     def fetch_metric_hierarchy(self,app_ID,metric_path):
         """

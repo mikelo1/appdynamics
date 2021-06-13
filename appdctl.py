@@ -355,20 +355,37 @@ elif COMMAND.lower() == "patch":
       selectors.update({selector.split('=')[0]:selector.split('=')[1]})
 
   if ENTITY == "help":
-    sys.stderr.write("Usage: appdctl patch [healthrules|schedules] [options]\n\n")
+    sys.stderr.write("Usage: appdctl patch [schedules] [options]\n\n")
     exit()
-  elif ENTITY in ['healthrules','schedules']:
+  elif ENTITY in ['schedules']:
     current_context = AppD_Configuration().get_current_context(output="None")
     applicationList = get_application_list()
     if len(applicationList) == 0:
-     sys.stderr.write("\rget "+ENTITY+" ("+current_context+"): no application was found.\n")
+     sys.stderr.write("\rpatch "+ENTITY+" ("+current_context+"): no application was found.\n")
      exit()
 
     if not options.patchJSON:
       optParser.error("Missing patch JSON.")
-    else:
-      entityObj = entityDict[ENTITY]
-      entityObj.patch(appID_List=applicationList,source=options.patchJSON,selectors=selectors)
+
+    if 'timezone' not in options.patchJSON:
+      sys.stderr.write("Only timezone patch is currently supported.\n")
+      exit()
+
+    if options.patchJSON in ['name','description','scheduleConfiguration']:
+      sys.stderr.write("Warn: schedule (name|description|scheduleConfiguration) patching not implemented yet.\n")
+      exit()
+
+    index = 0
+    sys.stderr.write("patch "+ENTITY+" ("+current_context+")... 0%")
+    sys.stderr.flush()
+    entityObj = entityDict[ENTITY]
+    for appID in applicationList:
+        index += 1
+        percentage = index*100/len(applicationList)
+        sys.stderr.write("\rpatch "+ENTITY+" ("+current_context+")... " + str(percentage) + "%")
+        sys.stderr.flush()
+        entityObj.patch(appID=appID,streamdata=options.patchJSON,selectors=selectors)
+    sys.stderr.write("\n")
   else:
     optParser.error("incorrect entity \""+ENTITY+"\"")
 
