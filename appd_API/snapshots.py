@@ -4,17 +4,17 @@ import csv
 import sys
 from datetime import datetime, timedelta
 import time
-from nodes import nodes
-from applications import applications
 from appdRESTfulAPI import RESTfulAPI
 from entities import AppEntity
 
 class SnapshotDict(AppEntity):
     entityAPIFunctions = {'fetch': RESTfulAPI().fetch_snapshots}
     entityJSONKeyword = "snapshotExitCalls"
+    applications = None
 
-    def __init__(self):
-        self.entityDict = dict()
+    def __init__(self,applications):
+        self.entityDict  = dict()
+        self.applications = applications
 
 #def fetch_snapshots2(app_ID,minutesBeforeNow,selectors=None,serverURL=None,userName=None,password=None,token=None):
 #    MAX_RESULTS = RESULTS = 9
@@ -108,7 +108,7 @@ class SnapshotDict(AppEntity):
                     header_is_printed=True
                 Time = datetime.fromtimestamp(float(snapshot['localStartTime'])/1000).strftime('%Y-%m-%d %H:%M:%S')
                 appID= snapshot['applicationId']
-                appName = applications.getAppName(appID)
+                appName = self.applications.getAppName(appID)
                 Tier = "" #nodes.getTierName(appID,snapshot['applicationComponentId'])
                 Node = "" #nodes.getNodeName(appID,snapshot['applicationComponentNodeId'])
                 Summary = snapshot['summary'].encode('ASCII', 'ignore') if 'summary' in snapshot else ""
@@ -127,6 +127,3 @@ class SnapshotDict(AppEntity):
                     print ("Could not write to the output.")
                     continue
         if fileName is not None: csvfile.close()
-
-# Global object that works as Singleton
-snapshots = SnapshotDict()

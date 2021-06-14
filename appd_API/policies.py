@@ -2,7 +2,6 @@
 import json
 import csv
 import sys
-from applications import applications
 from appdRESTfulAPI import RESTfulAPI
 from entities import AppEntity
 
@@ -10,9 +9,11 @@ class PolicyDict(AppEntity):
     entityAPIFunctions = {'fetch': RESTfulAPI().fetch_policies_legacy,
                           'fetchByID': RESTfulAPI().fetch_policy_by_ID}
     entityJSONKeyword = "reactorType"
+    applications = None
 
-    def __init__(self):
-        self.entityDict = dict()
+    def __init__(self,applications):
+        self.entityDict  = dict()
+        self.applications = applications
 
     def __build_test_policies(self,app_ID):
         policies1=json.loads('[{"id":1854,"name":"POLICY_SANDBOX","enabled":true,"executeActionsInBatch":true,"frequency":null,"actions":[{"actionName":"gogs@acme.com","actionType":"EMAIL","notes":""}],"events":{"healthRuleEvents":null,"otherEvents":[],"anomalyEvents":["ANOMALY_OPEN_CRITICAL"],"customEvents":[]},"selectedEntities":{"selectedEntityType":"ANY_ENTITY"}]')
@@ -159,7 +160,7 @@ class PolicyDict(AppEntity):
                     header_is_printed=True
                 try:
                     filewriter.writerow({'Policy': policy['name'].encode('ASCII', 'ignore'),
-                                         'Application': applications.getAppName(appID),
+                                         'Application': self.applications.getAppName(appID),
                                          'Events': self.__str_policy_healthrules(policy),
                                          'Entities': self.__str_policy_entities(policy),
                                          'Actions': self.__str_policy_actions(policy)})
@@ -189,7 +190,3 @@ class PolicyDict(AppEntity):
 ####        get_policies_matching_Database
 ####        get_policies_matching_Service_Endpoint
 ####        get_policies_matching_Error
-
-
-# Global object that works as Singleton
-policies = PolicyDict()

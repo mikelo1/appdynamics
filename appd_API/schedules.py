@@ -3,7 +3,6 @@ import json
 import csv
 import sys
 from appdRESTfulAPI import RESTfulAPI
-from applications import applications
 from entities import AppEntity
 
 class ScheduleDict(AppEntity):
@@ -11,9 +10,11 @@ class ScheduleDict(AppEntity):
                           'fetchByID': RESTfulAPI().fetch_schedule_by_ID,
                           'update': RESTfulAPI().update_schedule}
     entityJSONKeyword = "timezone"
+    applications = None
 
-    def __init__(self):
-        self.entityDict = dict()
+    def __init__(self,applications):
+        self.entityDict  = dict()
+        self.applications = applications
 
     def __build_test_schedules(app_ID):
         schedules1=json.loads('[{"timezone":"Europe/Brussels","description":"This schedule is active Monday through Friday, during business hours","id":30201,"scheduleConfiguration":{"scheduleFrequency":"WEEKLY","endTime":"17:00","days":["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY"],"startTime":"08:00"},"name":"Weekdays:8am-5pm,Mon-Fri"}]')
@@ -101,7 +102,7 @@ class ScheduleDict(AppEntity):
                 try:
                     filewriter.writerow({'Name': schedule['name'],
                                          'Description': schedule['description'],
-                                         'Application': applications.getAppName(appID),
+                                         'Application': self.applications.getAppName(appID),
                                          'Timezone': schedule['timezone'],
                                          'Frequency': schedule['scheduleConfiguration']['scheduleFrequency'] if 'scheduleConfiguration' in schedule else "",
                                          'Start': self.__str_schedule_start(schedule),
@@ -111,6 +112,3 @@ class ScheduleDict(AppEntity):
                     if fileName is not None: csvfile.close()
                     return (-1)
         if fileName is not None: csvfile.close()
-
-# Global object that works as Singleton
-schedules = ScheduleDict()

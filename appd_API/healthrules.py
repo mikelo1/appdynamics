@@ -4,7 +4,6 @@ import xml.etree.ElementTree as ET
 import json
 import csv
 import sys
-from applications import applications
 from appdRESTfulAPI import RESTfulAPI
 from entities import AppEntity
 
@@ -14,9 +13,11 @@ class HealthRuleDict(AppEntity):
                          # 'update': RESTfulAPI().update_health_rule}
     entityJSONKeyword = "affectedEntityDefinitionRule"
     entityXMLKeyword  = "health-rules"
+    applications = None
 
-    def __init__(self):
-        self.entityDict = dict()
+    def __init__(self,applications):
+        self.entityDict  = dict()
+        self.applications = applications
 
     def __str_healthrule_affects(self,healthrule):
         """
@@ -189,7 +190,7 @@ class HealthRuleDict(AppEntity):
 
                 try:
                     filewriter.writerow({'HealthRule': healthrule['name'].encode('ASCII', 'ignore'),
-                                         'Application': applications.getAppName(appID),
+                                         'Application': self.applications.getAppName(appID),
                                          'Duration': healthrule['useDataFromLastNMinutes'] if 'useDataFromLastNMinutes' in healthrule else "",
                                          'Wait_Time': healthrule['useDataFromLastNMinutes'] if 'useDataFromLastNMinutes' in healthrule else "",
                                          'Schedule': healthrule['scheduleName'] if 'scheduleName' in healthrule else "",
@@ -741,7 +742,3 @@ class HealthRuleXMLDict(AppEntity):
             self.entityDict.update({str(appID):healthrules})
 
         return len(healthrules)
-
-
-# Global object that works as Singleton
-healthrules = HealthRuleDict()

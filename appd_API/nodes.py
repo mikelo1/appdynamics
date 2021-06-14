@@ -3,7 +3,6 @@ import json
 import csv
 import sys
 from appdRESTfulAPI import RESTfulAPI
-from applications import applications
 from datetime import datetime, timedelta
 import time
 from entities import AppEntity
@@ -12,9 +11,11 @@ class NodeDict(AppEntity):
     entityAPIFunctions = {'fetch': RESTfulAPI().fetch_nodes,
                           'fetchByID': RESTfulAPI().fetch_node_by_ID}
     entityJSONKeyword = "nodeUniqueLocalId"
+    applications = None
 
-    def __init__(self):
-        self.entityDict = dict()
+    def __init__(self,applications):
+        self.entityDict  = dict()
+        self.applications = applications
 
 
     def __update_availability_nodes(self,app_ID):
@@ -80,7 +81,7 @@ class NodeDict(AppEntity):
                 try:
                     filewriter.writerow({'Node': node['name'],
                                          'Tier': node['tierName'],
-                                         'Application': applications.getAppName(appID),
+                                         'Application': self.applications.getAppName(appID),
                                          'AgentVersion': node['appAgentVersion'] if node['agentType']=="APP_AGENT" else node['agentType'],
                                          'MachineName': node['machineName'],
                                          'OSType': node['machineOSType']})
@@ -142,6 +143,3 @@ class NodeDict(AppEntity):
                 if node['id'] == nodeID:
                     return node['name']
         return ""
-
-# Global object that works as Singleton
-nodes = NodeDict()

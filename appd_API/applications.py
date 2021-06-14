@@ -4,14 +4,41 @@ import csv
 import sys
 from appdRESTfulAPI import RESTfulAPI
 from entities import ControllerEntity
-
+from nodes import NodeDict
+from transactiondetection import DetectionruleDict
+from businesstransactions import BusinessTransactionDict
+from backends import BackendDict, EntrypointDict
+from healthrules import HealthRuleDict
+from policies import PolicyDict
+from actions import ActionDict
+from schedules import ScheduleDict
+from events import EventDict, ErrorDict
+from snapshots import SnapshotDict
 
 class ApplicationDict(ControllerEntity):
     entityAPIFunctions = {'fetch': RESTfulAPI().fetch_applicationsAllTypes}
     entityJSONKeyword = 'apmApplications'
+    controller = None
+    nodes = None
+    transactiondetection = businesstransactions = backends = entrypoints = None
+    healthrules = policies = actions = schedules = None
+    events = errors = snapshots = None
 
-    def __init__(self):
+    def __init__(self,controller):
         self.entityDict = dict()
+        self.controller = controller
+        self.nodes                = NodeDict(self)
+        self.transactiondetection = DetectionruleDict(self)
+        self.businesstransactions = BusinessTransactionDict(self)
+        self.backends             = BackendDict(self)
+        self.entrypoints          = EntrypointDict(self)
+        self.healthrules = HealthRuleDict(self)
+        self.policies    = PolicyDict(self)
+        self.actions     = ActionDict(self)
+        self.schedules   = ScheduleDict(self)
+        self.events    = EventDict(self)
+        self.errors    = ErrorDict(self)
+        self.snapshots = SnapshotDict(self)
 
     def __fetch_tiers_and_nodes(self,app_ID):
         """
@@ -193,6 +220,3 @@ class ApplicationDict(ControllerEntity):
                     for tier in apmApp['tiers']:
                         if tier['id'] == tierID:
                             return tier['name']
-
-# Global object that works as Singleton
-applications = ApplicationDict()

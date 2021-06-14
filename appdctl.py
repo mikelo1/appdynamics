@@ -4,40 +4,27 @@ import os.path
 import re
 from datetime import datetime, timedelta
 import time
-from appdRESTfulAPI import AppD_Configuration
-from applications import applications
-from dashboards import dashboards
-from rbac import users
-from settings import config
-from nodes import nodes
-from transactiondetection import transactiondetection
-from businesstransactions import businesstransactions
-from backends import backends, entrypoints
-from healthrules import healthrules
-from policies import policies
-from actions import actions
-from schedules import schedules
-from events import events, errors
-from snapshots import snapshots
+from appd_API.appdRESTfulAPI import AppD_Configuration
+from appd_API import controller
 from optparse import OptionParser, OptionGroup
 import json
 
-entityDict =  { 'applications': applications,
-                'dashboards': dashboards,
-                'config': config,
-                'users': users,
-                'nodes': nodes,
-                'detection-rules': transactiondetection,
-                'businesstransactions': businesstransactions,
-                'backends': backends,
-                'entrypoints': entrypoints,
-                'healthrules': healthrules,
-                'policies': policies,
-                'actions': actions,
-                'schedules': schedules,
-                'healthrule-violations': events,
-                'snapshots': snapshots,
-                'errors': errors
+entityDict =  { 'applications': controller.applications,
+                'dashboards': controller.dashboards,
+                'config': controller.config,
+                'users': controller.users,
+                'nodes': controller.applications.nodes,
+                'detection-rules': controller.applications.transactiondetection,
+                'businesstransactions': controller.applications.businesstransactions,
+                'backends': controller.applications.backends,
+                'entrypoints': controller.applications.entrypoints,
+                'healthrules': controller.applications.healthrules,
+                'policies': controller.applications.policies,
+                'actions': controller.applications.actions,
+                'schedules': controller.applications.schedules,
+                'healthrule-violations': controller.applications.events,
+                'snapshots': controller.applications.snapshots,
+                'errors': controller.applications.errors
               }
 
 def time_to_minutes(string):
@@ -105,11 +92,11 @@ def get_application_list():
         optParser.error("Missing application (use -A for all applications)")
         return []
     elif options.applications:
-      applications.fetch()
-      return [ applications.getAppID(appName) for appName in options.applications.split(',') if applications.getAppID(appName) is not None ]
+      controller.applications.fetch()
+      return [ controller.applications.getAppID(appName) for appName in options.applications.split(',') if controller.applications.getAppID(appName) is not None ]
     else: # if options.allApplications:
-      applications.fetch()
-      return applications.get_application_ID_list()
+      controller.applications.fetch()
+      return controller.applications.get_application_ID_list()
 
 def get_entity_type(data):
     entityList = [ entity for entity in entityDict if entityDict[entity].verify(streamdata=data) ]

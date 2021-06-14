@@ -2,19 +2,19 @@
 import json
 import csv
 import sys
-from applications import applications
 from appdRESTfulAPI import RESTfulAPI
 from entities import AppEntity
-from policies import policies
 
 
 class ActionDict(AppEntity):
     entityAPIFunctions = {'fetch': RESTfulAPI().fetch_actions_legacy,
                           'fetchByID': RESTfulAPI().fetch_action_by_ID}
     entityJSONKeyword = "actionType"
+    applications = None
 
-    def __init__(self):
-        self.entityDict = dict()
+    def __init__(self,applications):
+        self.entityDict  = dict()
+        self.applications = applications
 
     def __str_action_properties(self,action):
         """
@@ -132,7 +132,7 @@ class ActionDict(AppEntity):
                     header_is_printed=True
                 try:
                     filewriter.writerow({'ActionName': action['name'].encode('ASCII', 'ignore'),
-                                        'Application': applications.getAppName(appID),
+                                        'Application': self.applications.getAppName(appID),
                                         'ActionType': action['actionType'],
                                         'Recipients': self.__str_action_recipients(action),
                                         'Policies': "", #policies.get_policies_matching_action(app_ID,action['name']),
@@ -142,6 +142,3 @@ class ActionDict(AppEntity):
                     if fileName is not None: csvfile.close()
                     return (-1)
         if fileName is not None: csvfile.close()
-
-# Global object that works as Singleton
-actions = ActionDict()

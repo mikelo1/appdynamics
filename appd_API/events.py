@@ -4,16 +4,17 @@ import csv
 import sys
 from datetime import datetime, timedelta
 import time
-from applications import applications
 from appdRESTfulAPI import RESTfulAPI
 from entities import AppEntity
 
 class EventDict(AppEntity):
     entityAPIFunctions = {'fetch': RESTfulAPI().fetch_healthrule_violations}
     entityJSONKeyword = "affectedEntityDefinition"
+    applications = None
 
-    def __init__(self):
-        self.entityDict = dict()
+    def __init__(self,applications):
+        self.entityDict  = dict()
+        self.applications = applications
 
 
     def __str_event_policy(self,event):
@@ -118,7 +119,6 @@ class EventDict(AppEntity):
                     header_is_printed=True
 
                 app_ID  = policyviolation['deepLinkUrl'][policyviolation['deepLinkUrl'].find("application"):].split('&')[0].split('=')[1]
-                appName = applications.getAppName(app_ID)
 
                 try:
                     filewriter.writerow({'PolicyName': self.__str_event_policy(policyviolation),
@@ -127,7 +127,7 @@ class EventDict(AppEntity):
                                         'Status': policyviolation['incidentStatus'],
                                         'Start_Time': self.__str_event_start_time(policyviolation),
                                         'End_Time': self.__str_event_end_time(policyviolation),
-                                        'Application': appName,
+                                        'Application': self.applications.getAppName(app_ID),
                                         'Description': self.__str_event_description(policyviolation)})
                 except ValueError as valError:
                     sys.stderr.write(valError+"\n")
@@ -135,16 +135,16 @@ class EventDict(AppEntity):
                     return (-1)
         if fileName is not None: csvfile.close()
 
-# Global object that works as Singleton
-events = EventDict()
 
 
 class ErrorDict(AppEntity):
     entityAPIFunctions = {'fetch': RESTfulAPI().fetch_errors}
     entityJSONKeyword = "metricPath"
+    applications = None
 
-    def __init__(self):
-        self.entityDict = dict()
+    def __init__(self,applications):
+        self.entityDict  = dict()
+        self.applications = applications
 
     def fetch_after_time(self,appID,duration,sinceEpoch,selectors=None):
         """
@@ -154,8 +154,8 @@ class ErrorDict(AppEntity):
         :returns: the number of fetched entities. Zero if no entity was found.
         """
         count = 0
-        for tierID in applications.getTiers_ID_List(appID):
-            tierName = applications.getTierName(appID,tierID)
+        for tierID in self.applications.getTiers_ID_List(appID):
+            tierName = self.applications.getTierName(appID,tierID)
             data = self.entityAPIFunctions['fetch'](app_ID=appID,tier_ID=tierName,time_range_type="AFTER_TIME",duration=duration,startEpoch=sinceEpoch,selectors=selectors)
             count += self.load(streamdata=data,appID=appID)
         return count
@@ -193,10 +193,8 @@ class ErrorDict(AppEntity):
                     filewriter.writeheader()
                     header_is_printed=True
 
-                appName = applications.getAppName(appID)
-
                 try:
-                    filewriter.writerow({'Application': appName,
+                    filewriter.writerow({'Application': self.applications.getAppName(appID),
                                         'ErrorCode': errorMetric['metricPath'].split("|")[2],
                                         'Value': errorMetric['metricValues'][0]['value'],
                                         'Max':   errorMetric['metricValues'][0]['max'],
@@ -208,6 +206,3 @@ class ErrorDict(AppEntity):
                     if fileName is not None: csvfile.close()
                     return (-1)
         if fileName is not None: csvfile.close()
-
-# Global object that works as Singleton
-errors = ErrorDict()

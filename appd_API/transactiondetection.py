@@ -3,7 +3,6 @@ import xml.etree.ElementTree as ET
 import json
 import csv
 import sys
-from applications import applications
 from appdRESTfulAPI import RESTfulAPI
 from entities import AppEntity
 
@@ -11,9 +10,11 @@ class DetectionruleDict(AppEntity):
     entityAPIFunctions = {'fetch': RESTfulAPI().fetch_transactiondetection,
                           'import': RESTfulAPI().import_transactiondetection}
     entityXMLKeyword = "rule-list"
+    applications = None
 
-    def __init__(self):
-        self.entityDict = dict()
+    def __init__(self,applications):
+        self.entityDict  = dict()
+        self.applications = applications
 
 
     def __str_transactiondetection_matchrules(self,txMatchRuleData):
@@ -214,7 +215,7 @@ class DetectionruleDict(AppEntity):
 
                 try:
                     filewriter.writerow({'Name': ruleName,
-                                         'Application': applications.getAppName(appID),
+                                         'Application': self.applications.getAppName(appID),
                                          'MatchRuleList': matchRuleList,
                                          'HttpSplit': httpSplit})
                 except ValueError as valError:
@@ -253,6 +254,3 @@ class DetectionruleDict(AppEntity):
 # TODO: Get Scopes
 # You can use the following endpoint as a start to query the scope within an application
 # https://<controller url>/controller/restui/transactionConfigProto/getScopes/<applicationid>
-
-# Global object that works as Singleton
-transactiondetection = DetectionruleDict()
