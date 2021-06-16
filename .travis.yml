@@ -10,4 +10,4 @@ language: python
 # - sudo apt-get install -qq python-requests python-libxml2
 
 # command to run tests
-script: ./test.sh
+script: ./test.py

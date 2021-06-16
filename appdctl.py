@@ -122,8 +122,6 @@ optParser.add_option("--controller-url", action="store", dest="controllerURL",
                   help="URL of the controller")
 optParser.add_option("--user-API", action="store", dest="apiClient",
                   help="API client username")
-#optParser.add_option("--password", action="store", dest="password",
-#                  help="Basic authentication password")
 optParser.add_option("-p", "--patch", action="store", dest="patchJSON",
                   help="The patch to be applied to the resource JSON file")
 groupQuery = OptionGroup(optParser, "Query range options")
