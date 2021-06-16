@@ -138,7 +138,8 @@ class AppD_Configuration:
         if contextname is None: contextname = servername + "/" + API_Client
 
         # Check whether provided user does exist or not
-        if username in self.data['users'] or contextname in self.data['contexts']:
+        if ( len([ usr['name'] for usr in self.data['users'] if usr['name']==username ]) > 0 or
+             len([ ctx['name'] for ctx in self.data['contexts'] if ctx['name']==contextname ]) > 0 ):
             sys.stderr.write("User or context already exists.\n")
         else:
             # Create the new user and set this one as current-context
