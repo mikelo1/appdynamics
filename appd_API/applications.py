@@ -2,43 +2,15 @@
 import json
 import csv
 import sys
-from appdRESTfulAPI import RESTfulAPI
 from entities import ControllerEntity
-from nodes import NodeDict
-from transactiondetection import DetectionruleDict
-from businesstransactions import BusinessTransactionDict
-from backends import BackendDict, EntrypointDict
-from healthrules import HealthRuleDict
-from policies import PolicyDict
-from actions import ActionDict
-from schedules import ScheduleDict
-from events import EventDict, ErrorDict
-from snapshots import SnapshotDict
 
 class ApplicationDict(ControllerEntity):
-    entityAPIFunctions = {'fetch': RESTfulAPI().fetch_applicationsAllTypes}
-    entityJSONKeyword = 'apmApplications'
-    controller = None
-    nodes = None
-    transactiondetection = businesstransactions = backends = entrypoints = None
-    healthrules = policies = actions = schedules = None
-    events = errors = snapshots = None
 
     def __init__(self,controller):
         self.entityDict = dict()
         self.controller = controller
-        self.nodes                = NodeDict(self)
-        self.transactiondetection = DetectionruleDict(self)
-        self.businesstransactions = BusinessTransactionDict(self)
-        self.backends             = BackendDict(self)
-        self.entrypoints          = EntrypointDict(self)
-        self.healthrules = HealthRuleDict(self)
-        self.policies    = PolicyDict(self)
-        self.actions     = ActionDict(self)
-        self.schedules   = ScheduleDict(self)
-        self.events    = EventDict(self)
-        self.errors    = ErrorDict(self)
-        self.snapshots = SnapshotDict(self)
+        self.entityAPIFunctions = { 'fetch': self.controller.RESTfulAPI.fetch_applicationsAllTypes }
+        self.entityJSONKeyword = 'apmApplications'
 
     def __fetch_tiers_and_nodes(self,app_ID):
         """
@@ -46,10 +18,10 @@ class ApplicationDict(ControllerEntity):
         :param app_ID: the ID number of the application tiers and nodes to fetch
         :returns: a dictionary with tiers and nodes. None if no tier was found.
         """
-        tiers = json.loads(RESTfulAPI().fetch_tiers(app_ID))
+        tiers = json.loads(self.controller.RESTfulAPI.fetch_tiers(app_ID))
         if tiers is not None:
             for tier in tiers:
-                nodes = json.loads(RESTfulAPI().fetch_tier_nodes(app_ID,tier['name']))
+                nodes = json.loads(self.controller.RESTfulAPI.fetch_tier_nodes(app_ID,tier['name']))
                 if nodes is not None:
                     tier.update({'nodes':nodes})
             return {'tiers':tiers}

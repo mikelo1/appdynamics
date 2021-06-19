@@ -1,249 +1,19 @@
 #!/usr/bin/python
 import requests
 import json
-import yaml
-import csv
 import sys
 from getpass import getpass
-from datetime import datetime, timedelta
-if sys.version_info.major < 3:
-    from urlparse import urlparse
-else:
-    from urllib.parse import urlparse
-import base64
 import time
-
-class AppD_Configuration:
-    data       = {
-        'Kind': 'Config',
-        'contexts': [ ],
-        'users': [ ],
-        'current-context': ''
-    }
-    configFile = "appdconfig.yaml"
-
-    def __init__(self,dataFile=None):
-        if dataFile is not None:
-            self.configFile = dataFile
-        try:
-            stream = open(self.configFile)
-        except IOError as exc:
-            print(exc)
-            return None
-        with open(self.configFile, 'r') as stream:
-            try:
-                self.data = yaml.safe_load(stream)
-            except yaml.YAMLError as exc:
-                print(exc)
-
-    def __str__(self):
-        return "({0},{1})".format(self.configFile,self.data)
-
-    def view(self):
-        try:
-            with open(self.configFile, 'r') as stream:
-                print (stream.readlines())
-        except EnvironmentError as exc:
-            print(exc)
-
-    def save(self):
-        if 'DEBUG' in locals(): print ("Saving changes...")
-        try:
-            with open(self.configFile, "w") as outfile:
-                yaml.dump(self.data, outfile, default_flow_style=False, allow_unicode=True)
-        except yaml.YAMLError as exc:
-            print(exc)
-
-    def get_configFileName(self):
-        return self.configFile
-
-    def get_contexts(self,output=sys.stdout):
-        fieldnames = ['CURRENT', 'NAME', 'AUTHINFO']
-        filewriter = csv.DictWriter(output, fieldnames=fieldnames, delimiter=',', quotechar='"')
-        filewriter.writeheader()
-
-        for context in self.data['contexts']:
-            try:
-                filewriter.writerow({'CURRENT': "*" if 'current-context' in self.data and context['name'] == self.data['current-context'] else "",
-                                     'NAME': context['name'],
-                                     'AUTHINFO': context['context']['user']})
-            except ValueError as valError:
-                print (valError)
-                return (-1)
-
-    def get_current_context(self,output=sys.stdout):
-        if 'current-context' in self.data and len(self.data['current-context']) > 0:
-            if output in [sys.stdout,sys.stderr]:
-                output.write(self.data['current-context']+"\n")
-            return self.data['current-context']
-        else:
-            return None
-
-    def get_current_context_serverURL(self):
-        if 'current-context' in self.data and len(self.data['current-context']) > 0:
-            return [context for context in self.data['contexts'] if context['name']==self.data['current-context']][0]['context']['server']
-
-    def get_current_context_user(self):
-        if 'current-context' in self.data and len(self.data['current-context']) > 0:
-            return [context for context in self.data['contexts'] if context['name']==self.data['current-context']][0]['context']['user']
-
-    def get_current_context_username(self):
-        if 'current-context' in self.data and len(self.data['current-context']) > 0:
-            return [context for context in self.data['contexts'] if context['name']==self.data['current-context']][0]['context']['user'].split('/')[0]
-
-    def get_current_context_token(self):
-        if 'current-context' in self.data and len(self.data['current-context']) > 0:
-            current_user = self.get_current_context_user()
-            userdata = [user for user in self.data['users'] if user['name']==current_user][0]['user']
-            if userdata is not None and 'expire' in userdata and datetime.today() < userdata['expire']:
-                if 'DEBUG' in locals(): print ("Found valid token in config YAML file.")
-                return userdata['token']
-            else:
-                if 'DEBUG' in locals(): print ("Token expired or invalid in config YAML file.")
-                return None
-
-    def set_current_context_token(self,access_token,expires_in):
-        if 'current-context' in self.data and len(self.data['current-context']) > 0:
-            current_user = self.get_current_context_user()
-            userdata = [user for user in self.data['users'] if user['name']==current_user][0]['user']
-            if userdata is not None:
-                userdata['token']  = str(access_token)
-                userdata['expire'] = datetime.now()+timedelta(seconds=expires_in)
-                self.save()
-                return True
-        return False
-
-    def select_context(self,contextname):
-        if 'current-context' in self.data and self.data['current-context'] == contextname:
-            sys.stdout.write("Context " + contextname + " already selected.\n")
-            return contextname
-        for context in self.data['contexts']:
-            if context['name'] == contextname:
-                self.data['current-context'] = contextname
-                self.save()
-                sys.stdout.write("Context changed to "+contextname+"\n")
-                return contextname
-        sys.stderr.write("Context "+contextname+" does not exist.\n")
-        return None
-
-    # @param serverURL Full hostname of the Appdynamics controller. i.e.: https://demo1.appdynamics.com:443
-    # @param API_Client Full username, including account. i.e.: myuser@customer1
-    def create_context(self,contextname,serverURL,API_Client):
-        url = urlparse(serverURL)
-        if len(url.scheme) == 0 or len(url.netloc) == 0 is None:
-            sys.stderr.write("URL is not correctly formatted. <protocol>://<host>:<port>\n")
-            return
-        servername = url.netloc
-        username = API_Client + "/" + servername
-        if contextname is None: contextname = servername + "/" + API_Client
-
-        # Check whether provided user does exist or not
-        if ( len([ usr['name'] for usr in self.data['users'] if usr['name']==username ]) > 0 or
-             len([ ctx['name'] for ctx in self.data['contexts'] if ctx['name']==contextname ]) > 0 ):
-            sys.stderr.write("User or context already exists.\n")
-        else:
-            # Create the new user and set this one as current-context
-            self.data['users'].append({'name': username,'user': {}})
-            self.data['contexts'].append({'name': contextname,'context': { 'server': serverURL, 'user': username}})
-            self.data['current-context'] = contextname
-            self.save()
-
-    def delete_context(self,contextname):
-        context_index = 0
-        for context in self.data['contexts']:
-            if context['name'] == contextname:
-                context_user = context['context']['user']
-                user_index = 0
-                for user in self.data['users']:
-                    if user['name'] == context_user: break
-                    else: user_index += 1
-                if user_index < len (self.data['users']):
-                    self.data['users'].pop(user_index)
-                break
-            else: context_index += 1
-        if context_index < len(self.data['contexts']): 
-            self.data['contexts'].pop(context_index)
-            if 'current-context' in self.data and self.data['current-context'] == contextname:
-                self.data.pop('current-context')
-            self.save()
-        else:
-            sys.stderr.write("Context does not exist.\n")
-
-    def rename_context(self,contextname,new_contextname):
-        for context in self.data['contexts']:
-            if context['name'] == contextname:
-                context['name'] = new_contextname
-                self.save()
-                sys.stdout.write("Context changed to "+new_contextname+"\n")
-                return new_contextname
-        sys.stderr.write("Context "+contextname+" does not exist.\n")
-        return None
-
-    def set_credentials(self,contextname):
-        context = [context for context in self.data['contexts'] if context['name']==contextname]
-        if not context:
-            sys.stdout.write("Context "+contextname+" does not exist.\n")
-        else:
-            API_Client = context[0]['context']['user']
-            user = [user for user in self.data['users'] if user['name']==API_Client][0]
-            sys.stderr.write("Authentication required for " + API_Client + "\n")
-            Client_Secret = getpass(prompt='Password: ')
-            user['user'].update({'password': base64.b64encode(Client_Secret.encode('ascii'))})
-            self.save()
-
-    def get_credentials(self,contextname):
-        context = [context for context in self.data['contexts'] if context['name']==contextname]
-        if not context:
-            sys.stdout.write("Context "+contextname+" does not exist.\n")
-        else:
-            API_Client = context[0]['context']['user']
-            user = [user for user in self.data['users'] if user['name']==API_Client][0]
-            if 'password' in user['user']:
-                return base64.b64decode(user['user']['password'].encode('ascii')).decode('ascii')
-
-
-class BasicAuth:
-    authFile  = ""
-
-    def __init__(self,basicAuthFile=None):
-        if basicAuthFile is not None:
-            try:
-                stream = open(basicAuthFile)
-            except IOError as exc:
-                print("BasicAuth init: "+str(exc))
-                return None
-            self.authFile = basicAuthFile
-
-    def __str__(self):
-        return "({0})".format(self.authFile)
-
-    def get_authFileName(self):
-        return self.authFile
-
-    def get_password(self,API_Client):
-        auth_dict = dict()
-        with open(self.authFile, mode='r') as csv_file:
-            try:
-                auth_dict = csv.DictReader(csv_file,fieldnames=['password','apiClient'])
-            except IOError as exc:
-                print(exc)
-            for credential in auth_dict:
-                if credential['apiClient'] == API_Client:
-                    return credential['password']
 
 
 class RESTfulAPI:
-    basicAuth   = None #BasicAuth(basicAuthFile="auth_file.csv")
+    basicAuth   = dict()
+    appD_Config = None
 
-    def __init__(self):
-        pass
-        #self._session = None
-
-    def __str__(self):
-        return json.dumps(self.BTDict)
-
-    def __str__(self):
-        return "({0},{1})".format(self.appD_Config.get_configFileName,self.basicAuth)
+    def __init__(self,appD_Config,basicAuth=None):
+        #self._session   = None
+        self.basicAuth   = basicAuth
+        self.appD_Config = appD_Config
 
     ### TO DO: Implement sessions
 #    def _get_session(self):
@@ -283,30 +53,25 @@ class RESTfulAPI:
         token_data = json.loads(response.content)
         return token_data
 
-    def __get_access_token(self,contextName=None):
+    def __get_access_token(self):
         """
         Get access token from a controller. If no credentials provided it will try to get them from basic auth file.
         :param contextName: name of context
         :returns: the access token string. Null if there was a problem getting the access token.
         """
-        appD_Config=AppD_Configuration()
-        if contextName is not None:
-            if appD_Config.select_context(contextName) is None:
-                if 'DEBUG' in locals(): print ("Cannot get context data. Did you type correctly the context name?")
-                return None
-        elif appD_Config.get_current_context(output=None) is None:
+        if self.appD_Config.get_current_context(output=None) is None:
             if 'DEBUG' in locals(): print ("Cannot get context data. Did you login to any controller machine?")
             return None
 
-        token     = appD_Config.get_current_context_token()
-        serverURL = appD_Config.get_current_context_serverURL()
-        API_Client= appD_Config.get_current_context_username()
+        token     = self.appD_Config.get_current_context_token()
+        serverURL = self.appD_Config.get_current_context_serverURL()
+        API_Client= self.appD_Config.get_current_context_username()
         if token is None:
-            if 'DEBUG' in locals(): print ("Current context "+ appD_Config.get_current_context(output=None) + " has no valid token.")
-            if self.basicAuth is not None:
-                Client_Secret = self.basicAuth.get_password(API_Client)
-            elif appD_Config.get_credentials(appD_Config.get_current_context(output=None)):
-                Client_Secret = appD_Config.get_credentials(appD_Config.get_current_context(output=None))
+            if 'DEBUG' in locals(): print ("Current context "+ self.appD_Config.get_current_context(output=None) + " has no valid token.")
+            if self.basicAuth and len(self.basicAuth) > 0 and API_Client in self.basicAuth:
+                Client_Secret = self.basicAuth[API_Client]
+            elif self.appD_Config.get_credentials(self.appD_Config.get_current_context(output=None)):
+                Client_Secret = self.appD_Config.get_credentials(self.appD_Config.get_current_context(output=None))
             else:
                 sys.stderr.write("Authentication required for " + serverURL + "\n")
                 Client_Secret = getpass(prompt='Password: ')
@@ -314,11 +79,11 @@ class RESTfulAPI:
             if token_data is None:
                 sys.stderr.write("Authentication failed. Did you mistype the password?\n") 
                 return None
-            appD_Config.set_current_context_token(token_data['access_token'],token_data['expires_in'])
+            self.appD_Config.set_current_context_token(token_data['access_token'],token_data['expires_in'])
             token = token_data['access_token']
-            if 'DEBUG' in locals(): print ("New token obtained for current context "+ appD_Config.get_current_context(output=None) + ": "+token)
+            if 'DEBUG' in locals(): print ("New token obtained for current context "+ self.appD_Config.get_current_context(output=None) + ": "+token)
         else:
-            if 'DEBUG' in locals(): print ("Current context "+ appD_Config.get_current_context(output=None) + " has valid token: "+token)
+            if 'DEBUG' in locals(): print ("Current context "+ self.appD_Config.get_current_context(output=None) + " has valid token: "+token)
         return token
 
     def __fetch_RESTfulPath(self,RESTfulPath,params=None,serverURL=None,userName=None,password=None):
@@ -332,7 +97,7 @@ class RESTfulAPI:
         :returns: the response data. Null if no data was received.
         """
         if 'DEBUG' in locals(): print ("Fetching JSON from RESTful path " + RESTfulPath + " with params " + json.dumps(params) + " ...")
-        if serverURL is None: serverURL = AppD_Configuration().get_current_context_serverURL()
+        if serverURL is None: serverURL = self.appD_Config.get_current_context_serverURL()
         if userName and password:
             try:
                 response = requests.get(serverURL + RESTfulPath,
@@ -381,7 +146,7 @@ class RESTfulAPI:
         if 'DEBUG' in locals(): print ("Updating RESTful path " + RESTfulPath + " with provided stream data...")
         data = json.dumps(streamdata) if type(streamdata) is dict else streamdata
         requestMethod = requests.post if method=="POST" else requests.put
-        if serverURL is None: serverURL = AppD_Configuration().get_current_context_serverURL()
+        if serverURL is None: serverURL = self.appD_Config.get_current_context_serverURL()
         if userName and password:
             try:
                 response = requestMethod(serverURL + RESTfulPath, headers=headers, auth=(userName, password), data=data)
@@ -426,7 +191,7 @@ class RESTfulAPI:
         if 'DEBUG' in locals(): print ("Importing RESTful path " + RESTfulPath + " with provided datasource file...")
         requestMethod = requests.post if method=="POST" else requests.put
         files={'files': open(filePath,'rb')}
-        if serverURL is None: serverURL = AppD_Configuration().get_current_context_serverURL()
+        if serverURL is None: serverURL = self.appD_Config.get_current_context_serverURL()
         if userName and password:
             try:
                 response = requestMethod(serverURL + RESTfulPath, headers=headers, auth=(userName, password), files=files)

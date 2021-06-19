@@ -11,6 +11,7 @@ class AppEntity:
                             #  'update':    RESTfulAPI().update_entity}
     entityJSONKeyword = ""
     entityXMLKeyword = ""
+    controller = None
 
     def __init__(self):
         pass
@@ -219,6 +220,7 @@ class ControllerEntity:
     entityAPIFunctions = {} # {'fetch': RESTfulAPI().fetch_entity}
     entityJSONKeyword = ""
     entityXMLKeyword = ""
+    controller = None
 
     def __init__(self):
         pass

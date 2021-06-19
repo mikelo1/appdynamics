@@ -2,17 +2,16 @@
 import json
 import csv
 import sys
-from appdRESTfulAPI import RESTfulAPI
 from entities import AppEntity
 
 class BackendDict(AppEntity):
-    entityAPIFunctions = {'fetch': RESTfulAPI().fetch_backends}
-    entityJSONKeyword = "exitPointType"
-    applications = None
 
-    def __init__(self,applications):
-        self.entityDict  = dict()
-        self.applications = applications
+    def __init__(self,controller):
+        self.entityDict = dict()
+        self.controller = controller
+        self.entityAPIFunctions = { 'fetch': self.controller.RESTfulAPI.fetch_backends }
+        self.entityJSONKeyword = "exitPointType"
+
 
     ###### FROM HERE PUBLIC FUNCTIONS ######
 
@@ -48,7 +47,7 @@ class BackendDict(AppEntity):
 
                 try:
                     filewriter.writerow({'name': backend['name'].encode('ASCII', 'ignore'),
-                                         'Application': self.applications.getAppName(appID),
+                                         'Application': self.controller.applications.getAppName(appID),
                                          'exitPointType': backend['exitPointType']})
                 except ValueError as valError:
                     print (valError)
@@ -58,13 +57,12 @@ class BackendDict(AppEntity):
 
 
 class EntrypointDict(AppEntity):
-    entityAPIFunctions = {'fetch': RESTfulAPI().fetch_entrypoints_TierRules}
-    entityJSONKeyword = "hierarchicalConfigKey"
-    applications = None
 
-    def __init__(self,applications):
-        self.entityDict  = dict()
-        self.applications = applications
+    def __init__(self,controller):
+        self.entityDict = dict()
+        self.controller = controller
+        self.entityAPIFunctions = {'fetch': self.controller.RESTfulAPI.fetch_entrypoints_TierRules}
+        self.entityJSONKeyword = "hierarchicalConfigKey"
 
 
     ###### FROM HERE PUBLIC FUNCTIONS ######
@@ -76,9 +74,9 @@ class EntrypointDict(AppEntity):
         :param selectors: fetch only entities filtered by specified selectors
         :returns: the number of fetched entities. Zero if no entity was found.
         """
-        self.applications.load_tiers_and_nodes(appID)
+        self.controller.applications.load_tiers_and_nodes(appID)
         count = 0
-        for tierID in self.applications.getTiers_ID_List(appID):
+        for tierID in self.controller.applications.getTiers_ID_List(appID):
             data = self.entityAPIFunctions['fetch'](tier_ID=tierID,selectors=selectors)
             count += self.load(streamdata=data,appID=appID)
         return count
@@ -116,7 +114,7 @@ class EntrypointDict(AppEntity):
                 reload(sys)
                 sys.setdefaultencoding('utf8')
                 name = entrypoint['definitionName'].encode('ascii', 'ignore')
-                tierName = self.applications.getTierName(appID,entrypoint['hierarchicalConfigKey']['attachedEntity']['entityId'])
+                tierName = self.controller.applications.getTierName(appID,entrypoint['hierarchicalConfigKey']['attachedEntity']['entityId'])
                 matchCondition = entrypoint['matchPointRule']['uri']['matchType']+"  "+entrypoint['matchPointRule']['uri']['matchPattern']
                 if entrypoint['matchPointRule']['uri']['inverse'] == True: matchCondition = "NOT "+matchCondition
                 

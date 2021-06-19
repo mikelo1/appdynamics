@@ -4,28 +4,10 @@ import os.path
 import re
 from datetime import datetime, timedelta
 import time
-from appd_API.appdRESTfulAPI import AppD_Configuration
-from appd_API import controller
+from appdConfig import AppD_Configuration
+from appd_API import Controller
 from optparse import OptionParser, OptionGroup
 import json
-
-entityDict =  { 'applications': controller.applications,
-                'dashboards': controller.dashboards,
-                'config': controller.config,
-                'users': controller.users,
-                'nodes': controller.applications.nodes,
-                'detection-rules': controller.applications.transactiondetection,
-                'businesstransactions': controller.applications.businesstransactions,
-                'backends': controller.applications.backends,
-                'entrypoints': controller.applications.entrypoints,
-                'healthrules': controller.applications.healthrules,
-                'policies': controller.applications.policies,
-                'actions': controller.applications.actions,
-                'schedules': controller.applications.schedules,
-                'healthrule-violations': controller.applications.events,
-                'snapshots': controller.applications.snapshots,
-                'errors': controller.applications.errors
-              }
 
 def time_to_minutes(string):
   total = 0
@@ -87,6 +69,16 @@ def get_help(COMMAND,SUBCOMMAND=None,output=sys.stdout):
                 "Usage:\n" + \
                 "  appdctl config SUBCOMMAND [options]\n\n")
 
+def new_controller():
+    appD_Config = AppD_Configuration()
+    user = appD_Config.get_current_context_user()
+    if user is not None and options.basicAuthFile:
+        bAuth = BasicAuth(basicAuthFile=options.basicAuthFile)
+        password = bAuth.get_password(user)
+        if password is not None:
+            return Controller(appD_Config,{user:password})
+    return Controller(appD_Config)
+
 def get_application_list():
     if not options.applications and not options.allApplications:
         optParser.error("Missing application (use -A for all applications)")
@@ -143,6 +135,26 @@ groupQuery.add_option("--since-time",
 optParser.add_option_group(groupQuery)
 
 (options, args) = optParser.parse_args()
+
+controller = new_controller()
+entityDict =  { 'applications': controller.applications,
+                'dashboards': controller.dashboards,
+                'config': controller.config,
+                'users': controller.users,
+                'nodes': controller.nodes,
+                'detection-rules': controller.transactiondetection,
+                'businesstransactions': controller.businesstransactions,
+                'backends': controller.backends,
+                'entrypoints': controller.entrypoints,
+                'healthrules': controller.healthrules,
+                'policies': controller.policies,
+                'actions': controller.actions,
+                'schedules': controller.schedules,
+                'healthrule-violations': controller.events,
+                'snapshots': controller.snapshots,
+                'errors': controller.errors
+              }
+
 
 if len(args) < 1:
     optParser.error("incorrect number of arguments")

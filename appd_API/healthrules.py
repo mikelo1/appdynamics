@@ -4,20 +4,18 @@ import xml.etree.ElementTree as ET
 import json
 import csv
 import sys
-from appdRESTfulAPI import RESTfulAPI
 from entities import AppEntity
 
 class HealthRuleDict(AppEntity):
-    entityAPIFunctions = {'fetch': RESTfulAPI().fetch_health_rules_JSON}
-                         # 'fetchByID': RESTfulAPI().fetch_health_rule_by_ID}
-                         # 'update': RESTfulAPI().update_health_rule}
-    entityJSONKeyword = "affectedEntityDefinitionRule"
-    entityXMLKeyword  = "health-rules"
-    applications = None
 
-    def __init__(self,applications):
-        self.entityDict  = dict()
-        self.applications = applications
+    def __init__(self,controller):
+        self.entityDict = dict()
+        self.controller = controller
+        self.entityAPIFunctions = { 'fetch': self.controller.RESTfulAPI.fetch_health_rules_JSON }
+                                  # 'fetchByID': self.controller.RESTfulAPI.fetch_health_rule_by_ID}
+                                  # 'update': self.controller.RESTfulAPI.update_health_rule}
+        self.entityJSONKeyword = "affectedEntityDefinitionRule"
+        self.entityXMLKeyword  = "health-rules"
 
     def __str_healthrule_affects(self,healthrule):
         """
@@ -69,9 +67,12 @@ class HealthRuleDict(AppEntity):
             elif 'nodeMatchCriteria' in healthrule['affectedEntityDefinitionRule'] and healthrule['affectedEntityDefinitionRule']['nodeMatchCriteria'] is not None:
                 aemc    =healthrule['affectedEntityDefinitionRule']['nodeMatchCriteria']
                 aemcType=healthrule['affectedEntityDefinitionRule']['nodeMatchCriteria']['type']
-            elif 'matchCriteriaType' in healthrule['affectedEntityDefinitionRule'] and healthrule['affectedEntityDefinitionRule']['matchCriteriaType'] is not None:                
+            elif 'matchCriteriaType' in healthrule['affectedEntityDefinitionRule'] and healthrule['affectedEntityDefinitionRule']['matchCriteriaType'] is not None:
                 aemc    =healthrule['affectedEntityDefinitionRule']
                 aemcType=healthrule['affectedEntityDefinitionRule']['matchCriteriaType']
+            elif 'aemcType' in healthrule['affectedEntityDefinitionRule'] and healthrule['affectedEntityDefinitionRule']['aemcType'] is not None:
+                aemc    =healthrule['affectedEntityDefinitionRule']
+                aemcType=healthrule['affectedEntityDefinitionRule']['aemcType']
             else:
                 aemc    =healthrule['affectedEntityDefinitionRule']
                 aemcType=healthrule['affectedEntityDefinitionRule']['type']
@@ -112,7 +113,7 @@ class HealthRuleDict(AppEntity):
                         sysProp = ','.join([ str(var['name']+"="+var['value']) for var in aemc['latestVmSystemProperties'] ])
                     return HR_Type[healthrule['type']] + " | " + HR_affects[aemcType] + " " + envVars + " " + sysProp
             else:
-                return HR_Type[healthrule['type']] + " | " + HR_affects[aemcType]
+                return healthrule['type'] + " | " + aemcType
 
     def __str_healthrule_critical_conditions(self,healthrule):
         """
@@ -190,7 +191,7 @@ class HealthRuleDict(AppEntity):
 
                 try:
                     filewriter.writerow({'HealthRule': healthrule['name'].encode('ASCII', 'ignore'),
-                                         'Application': self.applications.getAppName(appID),
+                                         'Application': self.controller.applications.getAppName(appID),
                                          'Duration': healthrule['useDataFromLastNMinutes'] if 'useDataFromLastNMinutes' in healthrule else "",
                                          'Wait_Time': healthrule['useDataFromLastNMinutes'] if 'useDataFromLastNMinutes' in healthrule else "",
                                          'Schedule': healthrule['scheduleName'] if 'scheduleName' in healthrule else "",
@@ -210,15 +211,15 @@ class HealthRuleDict(AppEntity):
         #    if healthrule['affectedEntityType'] == entityType:
 
 class HealthRuleXMLDict(AppEntity):
-    entityAPIFunctions = {'fetch': RESTfulAPI().fetch_health_rules_XML,
-                          'import': RESTfulAPI().import_health_rules_XML}
-    entityJSONKeyword = "affectedEntityType"
-    #entityJSONKeyword = "useDataFromLastNMinutes"
-    entityXMLKeyword  = "health-rules"
 
-    def __init__(self):
+    def __init__(self,controller):
         self.entityDict = dict()
-
+        self.controller = controller
+        self.entityAPIFunctions = { 'fetch': self.controller.RESTfulAPI.fetch_health_rules_XML,
+                                    'import': self.controller.RESTfulAPI.import_health_rules_XML }
+        self.entityJSONKeyword = "affectedEntityType"
+        #self.entityJSONKeyword = "useDataFromLastNMinutes"
+        self.entityXMLKeyword  = "health-rules"
 
     def __entityXML2JSON(self,XMLentityType):
         """
@@ -705,7 +706,7 @@ class HealthRuleXMLDict(AppEntity):
 
                 try:
                     filewriter.writerow({'HealthRule': healthrule['name'].encode('ASCII', 'ignore'),
-                                         'Application': applications.getAppName(appID),
+                                         'Application': self.controller.applications.getAppName(appID),
                                          'Duration': healthrule['useDataFromLastNMinutes'] if 'useDataFromLastNMinutes' in healthrule else "",
                                          'Wait_Time': healthrule['useDataFromLastNMinutes'] if 'useDataFromLastNMinutes' in healthrule else "",
                                          'Schedule': healthrule['scheduleName'] if 'scheduleName' in healthrule else "",

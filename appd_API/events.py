@@ -4,18 +4,15 @@ import csv
 import sys
 from datetime import datetime, timedelta
 import time
-from appdRESTfulAPI import RESTfulAPI
 from entities import AppEntity
 
 class EventDict(AppEntity):
-    entityAPIFunctions = {'fetch': RESTfulAPI().fetch_healthrule_violations}
-    entityJSONKeyword = "affectedEntityDefinition"
-    applications = None
 
-    def __init__(self,applications):
-        self.entityDict  = dict()
-        self.applications = applications
-
+    def __init__(self,controller):
+        self.entityDict = dict()
+        self.controller = controller
+        self.entityAPIFunctions = { 'fetch': self.controller.RESTfulAPI.fetch_healthrule_violations }
+        self.entityJSONKeyword = "affectedEntityDefinition"
 
     def __str_event_policy(self,event):
         """
@@ -127,7 +124,7 @@ class EventDict(AppEntity):
                                         'Status': policyviolation['incidentStatus'],
                                         'Start_Time': self.__str_event_start_time(policyviolation),
                                         'End_Time': self.__str_event_end_time(policyviolation),
-                                        'Application': self.applications.getAppName(app_ID),
+                                        'Application': self.controller.applications.getAppName(app_ID),
                                         'Description': self.__str_event_description(policyviolation)})
                 except ValueError as valError:
                     sys.stderr.write(valError+"\n")
@@ -138,13 +135,12 @@ class EventDict(AppEntity):
 
 
 class ErrorDict(AppEntity):
-    entityAPIFunctions = {'fetch': RESTfulAPI().fetch_errors}
-    entityJSONKeyword = "metricPath"
-    applications = None
 
-    def __init__(self,applications):
-        self.entityDict  = dict()
-        self.applications = applications
+    def __init__(self,controller):
+        self.entityDict = dict()
+        self.controller = controller
+        self.entityAPIFunctions = { 'fetch': self.controller.RESTfulAPI.fetch_errors }
+        self.entityJSONKeyword = "metricPath"
 
     def fetch_after_time(self,appID,duration,sinceEpoch,selectors=None):
         """
@@ -154,8 +150,8 @@ class ErrorDict(AppEntity):
         :returns: the number of fetched entities. Zero if no entity was found.
         """
         count = 0
-        for tierID in self.applications.getTiers_ID_List(appID):
-            tierName = self.applications.getTierName(appID,tierID)
+        for tierID in self.controller.applications.getTiers_ID_List(appID):
+            tierName = self.controller.applications.getTierName(appID,tierID)
             data = self.entityAPIFunctions['fetch'](app_ID=appID,tier_ID=tierName,time_range_type="AFTER_TIME",duration=duration,startEpoch=sinceEpoch,selectors=selectors)
             count += self.load(streamdata=data,appID=appID)
         return count
@@ -194,7 +190,7 @@ class ErrorDict(AppEntity):
                     header_is_printed=True
 
                 try:
-                    filewriter.writerow({'Application': self.applications.getAppName(appID),
+                    filewriter.writerow({'Application': self.controller.applications.getAppName(appID),
                                         'ErrorCode': errorMetric['metricPath'].split("|")[2],
                                         'Value': errorMetric['metricValues'][0]['value'],
                                         'Max':   errorMetric['metricValues'][0]['max'],

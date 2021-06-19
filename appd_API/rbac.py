@@ -2,16 +2,16 @@
 import json
 import csv
 import sys
-from appdRESTfulAPI import RESTfulAPI
 from entities import ControllerEntity
 
 class RBACDict(ControllerEntity):
-    entityAPIFunctions = {'fetch': RESTfulAPI().fetch_users_extended,
-                          'fetchByID': RESTfulAPI().fetch_user_by_ID}
-    entityJSONKeyword = "providerUniqueName"
 
-    def __init__(self):
+    def __init__(self,controller):
         self.entityDict = dict()
+        self.controller = controller
+        self.entityAPIFunctions = { 'fetch': self.controller.RESTfulAPI.fetch_users_extended,
+                                    'fetchByID': self.controller.RESTfulAPI.fetch_user_by_ID }
+        self.entityJSONKeyword = "providerUniqueName"
 
     ###### FROM HERE PUBLIC FUNCTIONS ######
 

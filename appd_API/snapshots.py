@@ -4,17 +4,15 @@ import csv
 import sys
 from datetime import datetime, timedelta
 import time
-from appdRESTfulAPI import RESTfulAPI
 from entities import AppEntity
 
 class SnapshotDict(AppEntity):
-    entityAPIFunctions = {'fetch': RESTfulAPI().fetch_snapshots}
-    entityJSONKeyword = "snapshotExitCalls"
-    applications = None
 
-    def __init__(self,applications):
-        self.entityDict  = dict()
-        self.applications = applications
+    def __init__(self,controller):
+        self.entityDict = dict()
+        self.controller = controller
+        self.entityAPIFunctions = {'fetch': self.controller.RESTfulAPI.fetch_snapshots}
+        self.entityJSONKeyword = "snapshotExitCalls"
 
 #def fetch_snapshots2(app_ID,minutesBeforeNow,selectors=None,serverURL=None,userName=None,password=None,token=None):
 #    MAX_RESULTS = RESULTS = 9
@@ -108,9 +106,6 @@ class SnapshotDict(AppEntity):
                     header_is_printed=True
                 Time = datetime.fromtimestamp(float(snapshot['localStartTime'])/1000).strftime('%Y-%m-%d %H:%M:%S')
                 appID= snapshot['applicationId']
-                appName = self.applications.getAppName(appID)
-                Tier = "" #nodes.getTierName(appID,snapshot['applicationComponentId'])
-                Node = "" #nodes.getNodeName(appID,snapshot['applicationComponentNodeId'])
                 Summary = snapshot['summary'].encode('ASCII', 'ignore') if 'summary' in snapshot else ""
 
                 try:
@@ -118,10 +113,10 @@ class SnapshotDict(AppEntity):
                                         'UserExperience': snapshot['userExperience'],
                                         'URL': snapshot['URL'],
                                         'Summary': Summary,
-                                        'Application': appName,
+                                        'Application': self.controller.applications.getAppName(appID),
                                         'BussinessTransaction': snapshot['businessTransactionId'],
-                                        'Tier': Tier,
-                                        'Node': Node,
+                                        'Tier': self.controller.nodes.getTierName(appID,snapshot['applicationComponentId']),
+                                        'Node': self.controller.nodes.getNodeName(appID,snapshot['applicationComponentNodeId']),
                                         'ExeTime': snapshot['timeTakenInMilliSecs']})
                 except:
                     print ("Could not write to the output.")

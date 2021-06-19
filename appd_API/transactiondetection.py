@@ -3,18 +3,16 @@ import xml.etree.ElementTree as ET
 import json
 import csv
 import sys
-from appdRESTfulAPI import RESTfulAPI
 from entities import AppEntity
 
 class DetectionruleDict(AppEntity):
-    entityAPIFunctions = {'fetch': RESTfulAPI().fetch_transactiondetection,
-                          'import': RESTfulAPI().import_transactiondetection}
-    entityXMLKeyword = "rule-list"
-    applications = None
 
-    def __init__(self,applications):
-        self.entityDict  = dict()
-        self.applications = applications
+    def __init__(self,controller):
+        self.entityDict = dict()
+        self.controller = controller
+        self.entityAPIFunctions = { 'fetch': self.controller.RESTfulAPI.fetch_transactiondetection,
+                                    'import': self.controller.RESTfulAPI.import_transactiondetection }
+        self.entityXMLKeyword = "rule-list"
 
 
     def __str_transactiondetection_matchrules(self,txMatchRuleData):
@@ -215,7 +213,7 @@ class DetectionruleDict(AppEntity):
 
                 try:
                     filewriter.writerow({'Name': ruleName,
-                                         'Application': self.applications.getAppName(appID),
+                                         'Application': self.controller.applications.getAppName(appID),
                                          'MatchRuleList': matchRuleList,
                                          'HttpSplit': httpSplit})
                 except ValueError as valError:

@@ -2,20 +2,18 @@
 import json
 import csv
 import sys
-from appdRESTfulAPI import RESTfulAPI
 from datetime import datetime, timedelta
 import time
 from entities import AppEntity
 
 class NodeDict(AppEntity):
-    entityAPIFunctions = {'fetch': RESTfulAPI().fetch_nodes,
-                          'fetchByID': RESTfulAPI().fetch_node_by_ID}
-    entityJSONKeyword = "nodeUniqueLocalId"
-    applications = None
 
-    def __init__(self,applications):
-        self.entityDict  = dict()
-        self.applications = applications
+    def __init__(self,controller):
+        self.entityDict = dict()
+        self.controller = controller
+        self.entityAPIFunctions = { 'fetch': self.controller.RESTfulAPI.fetch_nodes,
+                                    'fetchByID': self.controller.RESTfulAPI.fetch_node_by_ID }
+        self.entityJSONKeyword = "nodeUniqueLocalId"
 
 
     def __update_availability_nodes(self,app_ID):
@@ -81,7 +79,7 @@ class NodeDict(AppEntity):
                 try:
                     filewriter.writerow({'Node': node['name'],
                                          'Tier': node['tierName'],
-                                         'Application': self.applications.getAppName(appID),
+                                         'Application': self.controller.applications.getAppName(appID),
                                          'AgentVersion': node['appAgentVersion'] if node['agentType']=="APP_AGENT" else node['agentType'],
                                          'MachineName': node['machineName'],
                                          'OSType': node['machineOSType']})

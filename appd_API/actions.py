@@ -2,19 +2,17 @@
 import json
 import csv
 import sys
-from appdRESTfulAPI import RESTfulAPI
 from entities import AppEntity
 
 
 class ActionDict(AppEntity):
-    entityAPIFunctions = {'fetch': RESTfulAPI().fetch_actions_legacy,
-                          'fetchByID': RESTfulAPI().fetch_action_by_ID}
-    entityJSONKeyword = "actionType"
-    applications = None
 
-    def __init__(self,applications):
-        self.entityDict  = dict()
-        self.applications = applications
+    def __init__(self,controller):
+        self.entityDict = dict()
+        self.controller = controller
+        self.entityAPIFunctions = { 'fetch': self.controller.RESTfulAPI.fetch_actions_legacy,
+                                    'fetchByID': self.controller.RESTfulAPI.fetch_action_by_ID }
+        self.entityJSONKeyword = "actionType"
 
     def __str_action_properties(self,action):
         """
@@ -132,7 +130,7 @@ class ActionDict(AppEntity):
                     header_is_printed=True
                 try:
                     filewriter.writerow({'ActionName': action['name'].encode('ASCII', 'ignore'),
-                                        'Application': self.applications.getAppName(appID),
+                                        'Application': self.controller.applications.getAppName(appID),
                                         'ActionType': action['actionType'],
                                         'Recipients': self.__str_action_recipients(action),
                                         'Policies': "", #policies.get_policies_matching_action(app_ID,action['name']),

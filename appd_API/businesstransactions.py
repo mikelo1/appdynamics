@@ -2,17 +2,15 @@
 import json
 import csv
 import sys
-from appdRESTfulAPI import RESTfulAPI
 from entities import AppEntity
 
 class BusinessTransactionDict(AppEntity):
-    entityAPIFunctions = {'fetch': RESTfulAPI().fetch_business_transactions}
-    entityJSONKeyword = "internalName"
-    applications = None
 
-    def __init__(self,applications):
-        self.entityDict  = dict()
-        self.applications = applications
+    def __init__(self,controller):
+        self.entityDict = dict()
+        self.controller = controller
+        self.entityAPIFunctions = { 'fetch': self.controller.RESTfulAPI.fetch_business_transactions }
+        self.entityJSONKeyword = "internalName"
 
     ###### FROM HERE PUBLIC FUNCTIONS ######
 
@@ -50,7 +48,7 @@ class BusinessTransactionDict(AppEntity):
 
                 try:
                     filewriter.writerow({'name': BT['name'].encode('ASCII', 'ignore'),
-                                         'Application': self.applications.getAppName(appID),
+                                         'Application': self.controller.applications.getAppName(appID),
                                          'entryPointType': BT['entryPointType'],
                                          'tierName': BT['tierName']})
                 except ValueError as valError:

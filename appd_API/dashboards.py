@@ -2,16 +2,16 @@
 import json
 import csv
 import sys
-from appdRESTfulAPI import RESTfulAPI
 from entities import ControllerEntity
 
 class DashboardDict(ControllerEntity):
-    entityAPIFunctions = {'fetch': RESTfulAPI().fetch_dashboards,
-                          'fetchByID': RESTfulAPI().fetch_dashboard_by_ID}
-    entityJSONKeyword = 'canvasType'
 
-    def __init__(self):
+    def __init__(self,controller):
         self.entityDict = dict()
+        self.controller = controller
+        self.entityAPIFunctions = { 'fetch': self.controller.RESTfulAPI.fetch_dashboards,
+                                    'fetchByID': self.controller.RESTfulAPI.fetch_dashboard_by_ID }
+        self.entityJSONKeyword = 'canvasType'
 
     ###### FROM HERE PUBLIC FUNCTIONS ######
 
