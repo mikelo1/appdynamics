@@ -25,13 +25,13 @@ class AppD_Configuration:
         try:
             stream = open(self.configFile)
         except IOError as exc:
-            sys.stderr.write(exc+"\n")
+            sys.stderr.write(str(exc)+"\n")
             return None
         with open(self.configFile, 'r') as stream:
             try:
                 self.data = yaml.safe_load(stream)
             except yaml.YAMLError as exc:
-                sys.stderr.write(exc+"\n")
+                sys.stderr.write(str(exc)+"\n")
 
     def __str__(self):
         return "({0},{1})".format(self.configFile,self.data)
