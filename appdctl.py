@@ -72,11 +72,6 @@ def get_help(COMMAND,SUBCOMMAND=None,output=sys.stdout):
 def new_controller():
     appD_Config = AppD_Configuration()
     user = appD_Config.get_current_context_user()
-    if user is not None and options.basicAuthFile:
-        bAuth = BasicAuth(basicAuthFile=options.basicAuthFile)
-        password = bAuth.get_password(user)
-        if password is not None:
-            return Controller(appD_Config,{user:password})
     return Controller(appD_Config)
 
 def get_application_list():
