@@ -30,7 +30,7 @@ class NodeDict(AppEntity):
             start_time = end_time-timedelta(minutes=60)
             start_epoch= long(time.mktime(start_time.timetuple())*1000)
             end_epoch  = long(time.mktime(end_time.timetuple())*1000)
-            response = RESTfulAPI().fetch_agent_status(nodeList=nodeList,start_epoch=start_epoch,end_epoch=end_epoch)
+            response = self.controller.RESTfulAPI.fetch_agent_status(nodeList=nodeList,start_epoch=start_epoch,end_epoch=end_epoch)
             if response is not None:
                 nodesHealth = json.loads(response)
                 for node in self.entityDict[str(app_ID)]:
@@ -101,13 +101,13 @@ class NodeDict(AppEntity):
         for appID in appID_List:
             sys.stderr.write("update nodes " + str(appID) + "...\n")
             if str(appID) not in self.entityDict:
-                if self.load(RESTfulAPI().fetch_nodes(appID,selectors=selectors),appID) == 0: continue
+                if self.load(self.controller.RESTfulAPI.fetch_nodes(appID,selectors=selectors),appID) == 0: continue
             self.__update_availability_nodes(appID)
             unavailNodeList = [ node['id'] for node in self.entityDict[str(appID)] if node['availability'] == 0.0 ]
             for i in range(0,len(unavailNodeList),25):
                 if 'DEBUG' in locals(): print ("Unavailable node list:",unavailNodeList)
-                response = RESTfulAPI().mark_nodes_as_historical(unavailNodeList[i:i+25])
-            RESTfulAPI().fetch_nodes(appID,selectors=selectors)
+                response = self.controller.RESTfulAPI.mark_nodes_as_historical(unavailNodeList[i:i+25])
+            self.controller.RESTfulAPI.fetch_nodes(appID,selectors=selectors)
             print ("update_nodes: [INFO] Disabled nodes in application",appID,":",len(unavailNodeList) )
             updated += len(unavailNodeList)
         return updated
