@@ -65,7 +65,7 @@ class RESTfulAPI:
 
         token     = self.appD_Config.get_current_context_token()
         serverURL = self.appD_Config.get_current_context_serverURL()
-        API_Client= self.appD_Config.get_current_context_username()
+        API_Client= self.appD_Config.get_current_context_user()
         if token is None:
             if 'DEBUG' in locals(): print ("Current context "+ self.appD_Config.get_current_context(output=None) + " has no valid token.")
             if self.basicAuth and len(self.basicAuth) > 0 and API_Client in self.basicAuth:
@@ -75,6 +75,7 @@ class RESTfulAPI:
             else:
                 sys.stderr.write("Authentication required for " + serverURL + "\n")
                 Client_Secret = getpass(prompt='Password: ')
+            API_Client= self.appD_Config.get_current_context_username()
             token_data = self.__fetch_access_token(serverURL,API_Client,Client_Secret)
             if token_data is None:
                 sys.stderr.write("Authentication failed. Did you mistype the password?\n") 

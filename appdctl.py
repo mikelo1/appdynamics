@@ -4,7 +4,7 @@ import os.path
 import re
 from datetime import datetime, timedelta
 import time
-from appdConfig import AppD_Configuration
+from appdConfig import AppD_Configuration, BasicAuth
 from appd_API import Controller
 from optparse import OptionParser, OptionGroup
 import json
@@ -72,6 +72,11 @@ def get_help(COMMAND,SUBCOMMAND=None,output=sys.stdout):
 def new_controller():
     appD_Config = AppD_Configuration()
     user = appD_Config.get_current_context_user()
+    if user is not None and options.basicAuthFile:
+        bAuth = BasicAuth(basicAuthFile=options.basicAuthFile)
+        password = bAuth.get_password(user)
+        if password is not None:
+            return Controller(appD_Config,{user:password})
     return Controller(appD_Config)
 
 def get_application_list():
@@ -109,6 +114,8 @@ optParser.add_option("--controller-url", action="store", dest="controllerURL",
                   help="URL of the controller")
 optParser.add_option("--user-API", action="store", dest="apiClient",
                   help="API client username")
+optParser.add_option("--basic-auth-file", action="store", dest="basicAuthFile",
+                  help="Basic authentication file")
 optParser.add_option("-p", "--patch", action="store", dest="patchJSON",
                   help="The patch to be applied to the resource JSON file")
 groupQuery = OptionGroup(optParser, "Query range options")

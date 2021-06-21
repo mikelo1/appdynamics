@@ -35,6 +35,15 @@ users:
     expire: <yyyy-MM-dd hh:mm:ss.xxxxxx>
     token: <token_string>
 
+## Basic authentication for tests
+If AppDCTL is called by an user, API Client credentials will be requested every time that the authentication token is expired.
+But for software automatization and testing purposes, it has been implemented a basic authentication method, based on a basicAuth file.
+Note: The password needs to be encoded in base64
+
+### basicAuth file format
+<password1>,<my_APIClient_username1>@<my_account_name1>,<hostname>:<port>
+<password2>,<my_APIClient_username2>@<my_account_name2>,<hostname>:<port>
+
 
 # Help
 
@@ -82,3 +91,6 @@ Advanced Commands:
    $ appdctl.py get snapshots -a myApp1 -l error-ids=500 --since=1d -o JSON
  * Update timezone for all schedules of a specific application
    $ appdctl.py patch schedules -a myApp1 -p '{"timezone":"Europe\/Belgrade"}'
+
+ * Update specific healthrule within a specific application
+   $ appdctl.py patch healthrules -a myApp1 -l entitynames=HR_MSA_AVAIL_24x7_10Min -p '{"evalCriterias":{"criticalCriteria":{"evalMatchingCriteria":{"matchType":"PERCENTAGE_NODES","value":100}}}}'

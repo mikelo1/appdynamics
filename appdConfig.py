@@ -41,7 +41,7 @@ class AppD_Configuration:
             with open(self.configFile, 'r') as stream:
                 print (stream.readlines())
         except EnvironmentError as exc:
-            print(exc)
+            sys.stderr.write(str(exc)+"\n")
 
     def save(self):
         if 'DEBUG' in locals(): print ("Saving changes...")
@@ -49,7 +49,8 @@ class AppD_Configuration:
             with open(self.configFile, "w") as outfile:
                 yaml.dump(self.data, outfile, default_flow_style=False, allow_unicode=True)
         except yaml.YAMLError as exc:
-            print(exc)
+            sys.stderr.write(str(exc)+"\n")
+
 
     def get_configFileName(self):
         return self.configFile
@@ -65,7 +66,7 @@ class AppD_Configuration:
                                      'NAME': context['name'],
                                      'AUTHINFO': context['context']['user']})
             except ValueError as valError:
-                print (valError)
+                sys.stderr.write(str(valError)+"\n")
                 return (-1)
 
     def get_current_context(self,output=sys.stdout):
@@ -201,30 +202,31 @@ class AppD_Configuration:
 
 class BasicAuth:
     authFile  = ""
+    authDict = dict()
 
     def __init__(self,basicAuthFile=None):
         if basicAuthFile is not None:
             try:
                 stream = open(basicAuthFile)
             except IOError as exc:
-                print("BasicAuth init: "+str(exc))
+                sys.stderr.write(str(exc)+"\n")
                 return None
             self.authFile = basicAuthFile
+            with open(self.authFile, mode='r') as csv_file:
+                try:
+                    auth_dict = csv.DictReader(csv_file,fieldnames=['password','apiClient','host'])
+                    for row in auth_dict:
+                        self.authDict.update({row['apiClient']+"/"+row['host']:row['password']})
+                except IOError as exc:
+                    sys.stderr.write(str(exc)+"\n")
 
     def __str__(self):
-        return "({0})".format(self.authFile)
+        return "({0},{1})".format(self.authFile, len(self.authDict))
 
     def get_authFileName(self):
         return self.authFile
 
     def get_password(self,API_Client):
-        auth_dict = dict()
-        with open(self.authFile, mode='r') as csv_file:
-            try:
-                auth_dict = csv.DictReader(csv_file,fieldnames=['password','apiClient'])
-            except IOError as exc:
-                print(exc)
-            for credential in auth_dict:
-                if credential['apiClient'] == API_Client:
-                    return credential['password']
+        if API_Client in self.authDict:
+            return base64.b64decode(self.authDict[API_Client].encode('ascii')).decode('ascii')
         return None

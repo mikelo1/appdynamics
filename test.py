@@ -17,29 +17,42 @@ class TestSum(unittest.TestCase):
             else: return
 
         print "Try to get appdynamics context file, when file doesn't exist"
-        result = subprocess.call("./appdctl.py  config get-contexts ", shell=True)
+        result = subprocess.call("./appdctl.py config get-contexts ", shell=True)
         self.assertEqual(result, 0)
 
         print "Create new appdynamics context file and add new context"
-        result = subprocess.call("./appdctl.py  config set-context EVO.PRO --controller-url https://evobanco.saas.appdynamics.com:443 --user-API EvoAPIClient@evobanco", shell=True)
+        result = subprocess.call("./appdctl.py config set-context EVO.PRO --controller-url https://evobanco.saas.appdynamics.com:443 --user-API EvoAPIClient@evobanco", shell=True)
         self.assertEqual(result, 0)
 
         print "Append context to appdynamics context file"
-        result = subprocess.call("./appdctl.py  config set-context EVO.UAT --controller-url https://evobanco-dev.saas.appdynamics.com:443 --user-API EvoAPIClient@evobanco-dev", shell=True)
+        result = subprocess.call("./appdctl.py config set-context EVO.UAT --controller-url https://evobanco-dev.saas.appdynamics.com:443 --user-API EvoAPIClient@evobanco-dev", shell=True)
+        self.assertEqual(result, 0)
+        result = subprocess.call("./appdctl.py config set-context localhost --controller-url http://localhost:8090 --user-API APIClient@customer1", shell=True)
         self.assertEqual(result, 0)
 
         print "Add already existing context to appdynamics context file"
-        result = subprocess.call("./appdctl.py  config set-context EVO.UAT --controller-url https://evobanco-dev.saas.appdynamics.com:443 --user-API EvoAPIClient@evobanco-dev", shell=True)
+        result = subprocess.call("./appdctl.py config set-context EVO.UAT --controller-url https://evobanco-dev.saas.appdynamics.com:443 --user-API EvoAPIClient@evobanco-dev", shell=True)
+        self.assertEqual(result, 0)
+
+        print "Get contexts from appdynamics context file"
+        result = subprocess.call("./appdctl.py config get-contexts", shell=True)
+        self.assertEqual(result, 0)
+
+        print "Use existing context on appdynamics context file"
+        result = subprocess.call("./appdctl.py config use-context EVO.UAT", shell=True)
+        self.assertEqual(result, 0)
+
+        print "Use non existing context on appdynamics context file"
+        result = subprocess.call("./appdctl.py config use-context nonexist", shell=True)
         self.assertEqual(result, 0)
 
         print "Delete existing context on appdynamics context file"
-        result = subprocess.call("./appdctl.py  config delete-context EVO.UAT", shell=True)
+        result = subprocess.call("./appdctl.py config delete-context localhost", shell=True)
         self.assertEqual(result, 0)
 
         print "Delete non existing context on appdynamics context file"
-        result = subprocess.call("./appdctl.py  config delete-context nonexist", shell=True)
+        result = subprocess.call("./appdctl.py config delete-context nonexist", shell=True)
         self.assertEqual(result, 0)
-
 
     def test_entities_load(self):
         """
@@ -74,7 +87,15 @@ class TestSum(unittest.TestCase):
                     result = subprocess.call("./appdctl.py  get -o JSON -f - ", stdin=filePipe.stdout, stdout=FNULL, shell=True)
                     self.assertEqual(result, 0)
                     filePipe.stdout.close()
-        
+
+    def test_entities_basicauth(self):
+        """
+        Integrity tests for API entity export calls, using basic auth
+        """
+        FNULL = open(os.devnull, 'w')
+        print "Get appdynamics applications"
+        result = subprocess.call("./appdctl.py get applications --basic-auth-file=basicauth.csv ", stdout=FNULL, shell=True)
+        self.assertEqual(result, 0)
 
 if __name__ == '__main__':
     unittest.main()
