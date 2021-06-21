@@ -3,6 +3,8 @@ import unittest
 import os.path
 import subprocess
 from zipfile import ZipFile
+from appdConfig import AppD_Configuration, BasicAuth
+from appd_API import Controller
 
 class TestSum(unittest.TestCase):
     def test_contexts(self):
@@ -94,6 +96,7 @@ class TestSum(unittest.TestCase):
         """
         FNULL = open(os.devnull, 'w')
         if os.path.isfile("basicauth.csv") == False:
+            print "Missing basic auth file, can't run test set."
             return
 
         print "Get appdynamics applications"
@@ -111,6 +114,20 @@ class TestSum(unittest.TestCase):
         print "Get appdynamics users"
         result = subprocess.call("./appdctl.py get users --basic-auth-file=basicauth.csv ", stdout=FNULL, shell=True)
         self.assertEqual(result, 0)
+
+        appD_Config = AppD_Configuration()
+        user = appD_Config.get_current_context_user()
+        self.assertIsNotNone(user)
+        bAuth = BasicAuth(basicAuthFile="basicauth.csv")
+        password = bAuth.get_password(user)
+        self.assertIsNotNone(password)
+        controller = Controller(appD_Config,{user:password})
+        controller.applications.fetch()
+        applicationList = controller.applications.get_application_ID_list()
+        self.assertNotEqual(len(applicationList), 0)
+        print applicationList
+
+
 
 if __name__ == '__main__':
     unittest.main()
