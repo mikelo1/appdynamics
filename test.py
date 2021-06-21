@@ -93,8 +93,23 @@ class TestSum(unittest.TestCase):
         Integrity tests for API entity export calls, using basic auth
         """
         FNULL = open(os.devnull, 'w')
+        if os.path.isfile("basicauth.csv") == False:
+            return
+
         print "Get appdynamics applications"
         result = subprocess.call("./appdctl.py get applications --basic-auth-file=basicauth.csv ", stdout=FNULL, shell=True)
+        self.assertEqual(result, 0)
+
+        print "Get appdynamics dashboards"
+        result = subprocess.call("./appdctl.py get dashboards --basic-auth-file=basicauth.csv ", stdout=FNULL, shell=True)
+        self.assertEqual(result, 0)
+
+        print "Get appdynamics settings"
+        result = subprocess.call("./appdctl.py get config --basic-auth-file=basicauth.csv ", stdout=FNULL, shell=True)
+        self.assertEqual(result, 0)
+
+        print "Get appdynamics users"
+        result = subprocess.call("./appdctl.py get users --basic-auth-file=basicauth.csv ", stdout=FNULL, shell=True)
         self.assertEqual(result, 0)
 
 if __name__ == '__main__':
