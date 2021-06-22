@@ -162,6 +162,12 @@ class TestSum(unittest.TestCase):
         result = subprocess.call("./appdctl.py get errors -a "+applicationList[0]+" --since=1h --basic-auth-file=basicauth.csv ", stdout=FNULL, shell=True)
         self.assertEqual(result, 0)
 
+        result = subprocess.call("./appdctl.py get nodes -a "+applicationList[0]+","+applicationList[1]+" --basic-auth-file=basicauth.csv ", stdout=FNULL, shell=True)
+        self.assertEqual(result, 0)
+
+        result = subprocess.call("./appdctl.py get nodes -A --basic-auth-file=basicauth.csv ", stdout=FNULL, shell=True)
+        self.assertEqual(result, 0)
+
 
 if __name__ == '__main__':
     unittest.main()
