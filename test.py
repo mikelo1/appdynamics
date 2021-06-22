@@ -123,10 +123,44 @@ class TestSum(unittest.TestCase):
         self.assertIsNotNone(password)
         controller = Controller(appD_Config,{user:password})
         controller.applications.fetch()
-        applicationList = controller.applications.get_application_ID_list()
+        applicationList = controller.applications.get_application_Name_list(application_type="apmApplications")
         self.assertNotEqual(len(applicationList), 0)
-        print applicationList
 
+        result = subprocess.call("./appdctl.py get nodes -a "+applicationList[0]+" --basic-auth-file=basicauth.csv ", stdout=FNULL, shell=True)
+        self.assertEqual(result, 0)
+
+        result = subprocess.call("./appdctl.py get detection-rules -a "+applicationList[0]+" --basic-auth-file=basicauth.csv ", stdout=FNULL, shell=True)
+        self.assertEqual(result, 0)
+
+        result = subprocess.call("./appdctl.py get businesstransactions -a "+applicationList[0]+" --basic-auth-file=basicauth.csv ", stdout=FNULL, shell=True)
+        self.assertEqual(result, 0)
+
+        result = subprocess.call("./appdctl.py get backends -a "+applicationList[0]+" --basic-auth-file=basicauth.csv ", stdout=FNULL, shell=True)
+        self.assertEqual(result, 0)
+
+        result = subprocess.call("./appdctl.py get entrypoints -a "+applicationList[0]+" --basic-auth-file=basicauth.csv ", stdout=FNULL, shell=True)
+        self.assertEqual(result, 0)
+
+        result = subprocess.call("./appdctl.py get healthrules -a "+applicationList[0]+" --basic-auth-file=basicauth.csv ", stdout=FNULL, shell=True)
+        self.assertEqual(result, 0)
+
+        result = subprocess.call("./appdctl.py get policies -a "+applicationList[0]+" --basic-auth-file=basicauth.csv ", stdout=FNULL, shell=True)
+        self.assertEqual(result, 0)
+
+        result = subprocess.call("./appdctl.py get actions -a "+applicationList[0]+" --basic-auth-file=basicauth.csv ", stdout=FNULL, shell=True)
+        self.assertEqual(result, 0)
+
+        result = subprocess.call("./appdctl.py get schedules -a "+applicationList[0]+" --basic-auth-file=basicauth.csv ", stdout=FNULL, shell=True)
+        self.assertEqual(result, 0)
+
+        result = subprocess.call("./appdctl.py get healthrule-violations -a "+applicationList[0]+" --since=1h --basic-auth-file=basicauth.csv ", stdout=FNULL, shell=True)
+        self.assertEqual(result, 0)
+
+        result = subprocess.call("./appdctl.py get snapshots -a "+applicationList[0]+" --since=1h --basic-auth-file=basicauth.csv ", stdout=FNULL, shell=True)
+        self.assertEqual(result, 0)
+
+        result = subprocess.call("./appdctl.py get errors -a "+applicationList[0]+" --since=1h --basic-auth-file=basicauth.csv ", stdout=FNULL, shell=True)
+        self.assertEqual(result, 0)
 
 
 if __name__ == '__main__':

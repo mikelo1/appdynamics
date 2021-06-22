@@ -98,26 +98,30 @@ class ApplicationDict(ControllerEntity):
                     self.entityDict['apmApplications'][i].update(self.__fetch_tiers_and_nodes(app_ID))
                     return len(self.entityDict['apmApplications'][i]['tiers'])
 
-    def get_application_Name_list(self):
+    def get_application_Name_list(self,application_type=None):
         """
         Get a list with all application names.
+        :application_type: could be one of these [apiMonitoringApplications,analyticsApplication,eumWebApplications,dbMonApplication,mobileAppContainers,cloudMonitoringApplication,iotApplications,simApplication,apmApplications]
         :returns: a list with all application names. None if no application was found.
         """
         appNameList=[]
         for appType in self.entityDict:
+            if application_type and appType != application_type: continue
             if type(self.entityDict[appType]) is dict:
                 appNameList.append(self.entityDict[appType]['name'])
             elif type(self.entityDict[appType]) is list:
                 appNameList += [ application['name'] for application in self.entityDict[appType] ]
         if len(appNameList) > 0: return appNameList
 
-    def get_application_ID_list(self):
+    def get_application_ID_list(self,application_type=None):
         """
         Get a list with all application IDs.
+        :application_type: could be one of these [apiMonitoringApplications,analyticsApplication,eumWebApplications,dbMonApplication,mobileAppContainers,cloudMonitoringApplication,iotApplications,simApplication,apmApplications]
         :returns: a list with all application IDs. None if no application was found.
         """
         appNameList=[]
         for appType in self.entityDict:
+            if application_type and appType != application_type: continue
             if type(self.entityDict[appType]) is dict:
                 appNameList.append(self.entityDict[appType]['id'])
             elif type(self.entityDict[appType]) is list:
