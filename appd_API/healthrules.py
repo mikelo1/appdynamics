@@ -34,8 +34,9 @@ class HealthRuleDict(AppEntity):
                     "ERROR":"Error Rates",
                     "SERVICEENDPOINTS":"Service Endpoints",
                     "INFORMATION_POINT":"Information Points",
-                     "EUMPAGES":"User Experience - Browser Apps",
-                    "":"User Experience - Mobile Apps",
+                    "EUMPAGES":"User Experience - Browser Apps - Pages",
+                    "EUMAJAXREQUESTS":"User Experience - Browser Apps - AJAX Requests",
+                    "MOBILE_NETWORK_REQUESTS":"User Experience - Mobile Apps",
                     "":"Database Health",
                     "":"Server Health",
                     "":"Custom"
