@@ -8,6 +8,7 @@ class AppEntity:
     entityAPIFunctions = {} # {'fetch':     RESTfulAPI().fetch_entity
                             #  'fetchByID': RESTfulAPI().fetch_entity_by_ID,
                             #  'import':    RESTfulAPI().import_entity,
+                            #  'create':    RESTfulAPI().create_entity,
                             #  'update':    RESTfulAPI().update_entity}
     entityJSONKeyword = ""
     entityXMLKeyword = ""
@@ -128,14 +129,25 @@ class AppEntity:
             return self.entityJSONKeyword in dataJSON
         return False
 
-    def apply(self,appID,filePath):
+    def file_import(self,appID,filePath):
         """
-        Update entities within an application, using an entity data input file.
+        Import entities within an application, using an entity data input file.
         :param filePath: the path to the file where data is stored
         :param appID: the ID number of the application to fetch entities
         :returns: True if the update was successful. False if no data was updated.
         """
         return self.entityAPIFunctions['import'](app_ID=appID,filePath=filePath)
+
+    def create(self,appID,streamdata,selectors=None):
+        """
+        Create one entity for a specific application, using an entity data input.
+        :param appID: the ID number of the application to create a new entity
+        :param streamdata: the stream data with the entity configuration, in JSON format
+        :param selectors: update only entities filtered by specified selectors
+        :returns: true if the new entity was successfully created. False otherwise.
+        """
+        response = self.entityAPIFunctions['create'](app_ID=appID,dataJSON=streamdata)
+        return response is not None
 
     # https://nvie.com/posts/modifying-deeply-nested-structures/
     # https://www.geeksforgeeks.org/python-update-nested-dictionary/
@@ -217,7 +229,11 @@ class AppEntity:
 
 class ControllerEntity:
     entityDict = dict()
-    entityAPIFunctions = {} # {'fetch': RESTfulAPI().fetch_entity}
+    entityAPIFunctions = {} # {'fetch':     RESTfulAPI().fetch_entity
+                            #  'fetchByID': RESTfulAPI().fetch_entity_by_ID,
+                            #  'import':    RESTfulAPI().import_entity,
+                            #  'create':    RESTfulAPI().create_entity,
+                            #  'update':    RESTfulAPI().update_entity}
     entityJSONKeyword = ""
     entityXMLKeyword = ""
     controller = None
@@ -313,8 +329,23 @@ class ControllerEntity:
             return self.entityJSONKeyword in dataJSON
         return False
 
-    def apply(self,filePath):
+    def file_import(self,filePath):
+        """
+        Import entities using an entity data input file.
+        :param filePath: the path to the file where data is stored
+        :returns: True if the update was successful. False if no data was updated.
+        """
         return self.entityAPIFunctions['import'](filePath=filePath)
+
+    def create(self,streamdata,selectors=None):
+        """
+        Create one entity, using an entity data input.
+        :param streamdata: the stream data with the entity configuration, in JSON format
+        :param selectors: update only entities filtered by specified selectors
+        :returns: true if the new entity was successfully created. False otherwise.
+        """
+        response = self.entityAPIFunctions['create'](dataJSON=streamdata)
+        return response is not None
 
     def generate_CSV(self,fileName=None):
         """

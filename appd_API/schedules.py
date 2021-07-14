@@ -11,8 +11,9 @@ class ScheduleDict(AppEntity):
         self.controller = controller
         self.entityAPIFunctions = { 'fetch': self.controller.RESTfulAPI.fetch_schedules,
                                     'fetchByID': self.controller.RESTfulAPI.fetch_schedule_by_ID,
+                                    'create': self.controller.RESTfulAPI.create_schedule,
                                     'update': self.controller.RESTfulAPI.update_schedule }
-        self.entityJSONKeyword = "timezone"
+        self.entityJSONKeyword = "scheduleConfiguration"
 
     def __build_test_schedules(app_ID):
         schedules1=json.loads('[{"timezone":"Europe/Brussels","description":"This schedule is active Monday through Friday, during business hours","id":30201,"scheduleConfiguration":{"scheduleFrequency":"WEEKLY","endTime":"17:00","days":["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY"],"startTime":"08:00"},"name":"Weekdays:8am-5pm,Mon-Fri"}]')

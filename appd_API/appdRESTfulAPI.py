@@ -165,7 +165,7 @@ class RESTfulAPI:
                 sys.stderr.write ("Invalid URL: " + serverURL + RESTfulPath + ". Do you have the right controller hostname and RESTful path?\n")
                 return None
 
-        if response.status_code != 200:
+        if response.status_code not in [200,201]:
             sys.stderr.write("Something went wrong on HTTP request. Status:" + str(response.status_code) + " ")
             if response.content.find("<b>description</b>"):
                 sys.stderr.write("Description: "+response.content[response.content.find("<b>description</b>")+18:response.content.rfind("</p>")] + "\n" )
@@ -576,6 +576,20 @@ class RESTfulAPI:
         params = {"output": "JSON"}
         return self.__fetch_RESTfulPath(restfulPath,params=params)
 
+    def create_schedule(self,app_ID,dataJSON):
+        """
+        Update application schedule from a controller. Provide either an username/password or an access token.
+        :param app_ID: the ID number or name of the application where to update the schedule
+        :param entity_ID: the ID number of the schedule to update
+        :param dataJSON: the JSON data of the schedule to update
+        :returns: True if schedule was created. False otherwise.
+        """
+        # Updates an existing schedule with a specified JSON payload
+        # POST <controller_url>/controller/alerting/rest/v1/applications/<application_id>/schedules/
+        restfulPath = "/controller/alerting/rest/v1/applications/" + str(app_ID) + "/schedules/"
+        response = self.__update_RESTfulPath(restfulPath,streamdata=dataJSON,method="POST",headers={"Content-Type": "application/json"})
+        return response is not None
+
     def update_schedule(self,app_ID,entity_ID,dataJSON):
         """
         Update application schedule from a controller. Provide either an username/password or an access token.
@@ -587,7 +601,8 @@ class RESTfulAPI:
         # Updates an existing schedule with a specified JSON payload
         # PUT <controller_url>/controller/alerting/rest/v1/applications/<application_id>/schedules/{schedule-id}
         restfulPath = "/controller/alerting/rest/v1/applications/" + str(app_ID) + "/schedules/" + str(entity_ID)
-        return self.__update_RESTfulPath(restfulPath,streamdata=dataJSON,method="PUT",headers={"Content-Type": "application/json"})
+        response = self.__update_RESTfulPath(restfulPath,streamdata=dataJSON,method="PUT",headers={"Content-Type": "application/json"})
+        return response is not None
 
     def fetch_metric_hierarchy(self,app_ID,metric_path):
         """

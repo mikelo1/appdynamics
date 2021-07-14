@@ -421,7 +421,12 @@ elif COMMAND.lower() == "apply":
         percentage = index*100/len(applicationList)
         sys.stderr.write("\rapply ("+current_context+")... " + str(percentage) + "%")
         sys.stderr.flush()
-        entityObj.apply(appID=appID,filePath=options.filename)
+        if entityObj in [ entityDict['detection-rules'] ]:
+          entityObj.file_import(appID=appID,filePath=options.filename)
+        elif entityObj in [ entityDict['schedules'] ]:
+          entityObj.create(appID=appID,streamdata=data)
+        else:
+          sys.stderr.write("Nothing to do with file containing "+str(entityObj)+"\n")
     sys.stderr.write("\n")
 
   else:
