@@ -32,25 +32,14 @@ def time_to_minutes(string):
 
 def get_help(COMMAND,SUBCOMMAND=None,output=sys.stdout):
   if output not in [sys.stdout,sys.stderr]: return
-  if not SUBCOMMAND:
+  if COMMAND=="help" and SUBCOMMAND is None:
     optParser.print_help()
-  elif COMMAND == "login" and SUBCOMMAND=="help":
-    sys.stderr.write("Login can be done with manual keyboard input or with a basic authentication file in CSV format\n" + \
-                     "Either way, if the context doesn't exist in the **appdconfig.yaml** file, it will create a new entry and set it as the current-context.\n\n" + \
-                     "To login with a manual input of the credentials, follow these steps:\n" + \
-                     "1. $ ./appdctl.py login\n" + \
-                     "2. Input your controller full hostname, including protocol and port\n" + \
-                     "   i.e.: https://demo1.appdynamics.com:443\n" + \
-                     "3. Input the API Client user name\n" + \
-                     "4. Input the API Client user password\n\n" + \
-                     "In case of having a basic authentication file, follow this syntax:\n" + \
-                     "1. $ ./appdctl.py login --api-client <my_APIClient_username>@<my_account_name1> --basic-auth-file <path_to_auth_file>\n\n")
-  elif COMMAND=="get" and SUBCOMMAND=="help":
+  elif COMMAND=="get" and SUBCOMMAND is None:
     sys.stderr.write("Usage: appdctl get [policies|actions|schedules|healthrules|\n" + \
-                     "                    detection-rules|businesstransactions|backends|\n" + \
+                     "                    detection-rules|businesstransactions|backends|entrypoints|\n" + \
                      "                    healthrule-violations|snapshots|allothertraffic|\n" + \
-                     "                    applications|dashboards|nodes] [options]\n\n")
-  elif COMMAND=="config" and SUBCOMMAND=="help":
+                     "                    applications|nodes|dashboards|config|users] [options]\n\n")
+  elif COMMAND=="config" and SUBCOMMAND is None:
     output.write ("Modify appdconfig files using subcommands like \"appdctl config set current-context my-context\"\n\n" + \
                 " The loading order follows these rules:\n\n" + \
                 "  1.  If the --kubeconfig flag is set, then only that file is loaded. The flag may only be set once and no merging takes place.\n" + \
@@ -68,6 +57,14 @@ def get_help(COMMAND,SUBCOMMAND=None,output=sys.stdout):
                 "  view            Display merged kubeconfig settings or a specified kubeconfig file\n\n" + \
                 "Usage:\n" + \
                 "  appdctl config SUBCOMMAND [options]\n\n")
+  elif COMMAND=="patch" and SUBCOMMAND is None:
+    output.write("Usage: appdctl patch [schedules] [options]\n\n")
+  elif COMMAND=="apply" and SUBCOMMAND is None:
+    sys.stderr.write("Usage: appdctl apply -f <source_file> -a <application(s)>\n\n")
+  elif COMMAND=="update" and SUBCOMMAND is None:
+    sys.stderr.write("Usage: appdctl update nodes [options]\n\n")
+  exit()
+
 
 def new_controller():
     appD_Config = AppD_Configuration()
@@ -154,6 +151,7 @@ entityDict =  { 'applications': controller.applications,
                 'schedules': controller.schedules,
                 'healthrule-violations': controller.events,
                 'snapshots': controller.snapshots,
+                'allothertraffic': controller.snapshots,
                 'errors': controller.errors
               }
 
@@ -178,10 +176,11 @@ elif COMMAND.lower() == "config":
 
   SUBCOMMAND = args[1]
 
-  if SUBCOMMAND in ['help','view','get-contexts','current-context']:
+  if SUBCOMMAND == "help":
+    get_help(COMMAND)
+  elif SUBCOMMAND in ['view','get-contexts','current-context']:
     appD_Config = AppD_Configuration()
-    functions = { 'help':get_help,
-                  'view':appD_Config.view,    
+    functions = { 'view':appD_Config.view,
                   'get-contexts':appD_Config.get_contexts,
                   'current-context':appD_Config.get_current_context
                 }
@@ -308,7 +307,7 @@ elif COMMAND.lower() == "get":
     index = 0
     sys.stderr.write("get "+ENTITY+" ("+current_context+")... 0%")
     sys.stderr.flush()
-    entityObj = entityDict[ENTITY] if ENTITY != "allothertraffic" else entityDict["snapshots"]
+    entityObj = entityDict[ENTITY]
     for appID in applicationList:
         index += 1
         percentage = index*100/len(applicationList)
@@ -316,8 +315,8 @@ elif COMMAND.lower() == "get":
         sys.stderr.flush()
         # AllOtherTraffic snapshots are requested with the _APPDYNAMICS_DEFAULT_TX_ transaction ID
         if ENTITY == "allothertraffic":
-          businesstransactions.fetch(appID=appID)
-          AllOtherTraffic_ID = businesstransactions.get_business_transaction_ID(appID=appID,transactionName="_APPDYNAMICS_DEFAULT_TX_")
+          entityDict['businesstransactions'].fetch(appID=appID)
+          AllOtherTraffic_ID = entityDict['businesstransactions'].get_business_transaction_ID(appID=appID,transactionName="_APPDYNAMICS_DEFAULT_TX_")
           if AllOtherTraffic_ID == 0:
             sys.stderr.write("All Other Traffic transaction not found in application "+str(appID)+"\n")
             continue
@@ -354,8 +353,7 @@ elif COMMAND.lower() == "patch":
       selectors.update({selector.split('=')[0]:selector.split('=')[1]})
 
   if ENTITY == "help":
-    sys.stderr.write("Usage: appdctl patch [schedules] [options]\n\n")
-    exit()
+    get_help(COMMAND)
   elif ENTITY in ['schedules']:
     current_context = AppD_Configuration().get_current_context(output="None")
     applicationList = get_application_list()
@@ -394,8 +392,7 @@ elif COMMAND.lower() == "patch":
 #######################################
 elif COMMAND.lower() == "apply":
   if len(args) == 2 and args[1] == "help":
-    sys.stderr.write("Usage: appdctl apply -f <source_file> -a <application(s)>\n\n")
-    exit()
+    get_help(COMMAND)
   elif options.filename:
     if options.filename == "-":
       data = sys.stdin.read()
@@ -443,8 +440,7 @@ elif COMMAND.lower() == "update":
 
   ENTITY = args[1]
   if ENTITY == "help":
-    sys.stderr.write("Usage: appdctl update nodes [options]\n\n")
-    exit()
+    get_help(COMMAND)
   elif ENTITY in ['nodes']:
     current_context = AppD_Configuration().get_current_context(output="None")
     applicationList = get_application_list()
