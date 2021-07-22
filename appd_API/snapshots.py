@@ -91,7 +91,7 @@ class SnapshotDict(AppEntity):
         else:
             csvfile = sys.stdout
 
-        fieldnames = ['Time', 'UserExperience', 'URL', 'Summary', 'Application', 'BussinessTransaction', 'Tier', 'Node', 'ExeTime']
+        fieldnames = ['Time', 'UserExperience', 'Application', 'URL', 'Summary', 'BussinessTransaction', 'Tier', 'Node', 'ExeTime']
         filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
 
         for appID in self.entityDict:
@@ -111,9 +111,9 @@ class SnapshotDict(AppEntity):
                 try:
                     filewriter.writerow({'Time': Time,
                                         'UserExperience': snapshot['userExperience'],
+                                        'Application': self.controller.applications.getAppName(appID),
                                         'URL': snapshot['URL'],
                                         'Summary': Summary,
-                                        'Application': self.controller.applications.getAppName(appID),
                                         'BussinessTransaction': snapshot['businessTransactionId'],
                                         'Tier': self.controller.nodes.getTierName(appID,snapshot['applicationComponentId']),
                                         'Node': self.controller.nodes.getNodeName(appID,snapshot['applicationComponentNodeId']),
