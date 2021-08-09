@@ -142,7 +142,7 @@ class RESTfulAPI:
         :param serverURL: Full hostname of the Appdynamics controller. i.e.: https://demo1.appdynamics.com:443
         :param userName: Full username, including account. i.e.: myuser@customer1
         :param password: password for the specified user and host. i.e.: mypassword
-        :returns: response of the update request. None if no data was updated.
+        :returns: response of the update request, if request was OK. None, if request failed.
         """
         if 'DEBUG' in locals(): print ("Updating RESTful path " + RESTfulPath + " with provided stream data...")
         data = json.dumps(streamdata) if type(streamdata) is dict else streamdata
@@ -165,17 +165,15 @@ class RESTfulAPI:
                 sys.stderr.write ("Invalid URL: " + serverURL + RESTfulPath + ". Do you have the right controller hostname and RESTful path?\n")
                 return None
 
-        if response.status_code not in [200,201]:
+        if 'DEBUG' in locals() and response.status_code > 399:
             sys.stderr.write("Something went wrong on HTTP request. Status:" + str(response.status_code) + " ")
             if response.content.find("<b>description</b>"):
                 sys.stderr.write("Description: "+response.content[response.content.find("<b>description</b>")+18:response.content.rfind("</p>")] + "\n" )
             else:
                 sys.stderr.write("Description not available\n")
-            if 'DEBUG' in locals():
-                print ("   header:", response.headers)
-                print (response.content)
-            return None
-        return response.content
+        elif 'DEBUG' in locals():
+            sys.stderr.write("HTTP request successful with status:" + str(response.status_code) + " ")
+        return response
 
     def __import_RESTfulPath(self,RESTfulPath,filePath,method,headers=None,serverURL=None,userName=None,password=None):
         """
@@ -323,7 +321,8 @@ class RESTfulAPI:
         params     = {"requestFilter":nodeList,"offset":0,"limit":-1,"searchFilters":[],"columnSorts":[],
                       "resultColumns":["APP_AGENT_STATUS","HEALTH"],
                       "timeRangeStart":start_epoch,"timeRangeEnd":end_epoch}
-        return self.__update_RESTfulPath(restfulPath,streamdata=params,method="POST",headers={"Content-Type": "application/json","Accept": "application/json"})
+        response = self.__update_RESTfulPath(restfulPath,streamdata=params,method="POST",headers={"Content-Type": "application/json","Accept": "application/json"})
+        return response.content if response.status_code < 400 else None
 
     def mark_nodes_as_historical(self,nodeList):
         """
@@ -336,8 +335,8 @@ class RESTfulAPI:
         # POST /controller/rest/mark-nodes-historical?application-component-node-ids=value
         nodeList_str = ','.join(map(lambda x: str(x),nodeList))
         restfulPath= "/controller/rest/mark-nodes-historical?application-component-node-ids="+nodeList_str
-        return self.__update_RESTfulPath(restfulPath,streamdata="",method="POST",headers={"Content-Type": "application/json","Accept": "application/json"})
-
+        response = self.__update_RESTfulPath(restfulPath,streamdata="",method="POST",headers={"Content-Type": "application/json","Accept": "application/json"})
+        return response.content if response.status_code < 400 else None
 
     def fetch_transactiondetection(self,app_ID,selectors=None):
         """
@@ -584,11 +583,11 @@ class RESTfulAPI:
         :param dataJSON: the JSON data of the schedule to update
         :returns: True if schedule was created. False otherwise.
         """
-        # Updates an existing schedule with a specified JSON payload
+        # Creates a new schedule with the specified JSON payload
         # POST <controller_url>/controller/alerting/rest/v1/applications/<application_id>/schedules/
         restfulPath = "/controller/alerting/rest/v1/applications/" + str(app_ID) + "/schedules/"
         response = self.__update_RESTfulPath(restfulPath,streamdata=dataJSON,method="POST",headers={"Content-Type": "application/json"})
-        return response is not None
+        return response is not None and response.status_code == 201
 
     def update_schedule(self,app_ID,entity_ID,dataJSON):
         """
@@ -602,7 +601,7 @@ class RESTfulAPI:
         # PUT <controller_url>/controller/alerting/rest/v1/applications/<application_id>/schedules/{schedule-id}
         restfulPath = "/controller/alerting/rest/v1/applications/" + str(app_ID) + "/schedules/" + str(entity_ID)
         response = self.__update_RESTfulPath(restfulPath,streamdata=dataJSON,method="PUT",headers={"Content-Type": "application/json"})
-        return response is not None
+        return response is not None and response.status_code == 200
 
     def fetch_metric_hierarchy(self,app_ID,metric_path):
         """

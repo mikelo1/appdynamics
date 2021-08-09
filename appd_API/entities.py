@@ -138,16 +138,28 @@ class AppEntity:
         """
         return self.entityAPIFunctions['import'](app_ID=appID,filePath=filePath)
 
-    def create(self,appID,streamdata,selectors=None):
+    def create(self,appID,streamdata):
         """
         Create one entity for a specific application, using an entity data input.
         :param appID: the ID number of the application to create a new entity
         :param streamdata: the stream data with the entity configuration, in JSON format
-        :param selectors: update only entities filtered by specified selectors
         :returns: true if the new entity was successfully created. False otherwise.
         """
-        response = self.entityAPIFunctions['create'](app_ID=appID,dataJSON=streamdata)
-        return response is not None
+        return self.entityAPIFunctions['create'](app_ID=appID,dataJSON=streamdata)
+
+    def update(self,appID,streamdata):
+        """
+        Update existing entity for a specific application, using an entity data input.
+        :param appID: the ID number of the application to update an existing entity
+        :param streamdata: the stream data with the entity configuration, in JSON format
+        :returns: true if the new entity was successfully created. False otherwise.
+        """
+        if len(self.entityDict) == 0:
+            self.fetch(appID=appID)
+        entityName = json.loads(streamdata)['name']
+        entity_ID = [ entity['id'] for entity in self.entityDict[str(appID)] if entity['name'] == entityName ][0]
+        return self.entityAPIFunctions['update'](app_ID=appID,entity_ID=entity_ID,dataJSON=streamdata)
+
 
     # https://nvie.com/posts/modifying-deeply-nested-structures/
     # https://www.geeksforgeeks.org/python-update-nested-dictionary/
@@ -337,15 +349,25 @@ class ControllerEntity:
         """
         return self.entityAPIFunctions['import'](filePath=filePath)
 
-    def create(self,streamdata,selectors=None):
+    def create(self,streamdata):
         """
         Create one entity, using an entity data input.
         :param streamdata: the stream data with the entity configuration, in JSON format
-        :param selectors: update only entities filtered by specified selectors
         :returns: true if the new entity was successfully created. False otherwise.
         """
-        response = self.entityAPIFunctions['create'](dataJSON=streamdata)
-        return response is not None
+        return self.entityAPIFunctions['create'](dataJSON=streamdata)
+
+    def update(self,streamdata):
+        """
+        Update existing entity, using an entity data input.
+        :param streamdata: the stream data with the entity configuration, in JSON format
+        :returns: true if the existing entity was successfully updated. False otherwise.
+        """
+        if len(self.entityDict) == 0:
+            self.fetch()
+        entityName = json.loads(streamdata)['name']
+        entity_ID = [ entity['id'] for entity in self.entityDict if entity['name'] == entityName ][0]
+        return self.entityAPIFunctions['update'](entity_ID=entity_ID,dataJSON=streamdata)
 
     def generate_CSV(self,fileName=None):
         """
