@@ -39,12 +39,12 @@ class AppD_Configuration:
     def view(self):
         try:
             with open(self.configFile, 'r') as stream:
-                print (stream.readlines())
+                sys.stdout.write(stream.readlines())
         except EnvironmentError as exc:
             sys.stderr.write(str(exc)+"\n")
 
     def save(self):
-        if 'DEBUG' in locals(): print ("Saving changes...")
+        if 'DEBUG' in locals(): sys.stdout.write("Saving changes...")
         try:
             with open(self.configFile, "w") as outfile:
                 yaml.dump(self.data, outfile, default_flow_style=False, allow_unicode=True)
@@ -94,10 +94,10 @@ class AppD_Configuration:
             current_user = self.get_current_context_user()
             userdata = [user for user in self.data['users'] if user['name']==current_user][0]['user']
             if userdata is not None and 'expire' in userdata and datetime.today() < userdata['expire']:
-                if 'DEBUG' in locals(): print ("Found valid token in config YAML file.")
+                if 'DEBUG' in locals(): sys.stdout.write("Found valid token in config YAML file.")
                 return userdata['token']
             else:
-                if 'DEBUG' in locals(): print ("Token expired or invalid in config YAML file.")
+                if 'DEBUG' in locals(): sys.stderr.write("Token expired or invalid in config YAML file.")
                 return None
 
     def set_current_context_token(self,access_token,expires_in):
