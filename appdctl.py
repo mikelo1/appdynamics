@@ -15,17 +15,17 @@ def time_to_minutes(string):
   m_days  = re.search(r"((?P<days>\d+)d)", string)
   if m_days: 
     total = total + int(m_days.group('days'))*24*60
-    if 'DEBUG' in locals(): print "Days: ",m_days.group('days')
+    if 'DEBUG' in locals(): sys.stdout.write("Days: "+m_days.group('days')+"\n")
  
   m_hours = re.search(r"(?P<hours>\d+)h", string)
   if m_hours: 
     total = total + int(m_hours.group('hours'))*60
-    if 'DEBUG' in locals(): print "Hours: ",m_hours.group('hours')
+    if 'DEBUG' in locals(): sys.stdout.write("Hours: "+m_hours.group('hours')+"\n")
 
   m_mins  = re.search(r"(?P<mins>\d+)m", string)
   if m_mins: 
     total = total + int(m_mins.group('mins'))
-    if 'DEBUG' in locals(): print "Minutes: ",m_mins.group('mins')
+    if 'DEBUG' in locals(): sys.stdout.write("Minutes: "+m_mins.group('mins')+"\n")
 
   return total
 
@@ -211,7 +211,7 @@ elif COMMAND.lower() == "config":
     appD_Config = AppD_Configuration()
     appD_Config.rename_context(args[2],args[3])    
   elif SUBCOMMAND == 'unset':
-    print "Subcommand " + SUBCOMMAND + " not implemented yet."
+    sys.stderr.write("Subcommand " + SUBCOMMAND + " not implemented yet.\n")
   else:
     optParser.error("incorrect subcommand \""+SUBCOMMAND+"\"")
 
@@ -423,7 +423,7 @@ elif COMMAND.lower() == "apply":
         elif entityObj in [ entityDict['healthrules'], entityDict['schedules'] ]:
           if not entityObj.create(appID=appID,streamdata=data):
             if not entityObj.update(appID=appID,streamdata=data):
-               print ("Failed to create/update "+str(entityObj.info())+"\n")
+               sys.stderr.write("Failed to create/update "+str(entityObj.info())+"\n")
         else:
           sys.stderr.write("Nothing to do with file containing "+str(entityObj.info())+"\n")
     sys.stderr.write("\n")
