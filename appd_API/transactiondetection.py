@@ -12,7 +12,7 @@ class DetectionruleDict(AppEntity):
         self.controller = controller
         self.entityAPIFunctions = { 'fetch': self.controller.RESTfulAPI.fetch_transactiondetection,
                                     'import': self.controller.RESTfulAPI.import_transactiondetection }
-        self.entityXMLKeyword = "rule-list"
+        self.entityKeywords = ["rule-list"]
 
 
     def __str_transactiondetection_matchrules(self,txMatchRuleData):
@@ -169,7 +169,7 @@ class DetectionruleDict(AppEntity):
             try:
                 csvfile = open(fileName, 'w')
             except:
-                print ("Could not open output file " + fileName + ".")
+                sys.stderr.write("Could not open output file " + fileName + ".")
                 return (-1)
         else:
             csvfile = sys.stdout
@@ -184,9 +184,7 @@ class DetectionruleDict(AppEntity):
                 continue       
             detectionRules = self.entityDict[appID]
 
-            # Verify this ElementTree contains transaction detection rule data
-            if detectionRules.find('rule-list') is None: continue
-            elif 'header_is_printed' not in locals(): 
+            if 'header_is_printed' not in locals():
                 filewriter.writeheader()
                 header_is_printed=True
 
@@ -217,7 +215,7 @@ class DetectionruleDict(AppEntity):
                                          'MatchRuleList': matchRuleList,
                                          'HttpSplit': httpSplit})
                 except ValueError as valError:
-                    print (valError)
+                    sys.stderr.write("generate_CSV: "+str(valError)+"\n")
                     if fileName is not None: csvfile.close()
                     exit(1)
 
@@ -231,7 +229,7 @@ class DetectionruleDict(AppEntity):
         :param fileName: output file name
         :returns: None
         """
-        print "generate_transactiondetection_JSON: feature not implemented yet."
+        sys.stderr.write("generate_transactiondetection_JSON: feature not implemented yet.\n")
     # TODO: generate JSON output format
 
     def get_transactiondetections_matching_URL(self,app_ID,URL):

@@ -10,7 +10,8 @@ class ApplicationDict(ControllerEntity):
         self.entityDict = dict()
         self.controller = controller
         self.entityAPIFunctions = { 'fetch': self.controller.RESTfulAPI.fetch_applicationsAllTypes }
-        self.entityJSONKeyword = 'apmApplications'
+        self.entityKeywords = ['eumWebApplications','dbMonApplication','mobileAppContainers','cloudMonitoringApplication',
+                               'iotApplications','simApplication','apmApplications']
 
     def __fetch_tiers_and_nodes(self,app_ID):
         """
@@ -38,7 +39,7 @@ class ApplicationDict(ControllerEntity):
             try:
                 csvfile = open(fileName, 'w')
             except:
-                print ("Could not open output file " + fileName + ".")
+                sys.stderr.write("Could not open output file " + fileName + ".")
                 return (-1)
         else:
             csvfile = sys.stdout
@@ -47,9 +48,8 @@ class ApplicationDict(ControllerEntity):
         filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
 
         for appType in self.entityDict:
-            # Check if data belongs to an application
-            if appType not in ['eumWebApplications','dbMonApplication','mobileAppContainers','cloudMonitoringApplication',
-                                     'iotApplications','simApplication','apmApplications']: continue
+            # Check if data belongs to a recognized application type
+            if appType not in self.entityKeywords: continue
             elif self.entityDict[appType] is None: continue
             elif type(self.entityDict[appType]) is dict:
                 appList = [self.entityDict[appType]]

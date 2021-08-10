@@ -10,7 +10,7 @@ class BusinessTransactionDict(AppEntity):
         self.entityDict = dict()
         self.controller = controller
         self.entityAPIFunctions = { 'fetch': self.controller.RESTfulAPI.fetch_business_transactions }
-        self.entityJSONKeyword = "internalName"
+        self.entityKeywords = ['internalName','entryPointType']
 
     ###### FROM HERE PUBLIC FUNCTIONS ######
 
@@ -26,7 +26,7 @@ class BusinessTransactionDict(AppEntity):
             try:
                 csvfile = open(fileName, 'w')
             except:
-                print ("Could not open output file " + fileName + ".")
+                sys.stderr.write("Could not open output file " + fileName + ".")
                 return (-1)
         else:
             csvfile = sys.stdout
@@ -40,9 +40,7 @@ class BusinessTransactionDict(AppEntity):
                 if 'DEBUG' in locals(): print "Application "+appID +" is not loaded in dictionary."
                 continue
             for BT in self.entityDict[appID]:
-                # Check if data belongs to a business transaction
-                if 'entryPointType' not in BT: continue
-                elif 'header_is_printed' not in locals(): 
+                if 'header_is_printed' not in locals():
                     filewriter.writeheader()
                     header_is_printed=True
 
@@ -52,7 +50,7 @@ class BusinessTransactionDict(AppEntity):
                                          'entryPointType': BT['entryPointType'],
                                          'tierName': BT['tierName']})
                 except ValueError as valError:
-                    print (valError)
+                    sys.stderr.write("generate_CSV: "+str(valError)+"\n")
                     if fileName is not None: csvfile.close()
                     exit(1)
             if fileName is not None: csvfile.close()

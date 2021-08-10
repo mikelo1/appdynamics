@@ -11,7 +11,7 @@ class PolicyDict(AppEntity):
         self.controller = controller
         self.entityAPIFunctions = { 'fetch': self.controller.RESTfulAPI.fetch_policies_legacy,
                                     'fetchByID': self.controller.RESTfulAPI.fetch_policy_by_ID }
-        self.entityJSONKeyword = "reactorType"
+        self.entityKeywords = ["reactorType"]
 
     def __build_test_policies(self,app_ID):
         policies1=json.loads('[{"id":1854,"name":"POLICY_SANDBOX","enabled":true,"executeActionsInBatch":true,"frequency":null,"actions":[{"actionName":"gogs@acme.com","actionType":"EMAIL","notes":""}],"events":{"healthRuleEvents":null,"otherEvents":[],"anomalyEvents":["ANOMALY_OPEN_CRITICAL"],"customEvents":[]},"selectedEntities":{"selectedEntityType":"ANY_ENTITY"}]')
@@ -137,7 +137,7 @@ class PolicyDict(AppEntity):
             try:
                 csvfile = open(fileName, 'w')
             except:
-                print ("Could not open output file " + fileName + ".")
+                sys.stderr.write("Could not open output file " + fileName + ".")
                 return (-1)
         else:
             csvfile = sys.stdout
@@ -151,9 +151,7 @@ class PolicyDict(AppEntity):
                 if 'DEBUG' in locals(): print "Application "+appID +" is not loaded in dictionary."
                 continue
             for policy in self.entityDict[appID]:
-                # Check if data belongs to a policy
-                if 'reactorType' not in policy and 'selectedEntities' not in policy: continue
-                elif 'header_is_printed' not in locals(): 
+                if 'header_is_printed' not in locals():
                     filewriter.writeheader()
                     header_is_printed=True
                 try:
@@ -163,7 +161,7 @@ class PolicyDict(AppEntity):
                                          'Entities': self.__str_policy_entities(policy),
                                          'Actions': self.__str_policy_actions(policy)})
                 except ValueError as valError:
-                    print (valError)
+                    sys.stderr.write("generate_CSV: "+str(valError)+"\n")
                     if fileName is not None: csvfile.close()
                     return (-1)
         if fileName is not None: csvfile.close()

@@ -13,7 +13,7 @@ class ScheduleDict(AppEntity):
                                     'fetchByID': self.controller.RESTfulAPI.fetch_schedule_by_ID,
                                     'create': self.controller.RESTfulAPI.create_schedule,
                                     'update': self.controller.RESTfulAPI.update_schedule }
-        self.entityJSONKeyword = "scheduleConfiguration"
+        self.entityKeywords = ["scheduleConfiguration"]
 
     def __build_test_schedules(app_ID):
         schedules1=json.loads('[{"timezone":"Europe/Brussels","description":"This schedule is active Monday through Friday, during business hours","id":30201,"scheduleConfiguration":{"scheduleFrequency":"WEEKLY","endTime":"17:00","days":["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY"],"startTime":"08:00"},"name":"Weekdays:8am-5pm,Mon-Fri"}]')
@@ -79,7 +79,7 @@ class ScheduleDict(AppEntity):
             try:
                 csvfile = open(fileName, 'w')
             except:
-                print ("Could not open output file " + fileName + ".")
+                sys.stderr.write("Could not open output file " + fileName + ".")
                 return (-1)
         else:
             csvfile = sys.stdout
@@ -93,9 +93,7 @@ class ScheduleDict(AppEntity):
                 if 'DEBUG' in locals(): print "Application "+appID +" is not loaded in dictionary."
                 continue
             for schedule in self.entityDict[appID]:
-                # Check if data belongs to a schedule
-                if 'timezone' not in schedule: continue
-                elif 'header_is_printed' not in locals(): 
+                if 'header_is_printed' not in locals():
                     filewriter.writeheader()
                     header_is_printed=True
                 try:
@@ -107,7 +105,7 @@ class ScheduleDict(AppEntity):
                                          'Start': self.__str_schedule_start(schedule),
                                          'End':  self.__str_schedule_end(schedule) })
                 except ValueError as valError:
-                    print (valError)
+                    sys.stderr.write("generate_CSV: "+str(valError)+"\n")
                     if fileName is not None: csvfile.close()
                     return (-1)
         if fileName is not None: csvfile.close()

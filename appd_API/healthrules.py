@@ -11,11 +11,11 @@ class HealthRuleDict(AppEntity):
     def __init__(self,controller):
         self.entityDict = dict()
         self.controller = controller
-        self.entityAPIFunctions = { 'fetch': self.controller.RESTfulAPI.fetch_health_rules_JSON }
-                                  # 'fetchByID': self.controller.RESTfulAPI.fetch_health_rule_by_ID}
-                                  # 'update': self.controller.RESTfulAPI.update_health_rule}
-        self.entityJSONKeyword = "affectedEntityDefinitionRule"
-        self.entityXMLKeyword  = "health-rules"
+        self.entityAPIFunctions = { 'fetch': self.controller.RESTfulAPI.fetch_health_rules_JSON,
+                                    'fetchByID': self.controller.RESTfulAPI.fetch_health_rule_by_ID,
+                                    'create': self.controller.RESTfulAPI.create_health_rule,
+                                    'update': self.controller.RESTfulAPI.update_health_rule }
+        self.entityKeywords = ["affects","affectedEntityDefinitionRule","health-rules"]
 
     def __str_healthrule_affects(self,healthrule):
         """
@@ -170,7 +170,7 @@ class HealthRuleDict(AppEntity):
             try:
                 csvfile = open(fileName, 'w')
             except:
-                print ("Could not open output file " + fileName + ".")
+                sys.stderr.write("Could not open output file " + fileName + ".")
                 return (-1)
         else:
             csvfile = sys.stdout
@@ -184,9 +184,7 @@ class HealthRuleDict(AppEntity):
                 if 'DEBUG' in locals(): print "Application "+appID +" is not loaded in dictionary."
                 continue
             for healthrule in self.entityDict[appID]:
-                # Check if data belongs to a health rule
-                if self.entityJSONKeyword not in healthrule: continue
-                elif 'header_is_printed' not in locals(): 
+                if 'header_is_printed' not in locals():
                     filewriter.writeheader()
                     header_is_printed=True
 
@@ -200,7 +198,7 @@ class HealthRuleDict(AppEntity):
                                          'Affects': self.__str_healthrule_affects(healthrule),
                                          'Critical_Condition': self.__str_healthrule_critical_conditions(healthrule) })
                 except ValueError as valError:
-                    print (valError)
+                    sys.stderr.write("generate_CSV: "+str(valError)+"\n")
                     if fileName is not None: csvfile.close()
                     return (-1)
         if 'DEBUG' in locals(): print "INFO: Displayed number of health rules:" + str(len(healthrules))
@@ -218,9 +216,7 @@ class HealthRuleXMLDict(AppEntity):
         self.controller = controller
         self.entityAPIFunctions = { 'fetch': self.controller.RESTfulAPI.fetch_health_rules_XML,
                                     'import': self.controller.RESTfulAPI.import_health_rules_XML }
-        self.entityJSONKeyword = "affectedEntityType"
-        #self.entityJSONKeyword = "useDataFromLastNMinutes"
-        self.entityXMLKeyword  = "health-rules"
+        self.entityKeywords = ["affectedEntityType","useDataFromLastNMinutes","health-rules"]
 
     def __entityXML2JSON(self,XMLentityType):
         """
@@ -685,7 +681,7 @@ class HealthRuleXMLDict(AppEntity):
             try:
                 csvfile = open(fileName, 'w')
             except:
-                print ("Could not open output file " + fileName + ".")
+                sys.stderr.write("Could not open output file " + fileName + ".")
                 return (-1)
         else:
             csvfile = sys.stdout
@@ -699,9 +695,7 @@ class HealthRuleXMLDict(AppEntity):
                 if 'DEBUG' in locals(): print "Application "+appID +" is not loaded in dictionary."
                 continue
             for healthrule in self.entityDict[appID]:
-                # Check if data belongs to a health rule
-                if self.entityJSONKeyword not in healthrule: continue
-                elif 'header_is_printed' not in locals(): 
+                if 'header_is_printed' not in locals():
                     filewriter.writeheader()
                     header_is_printed=True
 
@@ -715,7 +709,7 @@ class HealthRuleXMLDict(AppEntity):
                                          'Affects': self.__str_healthrule_affects(healthrule),
                                          'Critical_Condition': self.__str_healthrule_critical_conditions(healthrule) })
                 except ValueError as valError:
-                    print (valError)
+                    sys.stderr.write("generate_CSV: "+str(valError)+"\n")
                     if fileName is not None: csvfile.close()
                     return (-1)
         if 'DEBUG' in locals(): print "INFO: Displayed number of health rules:" + str(len(healthrules))

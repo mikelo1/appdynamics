@@ -12,7 +12,7 @@ class SnapshotDict(AppEntity):
         self.entityDict = dict()
         self.controller = controller
         self.entityAPIFunctions = {'fetch': self.controller.RESTfulAPI.fetch_snapshots}
-        self.entityJSONKeyword = "snapshotExitCalls"
+        self.entityKeywords = ["snapshotExitCalls"]
 
 #def fetch_snapshots2(app_ID,minutesBeforeNow,selectors=None,serverURL=None,userName=None,password=None,token=None):
 #    MAX_RESULTS = RESULTS = 9
@@ -86,7 +86,7 @@ class SnapshotDict(AppEntity):
             try:
                 csvfile = open(fileName, 'w')
             except:
-                sys.stderr.write ("Could not open output file " + fileName + ".\n")
+                sys.stderr.write("Could not open output file " + fileName + ".\n")
                 return (-1)
         else:
             csvfile = sys.stdout
@@ -99,9 +99,7 @@ class SnapshotDict(AppEntity):
                 if 'DEBUG' in locals(): print "Application "+appID +" is not loaded in dictionary."
                 continue
             for snapshot in self.entityDict[appID]:
-                # Check if data belongs to an event
-                if 'snapshotExitCalls' not in snapshot: continue
-                elif 'header_is_printed' not in locals(): 
+                if  'header_is_printed' not in locals():
                     filewriter.writeheader()
                     header_is_printed=True
                 Time = datetime.fromtimestamp(float(snapshot['localStartTime'])/1000).strftime('%Y-%m-%d %H:%M:%S')
@@ -118,7 +116,7 @@ class SnapshotDict(AppEntity):
                                         'Tier': self.controller.nodes.getTierName(appID,snapshot['applicationComponentId']),
                                         'Node': self.controller.nodes.getNodeName(appID,snapshot['applicationComponentNodeId']),
                                         'ExeTime': snapshot['timeTakenInMilliSecs']})
-                except:
-                    print ("Could not write to the output.")
+                except ValueError as valError:
+                    sys.stderr.write("generate_CSV: "+str(valError)+"\n")
                     continue
         if fileName is not None: csvfile.close()

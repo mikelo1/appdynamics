@@ -12,7 +12,7 @@ class ActionDict(AppEntity):
         self.controller = controller
         self.entityAPIFunctions = { 'fetch': self.controller.RESTfulAPI.fetch_actions_legacy,
                                     'fetchByID': self.controller.RESTfulAPI.fetch_action_by_ID }
-        self.entityJSONKeyword = "actionType"
+        self.entityKeywords = ["actionType"]
 
     def __str_action_properties(self,action):
         """
@@ -110,7 +110,7 @@ class ActionDict(AppEntity):
             try:
                 csvfile = open(fileName, 'w')
             except:
-                sys.stderr.write ("Could not open output file " + fileName + ".\n")
+                sys.stderr.write("Could not open output file " + fileName + ".\n")
                 return (-1)
         else:
             csvfile = sys.stdout
@@ -123,9 +123,7 @@ class ActionDict(AppEntity):
                 if 'DEBUG' in locals(): print "Application "+appID +" is not loaded in dictionary."
                 continue
             for action in self.entityDict[appID]:
-                # Check if data belongs to an action
-                if 'actionType' not in action: continue
-                elif 'header_is_printed' not in locals(): 
+                if  'header_is_printed' not in locals():
                     filewriter.writeheader()
                     header_is_printed=True
                 try:
@@ -136,7 +134,7 @@ class ActionDict(AppEntity):
                                         'Policies': "", #policies.get_policies_matching_action(app_ID,action['name']),
                                         'CustomProperties': self.__str_action_properties(action)})
                 except ValueError as valError:
-                    print (valError)
+                    sys.stderr.write("generate_CSV: "+str(valError)+"\n")
                     if fileName is not None: csvfile.close()
                     return (-1)
         if fileName is not None: csvfile.close()

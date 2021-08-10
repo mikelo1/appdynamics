@@ -13,7 +13,7 @@ class NodeDict(AppEntity):
         self.controller = controller
         self.entityAPIFunctions = { 'fetch': self.controller.RESTfulAPI.fetch_nodes,
                                     'fetchByID': self.controller.RESTfulAPI.fetch_node_by_ID }
-        self.entityJSONKeyword = "nodeUniqueLocalId"
+        self.entityKeywords = ["nodeUniqueLocalId"]
 
 
     def __update_availability_nodes(self,app_ID):
@@ -57,7 +57,7 @@ class NodeDict(AppEntity):
             try:
                 csvfile = open(fileName, 'w')
             except:
-                print ("Could not open output file " + fileName + ".")
+                sys.stderr.write("Could not open output file " + fileName + ".")
                 return (-1)
         else:
             csvfile = sys.stdout
@@ -70,9 +70,7 @@ class NodeDict(AppEntity):
                 if 'DEBUG' in locals(): print "Application "+appID +" is not loaded in dictionary."
                 continue
             for node in self.entityDict[appID]:
-                # Check if data belongs to a node
-                if 'nodeUniqueLocalId' not in node: continue
-                elif 'header_is_printed' not in locals(): 
+                if  'header_is_printed' not in locals():
                     filewriter.writeheader()
                     header_is_printed=True
 
@@ -84,7 +82,7 @@ class NodeDict(AppEntity):
                                          'MachineName': node['machineName'],
                                          'OSType': node['machineOSType']})
                 except ValueError as valError:
-                    print (valError)
+                    sys.stderr.write("generate_CSV: "+str(valError)+"\n")
                     if fileName is not None: csvfile.close()
                     return (-1)
         if fileName is not None: csvfile.close()

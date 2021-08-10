@@ -10,7 +10,7 @@ class ConfigurationDict(ControllerEntity):
         self.entityDict = dict()
         self.controller = controller
         self.entityAPIFunctions = { 'fetch': self.controller.RESTfulAPI.fetch_configuration }
-        self.entityJSONKeyword = 'updateable'
+        self.entityKeywords = ['updateable']
 
     ###### FROM HERE PUBLIC FUNCTIONS ######
 
@@ -24,7 +24,7 @@ class ConfigurationDict(ControllerEntity):
             try:
                 csvfile = open(fileName, 'w')
             except:
-                print ("Could not open output file " + fileName + ".")
+                sys.stderr.write("Could not open output file " + fileName + ".")
                 return (-1)
         else:
             csvfile = sys.stdout
@@ -34,9 +34,7 @@ class ConfigurationDict(ControllerEntity):
         filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
              
         for setting in self.entityDict:
-            # Check if data belongs to a controller setting
-            if 'updateable' not in setting: continue
-            elif 'header_is_printed' not in locals(): 
+            if 'header_is_printed' not in locals():
                 filewriter.writeheader()
                 header_is_printed=True
             try:
@@ -46,7 +44,7 @@ class ConfigurationDict(ControllerEntity):
                                      'Updateable': setting['updateable'],
                                      'Description': setting['description']})
             except ValueError as valError:
-                print (valError)
+                sys.stderr.write("generate_CSV: "+str(valError)+"\n")
                 if fileName is not None: csvfile.close()
                 return (-1)
         if fileName is not None: csvfile.close()

@@ -10,8 +10,7 @@ class AppEntity:
                             #  'import':    RESTfulAPI().import_entity,
                             #  'create':    RESTfulAPI().create_entity,
                             #  'update':    RESTfulAPI().update_entity}
-    entityJSONKeyword = ""
-    entityXMLKeyword = ""
+    entityKeywords = []
     controller = None
 
     def __init__(self):
@@ -121,12 +120,12 @@ class AppEntity:
                 if 'DEBUG' in locals(): sys.stderr.write("verify "+ str(self.__class__)+": "+str(error)+"\n")
                 return False
             # Input data is XML format
-            return root.find(self.entityXMLKeyword) is not None
+            return len( [ True for keyword in self.entityKeywords if root.find(keyword) is not None ] ) > 0
         # Input data is JSON format
         if dataJSON is not None and type(dataJSON) is list:
-            return self.entityJSONKeyword in dataJSON[0]
+            return len( [ True for keyword in self.entityKeywords if keyword in dataJSON[0] ] ) > 0
         elif dataJSON is not None and type(dataJSON) is dict:
-            return self.entityJSONKeyword in dataJSON
+            return len( [ True for keyword in self.entityKeywords if keyword in dataJSON ] ) > 0
         return False
 
     def file_import(self,appID,filePath):
@@ -156,10 +155,9 @@ class AppEntity:
         """
         if len(self.entityDict) == 0:
             self.fetch(appID=appID)
-        entityName = json.loads(streamdata)['name']
-        entity_ID = [ entity['id'] for entity in self.entityDict[str(appID)] if entity['name'] == entityName ][0]
-        return self.entityAPIFunctions['update'](app_ID=appID,entity_ID=entity_ID,dataJSON=streamdata)
-
+        entityData = json.loads(streamdata)
+        entity_IDs = [ entity['id'] for entity in self.entityDict[str(appID)] if entity['name'] == entityData['name'] ]
+        return len(entity_IDs) > 0 and self.entityAPIFunctions['update'](app_ID=appID,entity_ID=entity_IDs[0],dataJSON=streamdata)
 
     # https://nvie.com/posts/modifying-deeply-nested-structures/
     # https://www.geeksforgeeks.org/python-update-nested-dictionary/
@@ -246,8 +244,7 @@ class ControllerEntity:
                             #  'import':    RESTfulAPI().import_entity,
                             #  'create':    RESTfulAPI().create_entity,
                             #  'update':    RESTfulAPI().update_entity}
-    entityJSONKeyword = ""
-    entityXMLKeyword = ""
+    entityKeywords = []
     controller = None
 
     def __init__(self):
@@ -333,12 +330,12 @@ class ControllerEntity:
                 if 'DEBUG' in locals(): sys.stderr.write("verify "+ str(self.__class__)+": "+str(error)+"\n")
                 return False
             # Input data is XML format
-            return root.find(self.entityXMLKeyword) is not None
+            return len( [ True for keyword in self.entityKeywords if root.find(keyword) is not None ] ) > 0
         # Input data is JSON format
         if dataJSON is not None and type(dataJSON) is list:
-            return self.entityJSONKeyword in dataJSON[0]
+            return len( [ True for keyword in self.entityKeywords if keyword in dataJSON[0] ] ) > 0
         elif dataJSON is not None and type(dataJSON) is dict:
-            return self.entityJSONKeyword in dataJSON
+            return len( [ True for keyword in self.entityKeywords if keyword in dataJSON ] ) > 0
         return False
 
     def file_import(self,filePath):
@@ -365,9 +362,9 @@ class ControllerEntity:
         """
         if len(self.entityDict) == 0:
             self.fetch()
-        entityName = json.loads(streamdata)['name']
-        entity_ID = [ entity['id'] for entity in self.entityDict if entity['name'] == entityName ][0]
-        return self.entityAPIFunctions['update'](entity_ID=entity_ID,dataJSON=streamdata)
+        entityData = json.loads(streamdata)
+        entity_IDs = [ entity['id'] for entity in self.entityDict if entity['name'] == entityData['name'] ]
+        return len(entity_IDs) > 0 and self.entityAPIFunctions['update'](entity_ID=entity_IDs[0],dataJSON=streamdata)
 
     def generate_CSV(self,fileName=None):
         """

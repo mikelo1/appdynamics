@@ -10,7 +10,7 @@ class BackendDict(AppEntity):
         self.entityDict = dict()
         self.controller = controller
         self.entityAPIFunctions = { 'fetch': self.controller.RESTfulAPI.fetch_backends }
-        self.entityJSONKeyword = "exitPointType"
+        self.entityKeywords = ["exitPointType"]
 
 
     ###### FROM HERE PUBLIC FUNCTIONS ######
@@ -26,7 +26,7 @@ class BackendDict(AppEntity):
             try:
                 csvfile = open(fileName, 'w')
             except:
-                print ("Could not open output file " + fileName + ".")
+                sys.stderr.write("Could not open output file " + fileName + ".")
                 return (-1)
         else:
             csvfile = sys.stdout
@@ -39,9 +39,7 @@ class BackendDict(AppEntity):
                 if 'DEBUG' in locals(): print "Application "+appID +" is not loaded in dictionary."
                 continue
             for backend in self.entityDict[appID]:
-                # Check if data belongs to a backend
-                if 'exitPointType' not in backend: continue
-                elif 'header_is_printed' not in locals(): 
+                if 'header_is_printed' not in locals():
                     filewriter.writeheader()
                     header_is_printed=True
 
@@ -50,7 +48,7 @@ class BackendDict(AppEntity):
                                          'Application': self.controller.applications.getAppName(appID),
                                          'exitPointType': backend['exitPointType']})
                 except ValueError as valError:
-                    print (valError)
+                    sys.stderr.write("generate_CSV: "+str(valError)+"\n")
                     if fileName is not None: csvfile.close()
                     exit(1)
         if fileName is not None: csvfile.close()
@@ -62,7 +60,7 @@ class EntrypointDict(AppEntity):
         self.entityDict = dict()
         self.controller = controller
         self.entityAPIFunctions = {'fetch': self.controller.RESTfulAPI.fetch_entrypoints_TierRules}
-        self.entityJSONKeyword = "hierarchicalConfigKey"
+        self.entityKeywords = ["hierarchicalConfigKey"]
 
 
     ###### FROM HERE PUBLIC FUNCTIONS ######
@@ -92,7 +90,7 @@ class EntrypointDict(AppEntity):
             try:
                 csvfile = open(fileName, 'w')
             except:
-                print ("Could not open output file " + fileName + ".")
+                sys.stderr.write("Could not open output file " + fileName + ".")
                 return (-1)
         else:
             csvfile = sys.stdout
@@ -105,9 +103,7 @@ class EntrypointDict(AppEntity):
                 if 'DEBUG' in locals(): print "Application "+appID +" is not loaded in dictionary."
                 continue
             for entrypoint in self.entityDict[appID]:
-                # Check if data belongs to a backend
-                if 'entryPointType' not in entrypoint: continue
-                elif 'header_is_printed' not in locals(): 
+                if 'header_is_printed' not in locals():
                     filewriter.writeheader()
                     header_is_printed=True
 
@@ -124,7 +120,7 @@ class EntrypointDict(AppEntity):
                                          'matchCondition': matchCondition,
                                          'priority': entrypoint['matchPointRule']['priority'] })
                 except ValueError as valError:
-                    print (valError)
+                    sys.stderr.write("generate_CSV: "+str(valError)+"\n")
                     if fileName is not None: csvfile.close()
                     exit(1)
         if fileName is not None: csvfile.close()

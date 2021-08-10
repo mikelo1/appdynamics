@@ -11,7 +11,7 @@ class RBACDict(ControllerEntity):
         self.controller = controller
         self.entityAPIFunctions = { 'fetch': self.controller.RESTfulAPI.fetch_users_extended,
                                     'fetchByID': self.controller.RESTfulAPI.fetch_user_by_ID }
-        self.entityJSONKeyword = "providerUniqueName"
+        self.entityKeywords = ["providerUniqueName"]
 
     ###### FROM HERE PUBLIC FUNCTIONS ######
 
@@ -25,7 +25,7 @@ class RBACDict(ControllerEntity):
             try:
                 csvfile = open(fileName, 'w')
             except:
-                print ("Could not open output file " + fileName + ".")
+                sys.stderr.write("Could not open output file " + fileName + ".")
                 return (-1)
         else:
             csvfile = sys.stdout
@@ -46,7 +46,7 @@ class RBACDict(ControllerEntity):
                                      'Roles': json.dumps(user['roles'] if 'roles' in user else None),
                                      'Groups': json.dumps(user['groups']) if 'groups' in user else None})
             except ValueError as valError:
-                print (valError)
+                sys.stderr.write("generate_CSV: "+str(valError)+"\n")
                 if fileName is not None: csvfile.close()
                 return (-1)
         if fileName is not None: csvfile.close()

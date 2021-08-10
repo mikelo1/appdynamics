@@ -11,7 +11,7 @@ class DashboardDict(ControllerEntity):
         self.controller = controller
         self.entityAPIFunctions = { 'fetch': self.controller.RESTfulAPI.fetch_dashboards,
                                     'fetchByID': self.controller.RESTfulAPI.fetch_dashboard_by_ID }
-        self.entityJSONKeyword = 'canvasType'
+        self.entityKeywords = ['canvasType']
 
     ###### FROM HERE PUBLIC FUNCTIONS ######
 
@@ -25,7 +25,7 @@ class DashboardDict(ControllerEntity):
             try:
                 csvfile = open(fileName, 'w')
             except:
-                print ("Could not open output file " + fileName + ".")
+                sys.stderr.write("Could not open output file " + fileName + ".")
                 return (-1)
         else:
             csvfile = sys.stdout
@@ -35,10 +35,7 @@ class DashboardDict(ControllerEntity):
         filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
              
         for dashboard in self.entityDict:
-            # Check if data belongs to a dashboard
-            if 'canvasType' not in dashboard: continue
-            elif 'success' in dashboard and dashboard['success']==False: continue
-            elif 'header_is_printed' not in locals(): 
+            if 'header_is_printed' not in locals():
                 filewriter.writeheader()
                 header_is_printed=True
             try:
@@ -47,7 +44,7 @@ class DashboardDict(ControllerEntity):
                                      'Width': dashboard['width'],
                                      'CanvasType': dashboard['canvasType']})
             except ValueError as valError:
-                print (valError)
+                sys.stderr.write("generate_CSV: "+str(valError)+"\n")
                 if fileName is not None: csvfile.close()
                 return (-1)
         if fileName is not None: csvfile.close()

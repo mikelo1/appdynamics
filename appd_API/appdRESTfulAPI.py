@@ -460,18 +460,32 @@ class RESTfulAPI:
         restfulPath = "/controller/healthrules/" + str(app_ID) + "?overwrite=true"
         return self.__import_RESTfulPath(restfulPath,method="POST",filePath=filePath)
 
-    def update_health_rule(self,app_ID,healthrule_ID,healthruleJSON):
+    def create_health_rule(self,app_ID,dataJSON):
         """
-        Update application healthrule from a controller. Provide either an username/password or an access token.
+        Create a new application healthrule from a controller.
+        :param app_ID: the ID number or name of the application where to create the healthrule
+        :param dataJSON: the JSON data of the healthrule to create
+        :returns: True if healthrule was created. False otherwise.
+        """
+        # Creates a new health rule from the specified JSON payload.
+        # PUT <controller_url>/controller/alerting/rest/v1/applications/<application_id>/health-rules
+        restfulPath = "/controller/alerting/rest/v1/applications/" + str(app_ID) + "/health-rules"
+        response = self.__update_RESTfulPath(restfulPath,streamdata=dataJSON,method="POST",headers={"Content-Type": "application/json"})
+        return response is not None and response.status_code == 201
+
+    def update_health_rule(self,app_ID,entity_ID,dataJSON):
+        """
+        Update application healthrule from a controller.
         :param app_ID: the ID number or name of the application where to update the healthrule
-        :param healthrule_ID: the ID number of the healthrule to update
-        :param healthruleJSON: the JSON data of the healthrule to update
-        :returns: the fetched data. Null if no data was received.
+        :param entity_ID: the ID number of the healthrule to update
+        :param dataJSON: the JSON data of the healthrule to update
+        :returns: True if healthrule was updated. False otherwise.
         """
-        # Updates an existing health rule (required fields) with details from the specified health rule ID. See Property Details
+        # This API updates an existing health rule (required fields) with details from the specified health rule ID.
         # PUT <controller_url>/controller/alerting/rest/v1/applications/<application_id>/health-rules/{health-rule-id}
-        restfulPath = "/controller/alerting/rest/v1/applications/" + str(app_ID) + "/health-rules/" + str(healthrule_ID)
-        return self.__update_RESTful_JSON(restfulPath,streamdata=healthruleJSON,method="PUT",headers={"Content-Type": "application/json"})
+        restfulPath = "/controller/alerting/rest/v1/applications/" + str(app_ID) + "/health-rules/" + str(entity_ID)
+        response = self.__update_RESTfulPath(restfulPath,streamdata=dataJSON,method="PUT",headers={"Content-Type": "application/json"})
+        return response is not None and response.status_code == 200
 
     def fetch_policies(self,app_ID):
         """
@@ -577,7 +591,7 @@ class RESTfulAPI:
 
     def create_schedule(self,app_ID,dataJSON):
         """
-        Update application schedule from a controller. Provide either an username/password or an access token.
+        Create a new application schedule from a controller.
         :param app_ID: the ID number or name of the application where to update the schedule
         :param entity_ID: the ID number of the schedule to update
         :param dataJSON: the JSON data of the schedule to update
@@ -591,11 +605,11 @@ class RESTfulAPI:
 
     def update_schedule(self,app_ID,entity_ID,dataJSON):
         """
-        Update application schedule from a controller. Provide either an username/password or an access token.
+        Update application schedule from a controller.
         :param app_ID: the ID number or name of the application where to update the schedule
         :param entity_ID: the ID number of the schedule to update
         :param dataJSON: the JSON data of the schedule to update
-        :returns: the fetched data. Null if no data was received.
+        :returns: True if schedule was updated. False otherwise.
         """
         # Updates an existing schedule with a specified JSON payload
         # PUT <controller_url>/controller/alerting/rest/v1/applications/<application_id>/schedules/{schedule-id}
