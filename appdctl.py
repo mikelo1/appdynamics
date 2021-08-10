@@ -61,8 +61,8 @@ def get_help(COMMAND,SUBCOMMAND=None,output=sys.stdout):
     output.write("Usage: appdctl patch [schedules] [options]\n\n")
   elif COMMAND=="apply" and SUBCOMMAND is None:
     sys.stderr.write("Usage: appdctl apply -f <source_file> -a <application(s)>\n\n")
-  elif COMMAND=="update" and SUBCOMMAND is None:
-    sys.stderr.write("Usage: appdctl update nodes [options]\n\n")
+  elif COMMAND=="drain" and SUBCOMMAND is None:
+    sys.stderr.write("Drain unavailable nodes for a set of applications.\nUsage: appdctl drain -a <application(s)>\n\n")
   exit()
 
 
@@ -96,7 +96,7 @@ def get_entity_type(data):
     return entityList[0]
 
 
-usage = "usage: %prog [get|config|apply|patch] [options]"
+usage = "usage: %prog [get|config|apply|patch|drain] [options]"
 epilog= "examples: %prog get applications"
 
 optParser = OptionParser(usage=usage, version="%prog 0.1", epilog=epilog)
@@ -433,28 +433,25 @@ elif COMMAND.lower() == "apply":
 
 
 #######################################
-########### UPDATE COMMAND ############
+############ DRAIN COMMAND ############
 #######################################
-elif COMMAND.lower() == "update":
-  if len(args) < 2:
+elif COMMAND.lower() == "drain":
+  if len(args) < 1:
       optParser.error("incorrect number of arguments")
       exit()
 
-  ENTITY = args[1]
-  if ENTITY == "help":
+  if len(args) == 2 and args[1] == "help":
     get_help(COMMAND)
-  elif ENTITY in ['nodes']:
-    current_context = AppD_Configuration().get_current_context(output="None")
-    applicationList = get_application_list()
-    if len(applicationList) == 0:
-     sys.stderr.write("\rget "+ENTITY+" ("+current_context+"): no application was found.\n")
-     exit()
+    exit()
 
-    entityObj = entityDict[ENTITY]
-    entityObj.update(appID_List=applicationList)
+  current_context = AppD_Configuration().get_current_context(output="None")
+  applicationList = get_application_list()
+  if len(applicationList) == 0:
+   sys.stderr.write("\rdrain ("+current_context+"): no application was found.\n")
+   exit()
 
-  else:
-    optParser.error("incorrect entity \""+ENTITY+"\"")
+  entityObj = entityDict['nodes']
+  entityObj.drain(appID_List=applicationList)
 
 
 #######################################
