@@ -87,26 +87,27 @@ class NodeDict(AppEntity):
                     return (-1)
         if fileName is not None: csvfile.close()
 
-    def update(self,appID_List,selectors=None):
+    def drain(self,appID_List,selectors=None):
         """
-        Update node status for a list of applications.
-        :param appID_List: list of application IDs to fetch nodes
+        Update node status and if the availability equals to zero -during the last hour-, mark them as historical.
+        :param appID_List: list of application IDs to update node status
         :param selectors: fetch only nodes filtered by specified selectors
-        :returns: the number of updated nodes. Zero if no node was found.
+        :returns: the number of nodes marked as historical. Zero if no unavailable node was found.
         """
         DEBUG=True
         updated = 0
         for appID in appID_List:
-            sys.stderr.write("update nodes " + str(appID) + "...\n")
+            sys.stderr.write("drain_nodes: [INFO] update nodes status for application "+self.controller.applications.getAppName(appID)+"...\n")
             if str(appID) not in self.entityDict:
                 if self.load(self.controller.RESTfulAPI.fetch_nodes(appID,selectors=selectors),appID) == 0: continue
             self.__update_availability_nodes(appID)
             unavailNodeList = [ node['id'] for node in self.entityDict[str(appID)] if node['availability'] == 0.0 ]
             for i in range(0,len(unavailNodeList),25):
-                if 'DEBUG' in locals(): print ("Unavailable node list:",unavailNodeList)
+                if 'DEBUG' in locals(): sys.stdout.write("drain_nodes: [INFO] Unavailable node list: "+str(unavailNodeList)+"\n")
                 response = self.controller.RESTfulAPI.mark_nodes_as_historical(unavailNodeList[i:i+25])
             self.controller.RESTfulAPI.fetch_nodes(appID,selectors=selectors)
-            print ("update_nodes: [INFO] Disabled nodes in application",appID,":",len(unavailNodeList) )
+            if 'DEBUG' in locals(): sys.stdout.write("drain_nodes: [INFO] Nodes marked as historical in application "+ \
+                                                    self.controller.applications.getAppName(appID)+": "+str(len(unavailNodeList))+"\n")
             updated += len(unavailNodeList)
         return updated
 
