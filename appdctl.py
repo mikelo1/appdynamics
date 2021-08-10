@@ -420,12 +420,12 @@ elif COMMAND.lower() == "apply":
         sys.stderr.flush()
         if entityObj in [ entityDict['detection-rules'] ]:
           entityObj.file_import(appID=appID,filePath=options.filename)
-        elif entityObj in [ entityDict['schedules'] ]:
+        elif entityObj in [ entityDict['healthrules'], entityDict['schedules'] ]:
           if not entityObj.create(appID=appID,streamdata=data):
             if not entityObj.update(appID=appID,streamdata=data):
-               print ("Failed to create/update "+str(entityObj))
+               print ("Failed to create/update "+str(entityObj.info())+"\n")
         else:
-          sys.stderr.write("Nothing to do with file containing "+str(entityObj)+"\n")
+          sys.stderr.write("Nothing to do with file containing "+str(entityObj.info())+"\n")
     sys.stderr.write("\n")
 
   else:
