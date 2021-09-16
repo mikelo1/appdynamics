@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3.8
 import sys
 import os.path
 import re
@@ -82,6 +82,7 @@ def get_application_list():
         return []
     elif options.applications:
       controller.applications.fetch()
+
       return [ controller.applications.getAppID(appName) for appName in options.applications.split(',') if controller.applications.getAppID(appName) is not None ]
     else: # if options.allApplications:
       controller.applications.fetch()
@@ -323,7 +324,7 @@ elif COMMAND.lower() == "get":
           selectors.update({"business-transaction-ids": ''+str(AllOtherTraffic_ID)+''})
         for i in range(minutes,0,-1440): # loop specified minutes in chunks of 1440 minutes (1 day)
             sinceTime = datetime.today()-timedelta(minutes=i)
-            sinceEpoch= long(time.mktime(sinceTime.timetuple())*1000)
+            sinceEpoch= int(time.mktime(sinceTime.timetuple())*1000)
             entityObj.fetch_after_time(appID=appID,duration="1440",sinceEpoch=sinceEpoch,selectors=selectors)
     sys.stderr.write("\n")
 

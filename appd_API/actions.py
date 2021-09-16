@@ -1,8 +1,7 @@
-#!/usr/bin/python
 import json
 import csv
 import sys
-from entities import AppEntity
+from .entities import AppEntity
 
 
 class ActionDict(AppEntity):
@@ -26,7 +25,7 @@ class ActionDict(AppEntity):
             if action['actionType'] == "EmailAction":
                 return ""
             elif action['actionType'] == "CustomEmailAction":
-                return ','.join(map(lambda x: str(x+":"+action['customProperties'][x].encode('ASCII', 'ignore')),action['customProperties'])) if (len(action['customProperties']) > 0) else ""
+                return ','.join(map(lambda x: str(x+":"+action['customProperties'][x]),action['customProperties'])) if (len(action['customProperties']) > 0) else ""
             elif action['actionType'] == "SMSAction":
                 return ""
             elif action['actionType'] == "DiagnosticSessionAction":
@@ -120,7 +119,7 @@ class ActionDict(AppEntity):
 
         for appID in self.entityDict:
             if appID_List is not None and type(appID_List) is list and int(appID) not in appID_List:
-                if 'DEBUG' in locals(): print "Application "+appID +" is not loaded in dictionary."
+                if 'DEBUG' in locals(): print ("Application "+appID +" is not loaded in dictionary.")
                 continue
             for action in self.entityDict[appID]:
                 if  'header_is_printed' not in locals():

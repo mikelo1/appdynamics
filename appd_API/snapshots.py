@@ -1,10 +1,9 @@
-#!/usr/bin/python
 import json
 import csv
 import sys
 from datetime import datetime, timedelta
 import time
-from entities import AppEntity
+from .entities import AppEntity
 
 class SnapshotDict(AppEntity):
 
@@ -96,7 +95,7 @@ class SnapshotDict(AppEntity):
 
         for appID in self.entityDict:
             if appID_List is not None and type(appID_List) is list and int(appID) not in appID_List:
-                if 'DEBUG' in locals(): print "Application "+appID +" is not loaded in dictionary."
+                if 'DEBUG' in locals(): print ("Application "+appID +" is not loaded in dictionary.")
                 continue
             for snapshot in self.entityDict[appID]:
                 if  'header_is_printed' not in locals():

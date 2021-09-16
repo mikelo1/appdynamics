@@ -1,8 +1,7 @@
-#!/usr/bin/python
 import json
 import csv
 import sys
-from entities import ControllerEntity
+from .entities import ControllerEntity
 
 class DashboardDict(ControllerEntity):
 

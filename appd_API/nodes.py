@@ -1,10 +1,9 @@
-#!/usr/bin/pythons
 import json
 import csv
 import sys
 from datetime import datetime, timedelta
 import time
-from entities import AppEntity
+from .entities import AppEntity
 
 class NodeDict(AppEntity):
 
@@ -28,8 +27,8 @@ class NodeDict(AppEntity):
             nodeList = [ node['id'] for node in self.entityDict[str(app_ID)] ]
             end_time   = datetime.today()-timedelta(minutes=5)
             start_time = end_time-timedelta(minutes=60)
-            start_epoch= long(time.mktime(start_time.timetuple())*1000)
-            end_epoch  = long(time.mktime(end_time.timetuple())*1000)
+            start_epoch= int(time.mktime(start_time.timetuple())*1000)
+            end_epoch  = int(time.mktime(end_time.timetuple())*1000)
             response = self.controller.RESTfulAPI.fetch_agent_status(nodeList=nodeList,start_epoch=start_epoch,end_epoch=end_epoch)
             if response is not None:
                 nodesHealth = json.loads(response)
@@ -67,7 +66,7 @@ class NodeDict(AppEntity):
 
         for appID in self.entityDict:
             if appID_List is not None and type(appID_List) is list and int(appID) not in appID_List:
-                if 'DEBUG' in locals(): print "Application "+appID +" is not loaded in dictionary."
+                if 'DEBUG' in locals(): print ("Application "+appID +" is not loaded in dictionary.")
                 continue
             for node in self.entityDict[appID]:
                 if  'header_is_printed' not in locals():

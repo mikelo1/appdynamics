@@ -1,9 +1,8 @@
-#!/usr/bin/python
 import xml.etree.ElementTree as ET
 import json
 import csv
 import sys
-from entities import AppEntity
+from .entities import AppEntity
 
 class DetectionruleDict(AppEntity):
 
@@ -118,7 +117,7 @@ class DetectionruleDict(AppEntity):
                         #### TO DO: Actions (Split Using Payload)
                         return "httpsplitonpayload not supported yet"
                     else:
-                        print action['httpsplit']
+                        print (action['httpsplit'])
                 elif action['type'] == "POJO_SPLIT":
                     #### TO DO: POJO split
                     return "POJO split not supported yet"
@@ -180,7 +179,7 @@ class DetectionruleDict(AppEntity):
 
         for appID in self.entityDict:
             if appID_List is not None and type(appID_List) is list and int(appID) not in appID_List:
-                if 'DEBUG' in locals(): print "Application "+appID +" is not loaded in dictionary."
+                if 'DEBUG' in locals(): print ("Application "+appID +" is not loaded in dictionary.")
                 continue       
             detectionRules = self.entityDict[appID]
 

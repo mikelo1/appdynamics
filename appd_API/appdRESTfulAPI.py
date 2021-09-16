@@ -1,4 +1,3 @@
-#!/usr/bin/python
 import requests
 import json
 import sys
@@ -117,11 +116,16 @@ class RESTfulAPI:
                 return None
 
         if response.status_code != 200:
-            sys.stderr.write("Something went wrong on HTTP request. Status:" + str(response.status_code) + " ")
-            if response.content.find("<b>description</b>"):
-                sys.stderr.write("Description: "+response.content[response.content.find("<b>description</b>")+18:response.content.rfind("</p>")] + "\n" )
-            else:
-                sys.stderr.write("Description not available\n")
+            sys.stderr.write("Something went wrong on HTTP request. Status:" + str(response.status_code) + "\n")
+            content = str(response.content)
+            message_start = content.find('<b>message</b>')
+            if message_start >= 0:
+                message_end = content.find("</p>",message_start)
+                sys.stderr.write("Message: "+content[message_start+14:message_end] + "\n" )
+            description_start = content.find('<b>description</b>')
+            if description_start >= 0:
+                description_end = content.find("</p>",description_start)
+                sys.stderr.write("Description: "+content[description_start+18:description_end] + "\n" )
             if 'DEBUG' in locals():
                 print ("   header:", response.headers)
                 print ("Writing content to file: response.txt")
@@ -167,10 +171,15 @@ class RESTfulAPI:
 
         if 'DEBUG' in locals() and response.status_code > 399:
             sys.stderr.write("Something went wrong on HTTP request. Status:" + str(response.status_code) + " ")
-            if response.content.find("<b>description</b>"):
-                sys.stderr.write("Description: "+response.content[response.content.find("<b>description</b>")+18:response.content.rfind("</p>")] + "\n" )
-            else:
-                sys.stderr.write("Description not available\n")
+            content = str(response.content)
+            message_start = content.find('<b>message</b>')
+            if message_start >= 0:
+                message_end = content.find("</p>",message_start)
+                sys.stderr.write("Message: "+content[message_start+14:message_end] + "\n" )
+            description_start = content.find('<b>description</b>')
+            if description_start >= 0:
+                description_end = content.find("</p>",description_start)
+                sys.stderr.write("Description: "+content[description_start+18:description_end] + "\n" )
         elif 'DEBUG' in locals():
             sys.stderr.write("HTTP request successful with status:" + str(response.status_code) + " ")
         return response
@@ -210,10 +219,15 @@ class RESTfulAPI:
 
         if response.status_code != 200:
             sys.stderr.write("Something went wrong on HTTP request. Status:" + str(response.status_code) + " ")
-            if response.content.find("<b>description</b>"):
-                sys.stderr.write("Description: "+response.content[response.content.find("<b>description</b>")+18:response.content.rfind("</p>")] + "\n" )
-            else:
-                sys.stderr.write("Description not available\n")
+            content = str(response.content)
+            message_start = content.find('<b>message</b>')
+            if message_start >= 0:
+                message_end = content.find("</p>",message_start)
+                sys.stderr.write("Message: "+content[message_start+14:message_end] + "\n" )
+            description_start = content.find('<b>description</b>')
+            if description_start >= 0:
+                description_end = content.find("</p>",description_start)
+                sys.stderr.write("Description: "+content[description_start+18:description_end] + "\n" )
             if 'DEBUG' in locals():
                 print ("   header:", response.headers)
                 print (response.content)

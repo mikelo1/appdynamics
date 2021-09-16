@@ -23,15 +23,11 @@ class AppD_Configuration:
         if dataFile is not None:
             self.configFile = dataFile
         try:
-            stream = open(self.configFile)
-        except IOError as exc:
+            with open(self.configFile, 'r') as stream:
+                self.data = yaml.safe_load(stream)
+        except (IOError, yaml.YAMLError) as exc:
             sys.stderr.write(str(exc)+"\n")
             return None
-        with open(self.configFile, 'r') as stream:
-            try:
-                self.data = yaml.safe_load(stream)
-            except yaml.YAMLError as exc:
-                sys.stderr.write(str(exc)+"\n")
 
     def __str__(self):
         return "({0},{1})".format(self.configFile,self.data)
@@ -128,7 +124,7 @@ class AppD_Configuration:
     # @param API_Client Full username, including account. i.e.: myuser@customer1
     def create_context(self,contextname,serverURL,API_Client):
         url = urlparse(serverURL)
-        if len(url.scheme) == 0 or len(url.netloc) == 0 is None:
+        if len(url.scheme) == 0 or len(url.netloc) == 0:
             sys.stderr.write("URL is not correctly formatted. <protocol>://<host>:<port>\n")
             return
         servername = url.netloc
@@ -207,18 +203,14 @@ class BasicAuth:
     def __init__(self,basicAuthFile=None):
         if basicAuthFile is not None:
             try:
-                stream = open(basicAuthFile)
-            except IOError as exc:
-                sys.stderr.write(str(exc)+"\n")
-                return None
-            self.authFile = basicAuthFile
-            with open(self.authFile, mode='r') as csv_file:
-                try:
+                with open(basicAuthFile, mode='r') as csv_file:
                     auth_dict = csv.DictReader(csv_file,fieldnames=['password','apiClient','host'])
                     for row in auth_dict:
                         self.authDict.update({row['apiClient']+"/"+row['host']:row['password']})
-                except IOError as exc:
-                    sys.stderr.write(str(exc)+"\n")
+            except (IOError, FileNotFoundError) as exc:
+                sys.stderr.write(str(exc)+"\n")
+                return None
+            self.authFile = basicAuthFile
 
     def __str__(self):
         return "({0},{1})".format(self.authFile, len(self.authDict))

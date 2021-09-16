@@ -234,7 +234,7 @@ class AppEntity:
                 sys.stderr.write("Could not open output file " + fileName + ".")
                 return (-1)
         else:
-            print json.dumps(entities)
+            print (json.dumps(entities))
 
 
 class ControllerEntity:
@@ -390,4 +390,4 @@ class ControllerEntity:
                 sys.stderr.write("Could not open output file " + fileName + ".")
                 return (-1)
         else:
-            print json.dumps(self.entityDict)
+            print (json.dumps(self.entityDict))

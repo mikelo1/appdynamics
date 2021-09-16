@@ -1,8 +1,7 @@
-#!/usr/bin/python
 import json
 import csv
 import sys
-from entities import AppEntity
+from .entities import AppEntity
 
 class ScheduleDict(AppEntity):
 
@@ -22,7 +21,7 @@ class ScheduleDict(AppEntity):
         entityDict.update({str(app_ID):schedules1})
         entityDict.update({str(app_ID+1):schedules2})
         if 'DEBUG' in locals():
-            print "Number of entries: " + str(len(entityDict))
+            print ("Number of entries: " + str(len(entityDict)) )
             if str(app_ID) in entityDict:
                 print (entityDict[str(app_ID)])
 
@@ -90,7 +89,7 @@ class ScheduleDict(AppEntity):
 
         for appID in self.entityDict:
             if appID_List is not None and type(appID_List) is list and int(appID) not in appID_List:
-                if 'DEBUG' in locals(): print "Application "+appID +" is not loaded in dictionary."
+                if 'DEBUG' in locals(): print ("Application "+appID +" is not loaded in dictionary.")
                 continue
             for schedule in self.entityDict[appID]:
                 if 'header_is_printed' not in locals():

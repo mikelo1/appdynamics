@@ -1,10 +1,8 @@
-#!/usr/bin/python
-# -*- coding: UTF-8 -*-
 import xml.etree.ElementTree as ET
 import json
 import csv
 import sys
-from entities import AppEntity
+from .entities import AppEntity
 
 class HealthRuleDict(AppEntity):
 
@@ -79,22 +77,22 @@ class HealthRuleDict(AppEntity):
                 aemcType=healthrule['affectedEntityDefinitionRule']['type']
 
             if   aemcType in ["BTS_OF_SPFICIC_TIERS","ERRORS_OF_SPECIFIC_TIERS","MACHINES_OF_SPECIFIC_TIER","NODES_OF_SPECIFC_TIERS","SPECIFIC_TIERS"]:
-                tiers = ','.join(map(lambda x: str(x),aemc['componentIds'])) if (len(aemc['componentIds']) > 0) else ""
+                tiers = ','.join(map(lambda x: str(x),aemc['componentIds'])) if aemc['componentIds'] is not None else ""
                 return HR_Type[healthrule['type']] + " | " + HR_affects[aemcType] + " " + tiers
             elif aemcType=="SPECIFC":
-                nodes = ','.join(map(lambda x: str(x),aemc['nodeIds'])) if (len(aemc['nodeIds']) > 0) else ""
+                nodes = ','.join(map(lambda x: str(x),aemc['nodeIds'])) if aemc['nodeIds'] is not None else ""
                 return HR_Type[healthrule['type']] + " | " + HR_affects[aemcType] + " " + nodes
             elif aemcType=="SPECIFIC":
                 if 'businessTransactionIds' in aemc and aemc['businessTransactionIds'] is not None:
                     entities = ','.join(map(lambda x: str(x),aemc['businessTransactionIds'])) if (len(aemc['businessTransactionIds']) > 0) else ""
                 elif 'errorIds' in aemc and aemc['errorIds'] is not None:
-                    entities = ','.join(map(lambda x: str(x),aemc['errorIds'])) if (len(aemc['errorIds']) > 0) else ""
+                    entities = ','.join(map(lambda x: str(x),aemc['errorIds'])) if aemc['errorIds'] is not None else ""
                 return HR_Type[healthrule['type']] + " | " + HR_affects[aemcType] + " " + entities
             elif aemcType=="SPECIFIC_ADDS":
-                serviceendpoints = ','.join(map(lambda x: str(x),aemc['addIds'])) if (len(aemc['addIds']) > 0) else ""
+                serviceendpoints = ','.join(map(lambda x: str(x),aemc['addIds'])) if aemc['addIds'] is not None else ""
                 return HR_Type[healthrule['type']] + " | " + HR_affects[aemcType] + " " + serviceendpoints
             elif aemcType=="SPECIFIC_MACHINES":
-                servers = ','.join(map(lambda x: str(x),aemc['machineInstanceIds'])) if (len(aemc['machineInstanceIds']) > 0) else ""
+                servers = ','.join(map(lambda x: str(x),aemc['machineInstanceIds'])) if aemc['machineInstanceIds'] is not None else ""
                 return HR_Type[healthrule['type']] + " | " + HR_affects[aemcType] + " " + servers
             elif aemcType in ["CUSTOM","NAME_MATCH"]:
                 if   'nameMatch' in aemc and aemc['nameMatch'] is not None: nmc=aemc['nameMatch']
@@ -181,7 +179,7 @@ class HealthRuleDict(AppEntity):
 
         for appID in self.entityDict:
             if appID_List is not None and type(appID_List) is list and int(appID) not in appID_List:
-                if 'DEBUG' in locals(): print "Application "+appID +" is not loaded in dictionary."
+                if 'DEBUG' in locals(): print ("Application "+appID +" is not loaded in dictionary.")
                 continue
             for healthrule in self.entityDict[appID]:
                 if 'header_is_printed' not in locals():
@@ -189,7 +187,7 @@ class HealthRuleDict(AppEntity):
                     header_is_printed=True
 
                 try:
-                    filewriter.writerow({'HealthRule': healthrule['name'].encode('ASCII', 'ignore'),
+                    filewriter.writerow({'HealthRule': healthrule['name'],#.encode('ASCII', 'ignore'),
                                          'Application': self.controller.applications.getAppName(appID),
                                          'Duration': healthrule['useDataFromLastNMinutes'] if 'useDataFromLastNMinutes' in healthrule else "",
                                          'Wait_Time': healthrule['useDataFromLastNMinutes'] if 'useDataFromLastNMinutes' in healthrule else "",
@@ -201,7 +199,7 @@ class HealthRuleDict(AppEntity):
                     sys.stderr.write("generate_CSV: "+str(valError)+"\n")
                     if fileName is not None: csvfile.close()
                     return (-1)
-        if 'DEBUG' in locals(): print "INFO: Displayed number of health rules:" + str(len(healthrules))
+        if 'DEBUG' in locals(): print ("INFO: Displayed number of health rules:" + str(len(healthrules)) )
         if fileName is not None: csvfile.close()
 
     def get_health_rules_matching(self,appID,entityName,entityType):
@@ -323,7 +321,7 @@ class HealthRuleXMLDict(AppEntity):
                                                                 "patternMatcher": { "matchTo": amc.find('match-type').text,
                                                                                     "matchValue": amc.find('match-pattern').text,
                                                                                     "shouldNot": amc.find('inverse').text } } })
-            else: print "parse_healthrules_XML: [WARN] Unknown affectScopeType",affectScopeType
+            else: print ("parse_healthrules_XML: [WARN] Unknown affectScopeType",affectScopeType)
         # 3) Tier / Node Health - Transaction Performance (load,response time,slow calls)
         # 4) Tier / Node Health - Hardware, JVM, CLR (cpu,heap,disk,IO)
         # 6) Advanced Network
@@ -384,9 +382,9 @@ class HealthRuleXMLDict(AppEntity):
                                         "typeofNode": "ALL_NODES","affectedNodes":{
                                                                 "affectedNodeScope": "NODES_MATCHING_PROPERTY",
                                                                 "patternMatcher": patternJSON } } })
-                    else: print "parse_healthrules_XML: [WARN] Unknown node matching criteria."
-                else: print "parse_healthrules_XML: [WARN] Unknown nodeMatchType",nodeMatchType
-            else: print "parse_healthrules_XML: [WARN] Unknown affectScopeType",affectScopeType
+                    else: print ("parse_healthrules_XML: [WARN] Unknown node matching criteria.")
+                else: print ("parse_healthrules_XML: [WARN] Unknown nodeMatchType",nodeMatchType)
+            else: print ("parse_healthrules_XML: [WARN] Unknown affectScopeType",affectScopeType)
 
         # 5) Tier / Node Health - JMX (connection pools,thread pools)
         elif entityType == "JMX":
@@ -432,12 +430,12 @@ class HealthRuleXMLDict(AppEntity):
                                                 "patternMatcher": { "matchTo": amc.find('match-type').text,
                                                                     "matchValue": amc.find('match-pattern').text,
                                                                     "shouldNot": amc.find('inverse').text } } })
-            else: print "parse_healthrules_XML: [WARN] Unknown affectScopeType",affectScopeType
+            else: print ("parse_healthrules_XML: [WARN] Unknown affectScopeType",affectScopeType)
         elif entityType == "OTHER":
             amc = element.find('other-affected-entities-match-criteria')
             EntityType = "Custom metric: " + amc.find('entity').find('entity-type').text
         else:
-            print "Unknown type: " + entityType
+            print ("Unknown type: " + entityType)
 
         return affects
 
@@ -692,7 +690,7 @@ class HealthRuleXMLDict(AppEntity):
 
         for appID in self.entityDict:
             if appID_List is not None and type(appID_List) is list and int(appID) not in appID_List:
-                if 'DEBUG' in locals(): print "Application "+appID +" is not loaded in dictionary."
+                if 'DEBUG' in locals(): print ("Application "+appID +" is not loaded in dictionary.")
                 continue
             for healthrule in self.entityDict[appID]:
                 if 'header_is_printed' not in locals():
@@ -712,7 +710,7 @@ class HealthRuleXMLDict(AppEntity):
                     sys.stderr.write("generate_CSV: "+str(valError)+"\n")
                     if fileName is not None: csvfile.close()
                     return (-1)
-        if 'DEBUG' in locals(): print "INFO: Displayed number of health rules:" + str(len(healthrules))
+        if 'DEBUG' in locals(): print ("INFO: Displayed number of health rules:" + str(len(healthrules)) )
         if fileName is not None: csvfile.close()
 
 

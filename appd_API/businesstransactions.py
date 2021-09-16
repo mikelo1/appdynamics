@@ -1,8 +1,7 @@
-#!/usr/bin/python
 import json
 import csv
 import sys
-from entities import AppEntity
+from .entities import AppEntity
 
 class BusinessTransactionDict(AppEntity):
 
@@ -37,7 +36,7 @@ class BusinessTransactionDict(AppEntity):
 
         for appID in self.entityDict:
             if appID_List is not None and type(appID_List) is list and int(appID) not in appID_List:
-                if 'DEBUG' in locals(): print "Application "+appID +" is not loaded in dictionary."
+                if 'DEBUG' in locals(): print ("Application "+appID +" is not loaded in dictionary.")
                 continue
             for BT in self.entityDict[appID]:
                 if 'header_is_printed' not in locals():
