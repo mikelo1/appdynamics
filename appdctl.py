@@ -1,4 +1,4 @@
-#!/usr/bin/python3.8
+#!/usr/bin/python
 import sys
 import os.path
 import re
