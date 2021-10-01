@@ -1,5 +1,4 @@
 import json
-import csv
 import sys
 from datetime import datetime, timedelta
 import time
@@ -12,6 +11,39 @@ class SnapshotDict(AppEntity):
         self.controller = controller
         self.entityAPIFunctions = {'fetch': self.controller.RESTfulAPI.fetch_snapshots}
         self.entityKeywords = ["snapshotExitCalls"]
+        self.CSVfields = {  'Time':                 self.__str_snapshot_time,
+                            'UserExperience':       self.__str_snapshot_userExperience,
+                            'URL':                  self.__str_snapshot_URL,
+                            'Summary':              self.__str_snapshot_summary,
+                            'BussinessTransaction': self.__str_snapshot_BT,
+                            'Tier':                 self.__str_snapshot_tier,
+                            'Node':                 self.__str_snapshot_node,
+                            'ExeTime':              self.__str_snapshot_exeTime}
+
+
+    def __str_snapshot_time(self,snapshot):
+        return datetime.fromtimestamp(float(snapshot['localStartTime'])/1000).strftime('%Y-%m-%d %H:%M:%S')
+
+    def __str_snapshot_userExperience(self,snapshot):
+        return snapshot['userExperience']
+
+    def __str_snapshot_URL(self,snapshot):
+        return snapshot['URL']
+
+    def __str_snapshot_summary(self,snapshot):
+        return snapshot['summary'] if 'summary' in snapshot and sys.version_info[0] >= 3 else snapshot['summary'].encode('ASCII', 'ignore') if 'summary' in snapshot else ""
+
+    def __str_snapshot_BT(self,snapshot):
+        return snapshot['businessTransactionId']
+
+    def __str_snapshot_tier(self,snapshot):
+        return snapshot['applicationComponentId']
+
+    def __str_snapshot_node(self,snapshot):
+        return snapshot['applicationComponentNodeId']
+
+    def __str_snapshot_exeTime(self,snapshot):
+        return snapshot['timeTakenInMilliSecs']
 
 #def fetch_snapshots2(app_ID,minutesBeforeNow,selectors=None,serverURL=None,userName=None,password=None,token=None):
 #    MAX_RESULTS = RESULTS = 9
@@ -73,49 +105,3 @@ class SnapshotDict(AppEntity):
 
     ###### FROM HERE PUBLIC FUNCTIONS ######
 
-
-    def generate_CSV(self,appID_List=None,fileName=None):
-        """
-        Generate CSV output from snapshots data
-        :param appID_List: list of application IDs, in order to obtain snapshots from local snapshots dictionary
-        :param fileName: output file name
-        :returns: None
-        """
-        if fileName is not None:
-            try:
-                csvfile = open(fileName, 'w')
-            except:
-                sys.stderr.write("Could not open output file " + fileName + ".\n")
-                return (-1)
-        else:
-            csvfile = sys.stdout
-
-        fieldnames = ['Time', 'UserExperience', 'Application', 'URL', 'Summary', 'BussinessTransaction', 'Tier', 'Node', 'ExeTime']
-        filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
-
-        for appID in self.entityDict:
-            if appID_List is not None and type(appID_List) is list and int(appID) not in appID_List:
-                if 'DEBUG' in locals(): print ("Application "+appID +" is not loaded in dictionary.")
-                continue
-            for snapshot in self.entityDict[appID]:
-                if  'header_is_printed' not in locals():
-                    filewriter.writeheader()
-                    header_is_printed=True
-                Time = datetime.fromtimestamp(float(snapshot['localStartTime'])/1000).strftime('%Y-%m-%d %H:%M:%S')
-                appID= snapshot['applicationId']
-                Summary = snapshot['summary'].encode('ASCII', 'ignore') if 'summary' in snapshot else ""
-
-                try:
-                    filewriter.writerow({'Time': Time,
-                                        'UserExperience': snapshot['userExperience'],
-                                        'Application': self.controller.applications.getAppName(appID),
-                                        'URL': snapshot['URL'],
-                                        'Summary': Summary,
-                                        'BussinessTransaction': snapshot['businessTransactionId'],
-                                        'Tier': self.controller.nodes.getTierName(appID,snapshot['applicationComponentId']),
-                                        'Node': self.controller.nodes.getNodeName(appID,snapshot['applicationComponentNodeId']),
-                                        'ExeTime': snapshot['timeTakenInMilliSecs']})
-                except ValueError as valError:
-                    sys.stderr.write("generate_CSV: "+str(valError)+"\n")
-                    continue
-        if fileName is not None: csvfile.close()

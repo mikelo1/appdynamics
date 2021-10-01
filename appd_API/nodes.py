@@ -1,5 +1,4 @@
 import json
-import csv
 import sys
 from datetime import datetime, timedelta
 import time
@@ -13,7 +12,27 @@ class NodeDict(AppEntity):
         self.entityAPIFunctions = { 'fetch': self.controller.RESTfulAPI.fetch_nodes,
                                     'fetchByID': self.controller.RESTfulAPI.fetch_node_by_ID }
         self.entityKeywords = ["nodeUniqueLocalId"]
+        self.CSVfields = {  'Node':         self.__str_node_name,
+                            'Tier':         self.__str_node_tierName,
+                            'AgentVersion': self.__str_node_agentVersion,
+                            'MachineName':  self.__str_node_machineName,
+                            'OSType':       self.__str_node_machineOSType }
 
+
+    def __str_node_name(self,node):
+        return node['name'] if sys.version_info[0] >= 3 else node['name'].encode('ASCII', 'ignore')
+
+    def __str_node_tierName(self,node):
+        return node['tierName'] if sys.version_info[0] >= 3 else node['tierName'].encode('ASCII', 'ignore')
+
+    def __str_node_agentVersion(self,node):
+        return node['appAgentVersion'] if node['agentType']=="APP_AGENT" else node['agentType']
+
+    def __str_node_machineName(self,node):
+        return node['machineName']
+
+    def __str_node_machineOSType(self,node):
+        return node['machineOSType']
 
     def __update_availability_nodes(self,app_ID):
         """
@@ -44,47 +63,7 @@ class NodeDict(AppEntity):
 
 
     ###### FROM HERE PUBLIC FUNCTIONS ######
-
-    def generate_CSV(self,appID_List=None,fileName=None):
-        """
-        Generate CSV output from nodes data
-        :param appID_List: list of application IDs, in order to obtain nodes from local nodes dictionary
-        :param fileName: output file name
-        :returns: None
-        """
-        if fileName is not None:
-            try:
-                csvfile = open(fileName, 'w')
-            except:
-                sys.stderr.write("Could not open output file " + fileName + ".")
-                return (-1)
-        else:
-            csvfile = sys.stdout
-
-        fieldnames = ['Node', 'Tier', 'Application', 'AgentVersion', 'MachineName', 'OSType']
-        filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
-
-        for appID in self.entityDict:
-            if appID_List is not None and type(appID_List) is list and int(appID) not in appID_List:
-                if 'DEBUG' in locals(): print ("Application "+appID +" is not loaded in dictionary.")
-                continue
-            for node in self.entityDict[appID]:
-                if  'header_is_printed' not in locals():
-                    filewriter.writeheader()
-                    header_is_printed=True
-
-                try:
-                    filewriter.writerow({'Node': node['name'],
-                                         'Tier': node['tierName'],
-                                         'Application': self.controller.applications.getAppName(appID),
-                                         'AgentVersion': node['appAgentVersion'] if node['agentType']=="APP_AGENT" else node['agentType'],
-                                         'MachineName': node['machineName'],
-                                         'OSType': node['machineOSType']})
-                except ValueError as valError:
-                    sys.stderr.write("generate_CSV: "+str(valError)+"\n")
-                    if fileName is not None: csvfile.close()
-                    return (-1)
-        if fileName is not None: csvfile.close()
+    
 
     def drain(self,appID_List,selectors=None):
         """

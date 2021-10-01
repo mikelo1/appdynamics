@@ -1,5 +1,4 @@
 import json
-import csv
 import sys
 from .entities import AppEntity
 
@@ -13,6 +12,13 @@ class ScheduleDict(AppEntity):
                                     'create': self.controller.RESTfulAPI.create_schedule,
                                     'update': self.controller.RESTfulAPI.update_schedule }
         self.entityKeywords = ["scheduleConfiguration"]
+        self.CSVfields = {  'Name':        self.__str_schedule_name,
+                            'Description': self.__str_schedule_description,
+                            'Timezone':    self.__str_schedule_timezone,
+                            'Frequency':   self.__str_schedule_frequency,
+                            'Start':       self.__str_schedule_start,
+                            'End':         self.__str_schedule_end }
+
 
     def __build_test_schedules(app_ID):
         schedules1=json.loads('[{"timezone":"Europe/Brussels","description":"This schedule is active Monday through Friday, during business hours","id":30201,"scheduleConfiguration":{"scheduleFrequency":"WEEKLY","endTime":"17:00","days":["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY"],"startTime":"08:00"},"name":"Weekdays:8am-5pm,Mon-Fri"}]')
@@ -25,6 +31,18 @@ class ScheduleDict(AppEntity):
             if str(app_ID) in entityDict:
                 print (entityDict[str(app_ID)])
 
+
+    def __str_schedule_name(self,schedule):
+        return schedule['name'] if sys.version_info[0] >= 3 else schedule['name'].encode('ASCII', 'ignore')
+
+    def __str_schedule_description(self,schedule):
+        return schedule['description'] if sys.version_info[0] >= 3 else schedule['description'].encode('ASCII', 'ignore')
+
+    def __str_schedule_timezone(self,schedule):
+        return schedule['timezone']
+
+    def __str_schedule_frequency(self,schedule):
+        return schedule['scheduleConfiguration']['scheduleFrequency'] if 'scheduleConfiguration' in schedule else "",
 
     def __str_schedule_start(self,schedule):
         """
@@ -66,45 +84,3 @@ class ScheduleDict(AppEntity):
 
     ###### FROM HERE PUBLIC FUNCTIONS ######
 
-
-    def generate_CSV(self,appID_List=None,fileName=None):
-        """
-        Generate CSV output from schedules data
-        :param appID_List: list of application IDs, in order to obtain schedules from local schedules dictionary
-        :param fileName: output file name
-        :returns: None
-        """
-        if fileName is not None:
-            try:
-                csvfile = open(fileName, 'w')
-            except:
-                sys.stderr.write("Could not open output file " + fileName + ".")
-                return (-1)
-        else:
-            csvfile = sys.stdout
-
-        # create the csv writer object
-        fieldnames = ['Name', 'Description', 'Application', 'Timezone', 'Frequency', 'Start', 'End']
-        filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
-
-        for appID in self.entityDict:
-            if appID_List is not None and type(appID_List) is list and int(appID) not in appID_List:
-                if 'DEBUG' in locals(): print ("Application "+appID +" is not loaded in dictionary.")
-                continue
-            for schedule in self.entityDict[appID]:
-                if 'header_is_printed' not in locals():
-                    filewriter.writeheader()
-                    header_is_printed=True
-                try:
-                    filewriter.writerow({'Name': schedule['name'],
-                                         'Description': schedule['description'],
-                                         'Application': self.controller.applications.getAppName(appID),
-                                         'Timezone': schedule['timezone'],
-                                         'Frequency': schedule['scheduleConfiguration']['scheduleFrequency'] if 'scheduleConfiguration' in schedule else "",
-                                         'Start': self.__str_schedule_start(schedule),
-                                         'End':  self.__str_schedule_end(schedule) })
-                except ValueError as valError:
-                    sys.stderr.write("generate_CSV: "+str(valError)+"\n")
-                    if fileName is not None: csvfile.close()
-                    return (-1)
-        if fileName is not None: csvfile.close()

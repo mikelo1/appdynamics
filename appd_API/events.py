@@ -1,5 +1,4 @@
 import json
-import csv
 import sys
 from datetime import datetime, timedelta
 import time
@@ -12,6 +11,14 @@ class EventDict(AppEntity):
         self.controller = controller
         self.entityAPIFunctions = { 'fetch': self.controller.RESTfulAPI.fetch_healthrule_violations }
         self.entityKeywords = ["affectedEntityDefinition"]
+        self.CSVfields = {  'PolicyName':  self.__str_event_policy,
+                            'EntityName':  self.__str_event_entity,
+                            'Severity':    self.__str_event_severity,
+                            'Status':      self.__str_event_status,
+                            'Start_Time':  self.__str_event_start_time,
+                            'End_Time':    self.__str_event_end_time,
+                            'Description': self.__str_event_description }
+
 
     def __str_event_policy(self,event):
         """
@@ -22,7 +29,7 @@ class EventDict(AppEntity):
         triggeredEntitytype = event['triggeredEntityDefinition']['entityType']
         if triggeredEntitytype == "POLICY":
             if 'name' in event['triggeredEntityDefinition']:
-                return event['triggeredEntityDefinition']['name'].encode('ASCII', 'ignore')
+                return event['triggeredEntityDefinition']['name'] if sys.version_info[0] >= 3 else event['triggeredEntityDefinition']['name'].encode('ASCII', 'ignore')
             else:
                 return event['triggeredEntityDefinition']['entityId']
         else:
@@ -43,6 +50,14 @@ class EventDict(AppEntity):
                 return event['affectedEntityDefinition']['entityId']
         else:
             return ""
+
+
+    def __str_event_severity(self,event):
+        return event['severity'] if 'severity' in event else "Undefined"
+
+
+    def __str_event_status(self,event):
+        return event['incidentStatus']
 
 
     def __str_event_description(self,event):
@@ -83,52 +98,6 @@ class EventDict(AppEntity):
 
     ###### FROM HERE PUBLIC FUNCTIONS ######
 
-    def generate_CSV(self,appID_List=None,fileName=None):
-        """
-        Generate CSV output from healthrule violations data
-        :param appID_List: list of application IDs, in order to obtain healtrule violations from local healthrule violations dictionary
-        :param fileName: output file name
-        :returns: None
-        """
-        if fileName is not None:
-            try:
-                csvfile = open(fileName, 'w')
-            except:
-                sys.stderr.write("Could not open output file " + fileName + ".\n")
-                return (-1)
-        else:
-            csvfile = sys.stdout
-
-        # create the csv writer object
-        fieldnames = ['PolicyName', 'EntityName', 'Severity', 'Status', 'Start_Time', 'End_Time', 'Application', 'Description']
-        filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
-
-        for appID in self.entityDict:
-            if appID_List is not None and type(appID_List) is list and int(appID) not in appID_List:
-                if 'DEBUG' in locals(): print ("Application "+appID +" is not loaded in dictionary.")
-                continue
-            for policyviolation in self.entityDict[appID]:
-                if 'header_is_printed' not in locals():
-                    filewriter.writeheader()
-                    header_is_printed=True
-
-                app_ID  = policyviolation['deepLinkUrl'][policyviolation['deepLinkUrl'].find("application"):].split('&')[0].split('=')[1]
-
-                try:
-                    filewriter.writerow({'PolicyName': self.__str_event_policy(policyviolation),
-                                        'EntityName': self.__str_event_entity(policyviolation),
-                                        'Severity': policyviolation['severity'] if 'severity' in policyviolation else "Undefined",
-                                        'Status': policyviolation['incidentStatus'],
-                                        'Start_Time': self.__str_event_start_time(policyviolation),
-                                        'End_Time': self.__str_event_end_time(policyviolation),
-                                        'Application': self.controller.applications.getAppName(app_ID),
-                                        'Description': self.__str_event_description(policyviolation)})
-                except ValueError as valError:
-                    sys.stderr.write("generate_CSV: "+str(valError)+"\n")
-                    if fileName is not None: csvfile.close()
-                    return (-1)
-        if fileName is not None: csvfile.close()
-
 
 
 class ErrorDict(AppEntity):
@@ -138,6 +107,32 @@ class ErrorDict(AppEntity):
         self.controller = controller
         self.entityAPIFunctions = { 'fetch': self.controller.RESTfulAPI.fetch_errors }
         self.entityKeywords = ["metricPath"]
+        self.CSVfields = {  'ErrorCode': self.__str_errorMetric_start_time,
+                            'Value':     self.__str_errorMetric_value,
+                            'Max':       self.__str_errorMetric_max,
+                            'Min':       self.__str_errorMetric_min,
+                            'Sum':       self.__str_errorMetric_sum,
+                            'Count':     self.__str_errorMetric_count }
+
+
+    def __str_errorMetric_start_time(self,errorMetric):
+        return errorMetric['metricPath'].split("|")[2]
+
+    def __str_errorMetric_value(self,errorMetric):
+        return errorMetric['metricValues'][0]['value'] if len(errorMetric['metricValues']) > 0 else "-"
+
+    def __str_errorMetric_max(self,errorMetric):
+        return errorMetric['metricValues'][0]['max'] if len(errorMetric['metricValues']) > 0 else "-"
+
+    def __str_errorMetric_min(self,errorMetric):
+        return errorMetric['metricValues'][0]['min'] if len(errorMetric['metricValues']) > 0 else "-"
+
+    def __str_errorMetric_sum(self,errorMetric):
+        return errorMetric['metricValues'][0]['sum'] if len(errorMetric['metricValues']) > 0 else "-"
+
+    def __str_errorMetric_count(self,errorMetric):
+        return errorMetric['metricValues'][0]['count'] if len(errorMetric['metricValues']) > 0 else "-"
+
 
     def fetch_after_time(self,appID,duration,sinceEpoch,selectors=None):
         """
@@ -154,46 +149,4 @@ class ErrorDict(AppEntity):
         return count
 
     ###### FROM HERE PUBLIC FUNCTIONS ######
-    def generate_CSV(self,appID_List=None,fileName=None):
-        """
-        Generate CSV output from error metrics data
-        :param appID_List: list of application IDs, in order to obtain error metrics from local error metrics dictionary
-        :param fileName: output file name
-        :returns: None
-        """
-        if fileName is not None:
-            try:
-                csvfile = open(fileName, 'w')
-            except:
-                sys.stderr.write("Could not open output file " + fileName + ".\n")
-                return (-1)
-        else:
-            csvfile = sys.stdout
 
-        # create the csv writer object
-        fieldnames = ['Application', 'ErrorCode', 'Value', 'Max', 'Min', 'Sum', 'Count']
-        filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
-
-        for appID in self.entityDict:
-            if appID_List is not None and type(appID_List) is list and int(appID) not in appID_List:
-                if 'DEBUG' in locals(): print ("Application "+appID +" is not loaded in dictionary.")
-                continue
-            for errorMetric in self.entityDict[appID]:
-                if 'header_is_printed' not in locals():
-                    filewriter.writeheader()
-                    header_is_printed=True
-                metricValues = errorMetric['metricValues'][0] if len(errorMetric['metricValues']) > 0 else {"value":"-","max":"-","min":"-","sum":"-","count":"-"}
-
-                try:
-                    filewriter.writerow({'Application': self.controller.applications.getAppName(appID),
-                                        'ErrorCode': errorMetric['metricPath'].split("|")[2],
-                                        'Value': metricValues['value'],
-                                        'Max':   metricValues['max'],
-                                        'Min':   metricValues['min'],
-                                        'Sum':   metricValues['sum'],
-                                        'Count': metricValues['count'] })
-                except (ValueError, IndexError) as error:
-                    sys.stderr.write("generate_CSV: "+str(valError)+"\n")
-                    if fileName is not None: csvfile.close()
-                    return (-1)
-        if fileName is not None: csvfile.close()

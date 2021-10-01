@@ -1,5 +1,4 @@
 import json
-import csv
 import sys
 from .entities import ControllerEntity
 
@@ -11,41 +10,24 @@ class RBACDict(ControllerEntity):
         self.entityAPIFunctions = { 'fetch': self.controller.RESTfulAPI.fetch_users_extended,
                                     'fetchByID': self.controller.RESTfulAPI.fetch_user_by_ID }
         self.entityKeywords = ["providerUniqueName"]
+        self.CSVfields = {  'Name':   self.__str_user_name,
+                            'Email':  self.__str_user_email,
+                            'Roles':  self.__str_user_roles,
+                            'Groups': self.__str_user_groups }
+
+
+    def __str_user_name(self,user):
+        return user['name']
+
+    def __str_user_email(self,user):
+        return user['email'] if 'email' in user else None
+
+    def __str_user_roles(self,user):
+        return json.dumps(user['roles']) if 'roles' in user else None
+
+    def __str_user_groups(self,user):
+        return json.dumps(user['groups']) if 'groups' in user else None
+
 
     ###### FROM HERE PUBLIC FUNCTIONS ######
 
-    def generate_CSV(self, fileName=None):
-        """
-        Generate CSV output from rbac data
-        :param fileName: output file name
-        :returns: None
-        """
-        if fileName is not None:
-            try:
-                csvfile = open(fileName, 'w')
-            except:
-                sys.stderr.write("Could not open output file " + fileName + ".")
-                return (-1)
-        else:
-            csvfile = sys.stdout
-
-        # create the csv writer object
-        fieldnames = ['Name', 'Email', 'Roles', 'Groups']
-        filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
-
-        for user in self.entityDict:
-            # Check if data belongs to a user
-            if 'providerUniqueName' not in user: continue
-            elif 'header_is_printed' not in locals(): 
-                filewriter.writeheader()
-                header_is_printed=True
-            try:
-                filewriter.writerow({'Name': user['name'],
-                                     'Email': user['email'] if 'email' in user else None,
-                                     'Roles': json.dumps(user['roles'] if 'roles' in user else None),
-                                     'Groups': json.dumps(user['groups']) if 'groups' in user else None})
-            except ValueError as valError:
-                sys.stderr.write("generate_CSV: "+str(valError)+"\n")
-                if fileName is not None: csvfile.close()
-                return (-1)
-        if fileName is not None: csvfile.close()

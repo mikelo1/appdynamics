@@ -1,6 +1,5 @@
 import xml.etree.ElementTree as ET
 import json
-import csv
 import sys
 from .entities import AppEntity
 
@@ -14,6 +13,29 @@ class HealthRuleDict(AppEntity):
                                     'create': self.controller.RESTfulAPI.create_health_rule,
                                     'update': self.controller.RESTfulAPI.update_health_rule }
         self.entityKeywords = ["affects","affectedEntityDefinitionRule","health-rules"]
+        self.CSVfields = {  'HealthRule':         self.__str_healthrule_name,
+                            'Duration':           self.__str_healthrule_duration,
+                            'Wait_Time':          self.__str_healthrule_waitTime,
+                            'Schedule':           self.__str_healthrule_schedule,
+                            'Enabled':            self.__str_healthrule_enabled,
+                            'Affects':            self.__str_healthrule_affects,
+                            'Critical_Condition': self.__str_healthrule_critical_conditions }
+
+
+    def __str_healthrule_name(self,healthrule):
+        return healthrule['name'] if sys.version_info[0] >= 3 else healthrule['name'].encode('ASCII', 'ignore')
+
+    def __str_healthrule_duration(self,healthrule):
+        return healthrule['useDataFromLastNMinutes'] if 'useDataFromLastNMinutes' in healthrule else ""
+
+    def __str_healthrule_waitTime(self,healthrule):
+        return healthrule['useDataFromLastNMinutes'] if 'useDataFromLastNMinutes' in healthrule else ""
+
+    def __str_healthrule_schedule(self,healthrule):
+        return healthrule['scheduleName'] if 'scheduleName' in healthrule else ""
+
+    def __str_healthrule_enabled(self,healthrule):
+        return healthrule['enabled']
 
     def __str_healthrule_affects(self,healthrule):
         """
@@ -156,52 +178,6 @@ class HealthRuleDict(AppEntity):
 
     ###### FROM HERE PUBLIC METHODS ######
 
-
-    def generate_CSV(self,appID_List=None,fileName=None):
-        """
-        Generate CSV output from health rules data
-        :param appID_List: list of application IDs, in order to obtain health rules from local health rules dictionary
-        :param fileName: output file name
-        :returns: None
-        """
-        if fileName is not None:
-            try:
-                csvfile = open(fileName, 'w')
-            except:
-                sys.stderr.write("Could not open output file " + fileName + ".")
-                return (-1)
-        else:
-            csvfile = sys.stdout
-
-        # create the csv writer object
-        fieldnames = ['HealthRule', 'Application', 'Duration', 'Wait_Time', 'Schedule', 'Enabled', 'Affects', 'Critical_Condition']
-        filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
-
-        for appID in self.entityDict:
-            if appID_List is not None and type(appID_List) is list and int(appID) not in appID_List:
-                if 'DEBUG' in locals(): print ("Application "+appID +" is not loaded in dictionary.")
-                continue
-            for healthrule in self.entityDict[appID]:
-                if 'header_is_printed' not in locals():
-                    filewriter.writeheader()
-                    header_is_printed=True
-
-                try:
-                    filewriter.writerow({'HealthRule': healthrule['name'],#.encode('ASCII', 'ignore'),
-                                         'Application': self.controller.applications.getAppName(appID),
-                                         'Duration': healthrule['useDataFromLastNMinutes'] if 'useDataFromLastNMinutes' in healthrule else "",
-                                         'Wait_Time': healthrule['useDataFromLastNMinutes'] if 'useDataFromLastNMinutes' in healthrule else "",
-                                         'Schedule': healthrule['scheduleName'] if 'scheduleName' in healthrule else "",
-                                         'Enabled': healthrule['enabled'],
-                                         'Affects': self.__str_healthrule_affects(healthrule),
-                                         'Critical_Condition': self.__str_healthrule_critical_conditions(healthrule) })
-                except ValueError as valError:
-                    sys.stderr.write("generate_CSV: "+str(valError)+"\n")
-                    if fileName is not None: csvfile.close()
-                    return (-1)
-        if 'DEBUG' in locals(): print ("INFO: Displayed number of health rules:" + str(len(healthrules)) )
-        if fileName is not None: csvfile.close()
-
     def get_health_rules_matching(self,appID,entityName,entityType):
         pass
         #for healthrule in self.entityDict:
@@ -215,6 +191,13 @@ class HealthRuleXMLDict(AppEntity):
         self.entityAPIFunctions = { 'fetch': self.controller.RESTfulAPI.fetch_health_rules_XML,
                                     'import': self.controller.RESTfulAPI.import_health_rules_XML }
         self.entityKeywords = ["affectedEntityType","useDataFromLastNMinutes","health-rules"]
+        self.CSVfields = {  'HealthRule':         self.__str_healthrule_name,
+                            'Duration':           self.__str_healthrule_duration,
+                            'Wait_Time':          self.__str_healthrule_waitTime,
+                            'Schedule':           self.__str_healthrule_schedule,
+                            'Enabled':            self.__str_healthrule_enabled,
+                            'Affects':            self.__str_healthrule_affects,
+                            'Critical_Condition': self.__str_healthrule_critical_conditions }
 
     def __entityXML2JSON(self,XMLentityType):
         """
@@ -541,6 +524,22 @@ class HealthRuleXMLDict(AppEntity):
         return criteria
 
 
+    def __str_healthrule_name(self,healthrule):
+        return healthrule['name'] if sys.version_info[0] >= 3 else healthrule['name'].encode('ASCII', 'ignore')
+
+    def __str_healthrule_duration(self,healthrule):
+        return healthrule['useDataFromLastNMinutes'] if 'useDataFromLastNMinutes' in healthrule else "",
+
+    def __str_healthrule_waitTime(self,healthrule):
+        return healthrule['useDataFromLastNMinutes'] if 'useDataFromLastNMinutes' in healthrule else "",
+
+    def __str_healthrule_schedule(self,healthrule):
+        return healthrule['scheduleName'] if 'scheduleName' in healthrule else ""
+
+    def __str_healthrule_enabled(self,healthrule):
+        return healthrule['enabled']
+
+
     def __str_healthrule_affects(self,healthrule):
         """
         toString private method, extracts affects from health rule
@@ -666,52 +665,6 @@ class HealthRuleXMLDict(AppEntity):
 
 
     ###### FROM HERE PUBLIC METHODS ######
-
-
-    def generate_CSV(self,appID_List=None,fileName=None):
-        """
-        Generate CSV output from health rules data
-        :param appID_List: list of application IDs, in order to obtain health rules from local health rules dictionary
-        :param fileName: output file name
-        :returns: None
-        """
-        if fileName is not None:
-            try:
-                csvfile = open(fileName, 'w')
-            except:
-                sys.stderr.write("Could not open output file " + fileName + ".")
-                return (-1)
-        else:
-            csvfile = sys.stdout
-
-        # create the csv writer object
-        fieldnames = ['HealthRule', 'Application', 'Duration', 'Wait_Time', 'Schedule', 'Enabled', 'Affects', 'Critical_Condition']
-        filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
-
-        for appID in self.entityDict:
-            if appID_List is not None and type(appID_List) is list and int(appID) not in appID_List:
-                if 'DEBUG' in locals(): print ("Application "+appID +" is not loaded in dictionary.")
-                continue
-            for healthrule in self.entityDict[appID]:
-                if 'header_is_printed' not in locals():
-                    filewriter.writeheader()
-                    header_is_printed=True
-
-                try:
-                    filewriter.writerow({'HealthRule': healthrule['name'].encode('ASCII', 'ignore'),
-                                         'Application': self.controller.applications.getAppName(appID),
-                                         'Duration': healthrule['useDataFromLastNMinutes'] if 'useDataFromLastNMinutes' in healthrule else "",
-                                         'Wait_Time': healthrule['useDataFromLastNMinutes'] if 'useDataFromLastNMinutes' in healthrule else "",
-                                         'Schedule': healthrule['scheduleName'] if 'scheduleName' in healthrule else "",
-                                         'Enabled': healthrule['enabled'],
-                                         'Affects': self.__str_healthrule_affects(healthrule),
-                                         'Critical_Condition': self.__str_healthrule_critical_conditions(healthrule) })
-                except ValueError as valError:
-                    sys.stderr.write("generate_CSV: "+str(valError)+"\n")
-                    if fileName is not None: csvfile.close()
-                    return (-1)
-        if 'DEBUG' in locals(): print ("INFO: Displayed number of health rules:" + str(len(healthrules)) )
-        if fileName is not None: csvfile.close()
 
 
     def load(self,streamdata,appID=None):

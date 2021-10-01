@@ -1,5 +1,4 @@
 import json
-import csv
 import sys
 from .entities import AppEntity
 
@@ -12,6 +11,16 @@ class ActionDict(AppEntity):
         self.entityAPIFunctions = { 'fetch': self.controller.RESTfulAPI.fetch_actions_legacy,
                                     'fetchByID': self.controller.RESTfulAPI.fetch_action_by_ID }
         self.entityKeywords = ["actionType"]
+        self.CSVfields = {  'ActionName':       self.__str_action_name,
+                            'ActionType':       self.__str_action_type,
+                            'Recipients':       self.__str_action_recipients,
+                            'CustomProperties': self.__str_action_properties }
+
+    def __str_action_name(self,action):
+        return action['name'] if sys.version_info[0] >= 3 else action['name'].encode('ASCII', 'ignore')
+
+    def __str_action_type(self,action):
+        return action['actionType']
 
     def __str_action_properties(self,action):
         """
@@ -39,7 +48,6 @@ class ActionDict(AppEntity):
             elif action['actionType'] == "CustomAction":
                 return 'Custom action: '+str(['customType'])
 
-
     def __str_action_recipients(self,action):
         """
         toString private method, extracts recipients from action
@@ -65,7 +73,6 @@ class ActionDict(AppEntity):
                 return ""
             elif action['actionType'] == "CustomAction":
                 return ""
-
 
     def __str_action_plan(self,action):
         """
@@ -97,43 +104,3 @@ class ActionDict(AppEntity):
 
     ###### FROM HERE PUBLIC FUNCTIONS ######
 
-
-    def generate_CSV(self,appID_List=None,fileName=None):
-        """
-        Generate CSV output from actions data
-        :param appID_List: list of application IDs, in order to obtain actions from local actions dictionary
-        :param fileName: output file name
-        :returns: None
-        """
-        if fileName is not None:
-            try:
-                csvfile = open(fileName, 'w')
-            except:
-                sys.stderr.write("Could not open output file " + fileName + ".\n")
-                return (-1)
-        else:
-            csvfile = sys.stdout
-
-        fieldnames = ['ActionName', 'Application', 'ActionType', 'Recipients', 'Policies', 'CustomProperties']
-        filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
-
-        for appID in self.entityDict:
-            if appID_List is not None and type(appID_List) is list and int(appID) not in appID_List:
-                if 'DEBUG' in locals(): print ("Application "+appID +" is not loaded in dictionary.")
-                continue
-            for action in self.entityDict[appID]:
-                if  'header_is_printed' not in locals():
-                    filewriter.writeheader()
-                    header_is_printed=True
-                try:
-                    filewriter.writerow({'ActionName': action['name'].encode('ASCII', 'ignore'),
-                                        'Application': self.controller.applications.getAppName(appID),
-                                        'ActionType': action['actionType'],
-                                        'Recipients': self.__str_action_recipients(action),
-                                        'Policies': "", #policies.get_policies_matching_action(app_ID,action['name']),
-                                        'CustomProperties': self.__str_action_properties(action)})
-                except ValueError as valError:
-                    sys.stderr.write("generate_CSV: "+str(valError)+"\n")
-                    if fileName is not None: csvfile.close()
-                    return (-1)
-        if fileName is not None: csvfile.close()

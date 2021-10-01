@@ -37,7 +37,7 @@ def get_help(COMMAND,SUBCOMMAND=None,output=sys.stdout):
   elif COMMAND=="get" and SUBCOMMAND is None:
     sys.stderr.write("Usage: appdctl get [policies|actions|schedules|healthrules|\n" + \
                      "                    detection-rules|businesstransactions|backends|entrypoints|\n" + \
-                     "                    healthrule-violations|snapshots|allothertraffic|\n" + \
+                     "                    healthrule-violations|errors|snapshots|allothertraffic|\n" + \
                      "                    applications|nodes|dashboards|config|users] [options]\n\n")
   elif COMMAND=="config" and SUBCOMMAND is None:
     output.write ("Modify appdconfig files using subcommands like \"appdctl config set current-context my-context\"\n\n" + \

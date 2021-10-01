@@ -1,5 +1,4 @@
 import json
-import csv
 import sys
 from .entities import ControllerEntity
 
@@ -11,39 +10,22 @@ class DashboardDict(ControllerEntity):
         self.entityAPIFunctions = { 'fetch': self.controller.RESTfulAPI.fetch_dashboards,
                                     'fetchByID': self.controller.RESTfulAPI.fetch_dashboard_by_ID }
         self.entityKeywords = ['canvasType']
+        self.CSVfields = {  'Name':       self.__str_dashboard_name,
+                            'Height':     self.__str_dashboard_height,
+                            'Width':      self.__str_dashboard_width,
+                            'CanvasType': self.__str_dashboard_canvasType}
+
+    def __str_dashboard_name(self,dashboard):
+        return dashboard['name'] if sys.version_info[0] >= 3 else dashboard['name'].encode('ASCII', 'ignore')
+
+    def __str_dashboard_height(self,dashboard):
+        return dashboard['height']
+
+    def __str_dashboard_width(self,dashboard):
+        return dashboard['width']
+
+    def __str_dashboard_canvasType(self,dashboard):
+        return dashboard['canvasType']
 
     ###### FROM HERE PUBLIC FUNCTIONS ######
 
-    def generate_CSV(self, fileName=None):
-        """
-        Generate CSV output from dashboards data
-        :param fileName: output file name
-        :returns: None
-        """
-        if fileName is not None:
-            try:
-                csvfile = open(fileName, 'w')
-            except:
-                sys.stderr.write("Could not open output file " + fileName + ".")
-                return (-1)
-        else:
-            csvfile = sys.stdout
-
-        # create the csv writer object
-        fieldnames = ['Name', 'Height', 'Width', 'CanvasType']
-        filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
-             
-        for dashboard in self.entityDict:
-            if 'header_is_printed' not in locals():
-                filewriter.writeheader()
-                header_is_printed=True
-            try:
-                filewriter.writerow({'Name': dashboard['name'],
-                                     'Height': dashboard['height'],
-                                     'Width': dashboard['width'],
-                                     'CanvasType': dashboard['canvasType']})
-            except ValueError as valError:
-                sys.stderr.write("generate_CSV: "+str(valError)+"\n")
-                if fileName is not None: csvfile.close()
-                return (-1)
-        if fileName is not None: csvfile.close()

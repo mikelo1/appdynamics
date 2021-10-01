@@ -1,5 +1,4 @@
 import json
-import csv
 import sys
 from .entities import AppEntity
 
@@ -11,6 +10,10 @@ class PolicyDict(AppEntity):
         self.entityAPIFunctions = { 'fetch': self.controller.RESTfulAPI.fetch_policies_legacy,
                                     'fetchByID': self.controller.RESTfulAPI.fetch_policy_by_ID }
         self.entityKeywords = ["reactorType"]
+        self.CSVfields = {  'PolicyName': self.__str_policy_name,
+                            'Events':     self.__str_policy_healthrules,
+                            'Entities':   self.__str_policy_entities,
+                            'Actions':    self.__str_policy_actions }
 
     def __build_test_policies(self,app_ID):
         policies1=json.loads('[{"id":1854,"name":"POLICY_SANDBOX","enabled":true,"executeActionsInBatch":true,"frequency":null,"actions":[{"actionName":"gogs@acme.com","actionType":"EMAIL","notes":""}],"events":{"healthRuleEvents":null,"otherEvents":[],"anomalyEvents":["ANOMALY_OPEN_CRITICAL"],"customEvents":[]},"selectedEntities":{"selectedEntityType":"ANY_ENTITY"}]')
@@ -23,6 +26,8 @@ class PolicyDict(AppEntity):
         if str(app_ID) in entityDict:
             print (entityDict[str(app_ID)])
 
+    def __str_policy_name(self,policy):
+        return policy['name'] if sys.version_info[0] >= 3 else policy['name'].encode('ASCII', 'ignore')
 
     def __str_policy_healthrules(self,policy):
         """
@@ -38,7 +43,6 @@ class PolicyDict(AppEntity):
             return ",".join(policy['events']['healthRuleEvents']['healthRuleScope']['healthRules'])
         else:
             return "ANY"
-
 
     def __str_policy_entities(self,policy):
         """
@@ -105,7 +109,6 @@ class PolicyDict(AppEntity):
         if 'entities' in locals(): return entities
         else: return "ANY"
 
- 
     def __str_policy_actions(self,policy):
         """
         toString private method, extracts actions from policy
@@ -122,48 +125,8 @@ class PolicyDict(AppEntity):
         else:
             return "ANY"
 
+
     ###### FROM HERE PUBLIC FUNCTIONS ######
-
-
-    def generate_CSV(self,appID_List=None,fileName=None):
-        """
-        Generate CSV output from policies data
-        :param appID_List: list of application IDs, in order to obtain policies from local policies dictionary
-        :param fileName: output file name
-        :returns: None
-        """
-        if fileName is not None:
-            try:
-                csvfile = open(fileName, 'w')
-            except:
-                sys.stderr.write("Could not open output file " + fileName + ".")
-                return (-1)
-        else:
-            csvfile = sys.stdout
-
-        # create the csv writer object
-        fieldnames = ['Policy', 'Application', 'Events', 'Entities', 'Actions']
-        filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
-
-        for appID in self.entityDict:
-            if appID_List is not None and type(appID_List) is list and int(appID) not in appID_List:
-                if 'DEBUG' in locals(): print ("Application "+appID +" is not loaded in dictionary.")
-                continue
-            for policy in self.entityDict[appID]:
-                if 'header_is_printed' not in locals():
-                    filewriter.writeheader()
-                    header_is_printed=True
-                try:
-                    filewriter.writerow({'Policy': policy['name'].encode('ASCII', 'ignore'),
-                                         'Application': self.controller.applications.getAppName(appID),
-                                         'Events': self.__str_policy_healthrules(policy),
-                                         'Entities': self.__str_policy_entities(policy),
-                                         'Actions': self.__str_policy_actions(policy)})
-                except ValueError as valError:
-                    sys.stderr.write("generate_CSV: "+str(valError)+"\n")
-                    if fileName is not None: csvfile.close()
-                    return (-1)
-        if fileName is not None: csvfile.close()
 
 
     def get_policies_matching_action(self,app_ID,name):

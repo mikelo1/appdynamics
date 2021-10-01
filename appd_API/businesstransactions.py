@@ -1,5 +1,4 @@
 import json
-import csv
 import sys
 from .entities import AppEntity
 
@@ -10,49 +9,21 @@ class BusinessTransactionDict(AppEntity):
         self.controller = controller
         self.entityAPIFunctions = { 'fetch': self.controller.RESTfulAPI.fetch_business_transactions }
         self.entityKeywords = ['internalName','entryPointType']
+        self.CSVfields = {  'name':           self.__str_businesstransaction_name,
+                            'entryPointType': self.__str_businesstransaction_entryPointType,
+                            'tierName':       self.__str_businesstransaction_tierName }
+
+    def __str_businesstransaction_name(self,BT):
+        return BT['name'] if sys.version_info[0] >= 3 else BT['name'].encode('ASCII', 'ignore')
+
+    def __str_businesstransaction_entryPointType(self,BT):
+        return BT['entryPointType']
+
+    def __str_businesstransaction_tierName(self,BT):
+        return BT['tierName']
+
 
     ###### FROM HERE PUBLIC FUNCTIONS ######
-
-    def generate_CSV(self,appID_List=None,fileName=None):
-        """
-        Generate CSV output from business transactions data
-        :param appID_List: list of application IDs, in order to obtain business transactions from local business transactions dictionary
-        :param custom_transactionDict: dictionary containing business transactions
-        :param fileName: output file name
-        :returns: None
-        """
-        if fileName is not None:
-            try:
-                csvfile = open(fileName, 'w')
-            except:
-                sys.stderr.write("Could not open output file " + fileName + ".")
-                return (-1)
-        else:
-            csvfile = sys.stdout
-
-        # create the csv writer object
-        fieldnames = ['name', 'Application', 'entryPointType', 'tierName']
-        filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
-
-        for appID in self.entityDict:
-            if appID_List is not None and type(appID_List) is list and int(appID) not in appID_List:
-                if 'DEBUG' in locals(): print ("Application "+appID +" is not loaded in dictionary.")
-                continue
-            for BT in self.entityDict[appID]:
-                if 'header_is_printed' not in locals():
-                    filewriter.writeheader()
-                    header_is_printed=True
-
-                try:
-                    filewriter.writerow({'name': BT['name'].encode('ASCII', 'ignore'),
-                                         'Application': self.controller.applications.getAppName(appID),
-                                         'entryPointType': BT['entryPointType'],
-                                         'tierName': BT['tierName']})
-                except ValueError as valError:
-                    sys.stderr.write("generate_CSV: "+str(valError)+"\n")
-                    if fileName is not None: csvfile.close()
-                    exit(1)
-            if fileName is not None: csvfile.close()
 
 
     def get_business_transaction_ID(self,appID,transactionName):

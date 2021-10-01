@@ -191,7 +191,7 @@ class DetectionruleDict(AppEntity):
                 # for child in detectrule:
                 #    print(child.tag, child.attrib, child.text)
                 #    print ("\n")
-                ruleName = detectrule.attrib['rule-name'].encode('ASCII', 'ignore')
+                ruleName = detectrule.attrib['rule-name'] if sys.version_info[0] >= 3 else detectrule.attrib['rule-name'].encode('ASCII', 'ignore')
                 ruleType = detectrule.attrib['rule-type']
 
                 if ruleType == "TX_MATCH_RULE":

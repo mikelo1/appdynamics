@@ -10,40 +10,27 @@ class ConfigurationDict(ControllerEntity):
         self.controller = controller
         self.entityAPIFunctions = { 'fetch': self.controller.RESTfulAPI.fetch_configuration }
         self.entityKeywords = ['updateable']
+        self.CSVfields = {  'Name':        self.__str_setting_name,
+                            'Value':       self.__str_setting_value,
+                            'Scope':       self.__str_setting_scope,
+                            'Updateable':  self.__str_setting_updateable,
+                            'Description': self.__str_setting_description }
+
+
+    def __str_setting_name(self,setting):
+        return setting['name']
+
+    def __str_setting_value(self,setting):
+        return setting['value']
+
+    def __str_setting_scope(self,setting):
+        return setting['scope']
+
+    def __str_setting_updateable(self,setting):
+        return setting['updateable']
+
+    def __str_setting_description(self,setting):
+        return setting['description']
 
     ###### FROM HERE PUBLIC FUNCTIONS ######
 
-    def generate_CSV(self,fileName=None):
-        """
-        Generate CSV output from config data
-        :param fileName: output file name
-        :returns: None
-        """
-        if fileName is not None:
-            try:
-                csvfile = open(fileName, 'w')
-            except:
-                sys.stderr.write("Could not open output file " + fileName + ".")
-                return (-1)
-        else:
-            csvfile = sys.stdout
-
-        # create the csv writer object
-        fieldnames = ['Name', 'Value', 'Scope', 'Updateable', 'Description']
-        filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
-             
-        for setting in self.entityDict:
-            if 'header_is_printed' not in locals():
-                filewriter.writeheader()
-                header_is_printed=True
-            try:
-                filewriter.writerow({'Name': setting['name'],
-                                     'Value': setting['value'],
-                                     'Scope': setting['scope'],
-                                     'Updateable': setting['updateable'],
-                                     'Description': setting['description']})
-            except ValueError as valError:
-                sys.stderr.write("generate_CSV: "+str(valError)+"\n")
-                if fileName is not None: csvfile.close()
-                return (-1)
-        if fileName is not None: csvfile.close()

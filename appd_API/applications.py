@@ -11,6 +11,32 @@ class ApplicationDict(ControllerEntity):
         self.entityAPIFunctions = { 'fetch': self.controller.RESTfulAPI.fetch_applicationsAllTypes }
         self.entityKeywords = ['eumWebApplications','dbMonApplication','mobileAppContainers','cloudMonitoringApplication',
                                'iotApplications','simApplication','apmApplications']
+        self.CSVfields = {  'Name':        self.__str_application_name,
+                            'Id':          self.__str_application_id,
+                            'Types':       self.__str_application_types,
+                           # 'Description': self.__str_application_description,
+                            'Tiers':       self.__str_application_tiers,
+                            'Nodes':       self.__str_application_nodes }
+
+    def __str_application_name(self,application):
+        return application['name'] if sys.version_info[0] >= 3 else application['name'].encode('ASCII', 'ignore')
+
+    def __str_application_id(self,application):
+        return application['id']
+
+    def __str_application_types(self,application):
+        return application['applicationTypeInfo']['applicationTypes']
+
+#    def __str_application_description(self,application):
+#        return application['description'] if sys.version_info[0] >= 3 and 'description' in application else application['description'].encode('ASCII', 'ignore') if 'description' in application else ""
+
+    def __str_application_tiers(self,application):
+        tierList = [tier['name'] for tier in application['tiers']] if 'tiers' in application else []
+        return ','.join(map(lambda x: str(x.text),tierList))
+
+    def __str_application_nodes(self,application):
+        nodeList = [node['name'] for tier in application['tiers'] for node in tier['nodes']] if 'tiers' in application else []
+        return ','.join(map(lambda x: str(x.text),nodeList))
 
     def __fetch_tiers_and_nodes(self,app_ID):
         """
@@ -43,7 +69,7 @@ class ApplicationDict(ControllerEntity):
         else:
             csvfile = sys.stdout
 
-        fieldnames = ['Name', 'Id', 'Type', 'Description', 'Tiers', 'Nodes']
+        fieldnames = [ name for name in self.CSVfields ]
         filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
 
         for appType in self.entityDict:
@@ -61,16 +87,9 @@ class ApplicationDict(ControllerEntity):
                 header_is_printed=True
 
             for application in appList:
-                tierList = [tier['name'] for tier in application['tiers']] if 'tiers' in application else []
-                nodeList = [node['name'] for tier in application['tiers'] for node in tier['nodes']] if 'tiers' in application else []
-
+                row = { name: self.CSVfields[name](application) for name in self.CSVfields }
                 try:
-                    filewriter.writerow({'Name': application['name'],
-                                        'Id': application['id'],
-                                        'Type': appType,
-                                        'Description': application['description'],
-                                        'Tiers': ','.join(map(lambda x: str(x.text),tierList)),
-                                        'Nodes': ','.join(map(lambda x: str(x.text),nodeList)) })
+                    filewriter.writerow(row)
                 except (TypeError,ValueError) as error:
                     sys.stderr.write("generate_CSV: "+str(error)+"\n")
                     if fileName is not None: csvfile.close()

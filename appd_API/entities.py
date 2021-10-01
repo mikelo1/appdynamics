@@ -1,5 +1,6 @@
 #!/usr/bin/python
 import json
+import csv
 import xml.etree.ElementTree as ET
 import sys
 
@@ -211,7 +212,39 @@ class AppEntity:
         :param fileName: output file name
         :returns: None
         """
-        raise NotImplementedError("Don't forget to implement the generate_CSV function!")
+        if fileName is not None:
+            try:
+                csvfile = open(fileName, 'w')
+            except:
+                sys.stderr.write("Could not open output file " + fileName + ".\n")
+                return (-1)
+        else:
+            csvfile = sys.stdout
+
+        # create the csv writer object
+        fieldnames = ['Application'] + [ name for name in self.CSVfields ]
+        filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
+
+        for appID in self.entityDict:
+            if appID_List is not None and type(appID_List) is list and int(appID) not in appID_List:
+                if 'DEBUG' in locals(): print ("Application "+appID +" is not loaded in dictionary.")
+                continue
+            for entity in self.entityDict[appID]:
+                if  'header_is_printed' not in locals():
+                    filewriter.writeheader()
+                    header_is_printed=True
+                row = { name: self.CSVfields[name](entity) for name in self.CSVfields }
+                appName = self.controller.applications.getAppName(appID)
+                row['Application'] = appName if appName is not None and sys.version_info[0] >= 3 else appName.encode('ASCII', 'ignore') if appName is not None else ""
+                try:
+                    filewriter.writerow(row)
+                except ValueError as valError:
+                    sys.stderr.write("generate_CSV: "+str(valError)+"\n")
+                    if fileName is not None: csvfile.close()
+                    return (-1)
+        if fileName is not None: csvfile.close()
+        #raise NotImplementedError("Don't forget to implement the generate_CSV function!")
+
 
     def generate_JSON(self,appID_List=None,fileName=None):
         """
@@ -221,7 +254,7 @@ class AppEntity:
         :returns: None
         """
         if appID_List is not None and type(appID_List) is list and len(appID_List) > 0:
-            entities = [ self.entityDict[str(appID)] for appID in appID_List ]
+            entities = [ self.entityDict[str(appID)] for appID in appID_List if str(appID) in self.entityDict ]
         else:
             entities = self.entityDict
 
@@ -373,7 +406,32 @@ class ControllerEntity:
         :param fileName: output file name
         :returns: None
         """
-        raise NotImplementedError("Don't forget to implement the generate_CSV function!")
+        if fileName is not None:
+            try:
+                csvfile = open(fileName, 'w')
+            except:
+                sys.stderr.write("Could not open output file " + fileName + ".")
+                return (-1)
+        else:
+            csvfile = sys.stdout
+
+        # create the csv writer object
+        fieldnames = [ name for name in self.CSVfields ]
+        filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
+
+        for entity in self.entityDict:
+            if 'header_is_printed' not in locals():
+                filewriter.writeheader()
+                header_is_printed=True
+            row = { name: self.CSVfields[name](entity) for name in self.CSVfields }
+            try:
+                filewriter.writerow(row)
+            except ValueError as valError:
+                sys.stderr.write("generate_CSV: "+str(valError)+"\n")
+                if fileName is not None: csvfile.close()
+                return (-1)
+        if fileName is not None: csvfile.close()
+        #raise NotImplementedError("Don't forget to implement the generate_CSV function!")
 
     def generate_JSON(self,fileName=None):
         """
