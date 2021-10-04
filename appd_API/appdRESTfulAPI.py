@@ -127,11 +127,8 @@ class RESTfulAPI:
                 description_end = content.find("</p>",description_start)
                 sys.stderr.write("Description: "+content[description_start+18:description_end] + "\n" )
             if 'DEBUG' in locals():
-                print ("   header:", response.headers)
-                print ("Writing content to file: response.txt")
-                file1 = open("response.txt","w") 
-                file1.write(response.content)
-                file1.close()
+                sys.stderr.write ("   header:"+ str(response.headers))
+                sys.stderr.write(str(response.content))
             return None
         return response.content
 
