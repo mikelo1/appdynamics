@@ -94,7 +94,7 @@ class AppEntity:
         for entity in self.entityDict[str(appID)]:
             streamdata = self.entityAPIFunctions['fetchByID'](appID,entity['id'])
             if streamdata is None:
-                sys.stderr.write("load_AppEntity_with_details("+str(appID)+"): Failed to retrieve entity.\n")
+                sys.stderr.write("load_AppEntity_with_details("+str(appID)+"): Failed to retrieve entity "+entity['name']+".\n")
                 continue
             try:
                 entityJSON = json.loads(streamdata)
@@ -160,48 +160,61 @@ class AppEntity:
         entity_IDs = [ entity['id'] for entity in self.entityDict[str(appID)] if entity['name'] == entityData['name'] ]
         return len(entity_IDs) > 0 and self.entityAPIFunctions['update'](app_ID=appID,entity_ID=entity_IDs[0],dataJSON=streamdata)
 
-    # https://nvie.com/posts/modifying-deeply-nested-structures/
-    # https://www.geeksforgeeks.org/python-update-nested-dictionary/
-    # https://stackoverflow.com/questions/3232943/update-value-of-a-nested-dictionary-of-varying-depth
-    def patch(self,appID,streamdata,selectors=None):
+    # *****************************************************************************************************
+    # ************************ EXPERIMENTAL: Only tested for health rule schedules ************************
+    # *****************************************************************************************************
+    # * https://nvie.com/posts/modifying-deeply-nested-structures/                                       **
+    # * https://www.geeksforgeeks.org/python-update-nested-dictionary/                                   **
+    # * https://stackoverflow.com/questions/3232943/update-value-of-a-nested-dictionary-of-varying-depth **
+    # *****************************************************************************************************
+    def patch(self,patchJSON,appID=None,streamdata=None,selectors=None):
         """
         Patch entities for a list of applications, using an entity data input.
+        :param patchJSON: the stream data with the entity configuration, in JSON format
         :param appID: the ID number of the application to patch entities
-        :param streamdata: the stream data with the entity configuration, in JSON format
+        :param streamdata: the input stream data to be patched
         :param selectors: update only entities filtered by specified selectors
         :returns: the number of updated entities. Zero if no entity was updated.
         """
         # Verify if the source is a file or stream JSON data
         DEBUG=True
         try:
-            changesJSON = json.loads(streamdata)
+            changesJSON = json.loads(patchJSON)
         except ValueError as error:
             if 'DEBUG' in locals(): sys.stderr.write("patch_entity: "+str(error)+"\n")
             return 0
 
-        #if selectors is not None and 'entitynames' in selectors:
-        #    entityNames = selectors['entitynames'].split(',')
+        if streamdata is not None:
+            if self.load(streamdata=streamdata) > 0:
+                appID = 0
+        elif appID is not None:
+            # Reload entity data for provided application
+            if self.fetch_with_details(appID) == 0:
+                sys.stderr.write("patch_entity: Failed to retrieve entities for application " + str(appID) + "...\n")
+                return 0
 
-        # Reload entity data for provided application
-        if self.fetch_with_details(appID) == 0:
-            sys.stderr.write("patch_entity: Failed to retrieve entities for application " + str(appID) + "...\n")
-            return 0
-
-        # Generate the list of entity IDs to be patched
-        #if 'entityNames' in locals():
-        #    entityIDs = [ entity['id'] for entity in self.entityDict[str(appID)] if entity['name'] in entityNames ]
-        #else:
-        #    entityIDs = [ entity['id'] for entity in self.entityDict[str(appID)] ]
-        #print entityIDs
+        if selectors is not None and 'entityname' in selectors:
+            # Generate the list of entity IDs to be patched
+            entityNames = selectors['entityname'].split(',')
+            entityIDs = [ entity['id'] for entity in self.entityDict[str(appID)] if entity['name'] in entityNames ]
+        else:
+            entityIDs = [ entity['id'] for entity in self.entityDict[str(appID)] ]
 
         # Run the patching
         count = 0
         for entity in self.entityDict[str(appID)]:
-            # Do the replacement in loaded data
-            entity.update(changesJSON)
-            # Update controller data
-            if self.entityAPIFunctions['update'](app_ID=appID,entity_ID=entity['id'],dataJSON=entity) == True:
-                count = count + 1
+            if entity['id'] in entityIDs:
+                # Do the replacement in loaded data
+                entity.update(changesJSON)
+                if not streamdata:
+                    # Update controller data
+                    if self.entityAPIFunctions['update'](app_ID=appID,entity_ID=entity['id'],dataJSON=entity) == True:
+                        count = count + 1
+                else:
+                    # Print updated data
+                    print(json.dumps(entity))
+                    count = count + 1
+
         return count
 
 
@@ -288,7 +301,6 @@ class ControllerEntity:
 
     def count(self):
         return len(self.entityDict)
-
 
     def info(self):
         return "Class ",self.__class__,"Number of entities in ", hex(id(self.entityDict)), self.count()
@@ -398,6 +410,15 @@ class ControllerEntity:
         entityData = json.loads(streamdata)
         entity_IDs = [ entity['id'] for entity in self.entityDict if entity['name'] == entityData['name'] ]
         return len(entity_IDs) > 0 and self.entityAPIFunctions['update'](entity_ID=entity_IDs[0],dataJSON=streamdata)
+
+    def patch(self,appID,streamdata,selectors=None):
+        """
+        Patch entities using an entity data input and an optional filter.
+        :param streamdata: the stream data with the entity configuration, in JSON format
+        :param selectors: update only entities filtered by specified selectors
+        :returns: the number of updated entities. Zero if no entity was updated.
+        """
+        raise NotImplementedError("Don't forget to implement the patch function!")
 
     def generate_CSV(self,fileName=None):
         """

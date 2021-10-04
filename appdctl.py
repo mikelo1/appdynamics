@@ -96,6 +96,9 @@ def get_entity_type(data):
     if 'DEBUG' in locals(): sys.stderr.write("INFO: Found to be a "+str(entityList[0])+" file.\n")
     return entityList[0]
 
+def get_selectors():
+    return { selector.split('=')[0]:selector.split('=')[1] for selector in options.selector.split(',') } if options.selector else {}
+
 
 usage = "usage: %prog [get|config|apply|patch|drain] [options]"
 epilog= "examples: %prog get applications"
@@ -251,10 +254,7 @@ elif COMMAND.lower() == "get":
     exit()
 
   # create the filters list, if applies
-  selectors = {}
-  if options.selector:
-    for selector in options.selector.split(','):
-      selectors.update({selector.split('=')[0]:selector.split('=')[1]})
+  selectors = get_selectors()
 
   if ENTITY == 'help':
     get_help(COMMAND)
@@ -345,56 +345,18 @@ elif COMMAND.lower() == "patch":
       optParser.error("incorrect number of arguments")
       exit()
 
-  ENTITY = args[1]
+  if args[1] == "help":
+    get_help(COMMAND)
+    exit()
+
+  if not options.patchJSON:
+    optParser.error("Missing patch JSON.")
+    exit()
 
   # create the filters list, if applies
-  selectors = {}
-  if options.selector:
-    for selector in options.selector.split(','):
-      selectors.update({selector.split('=')[0]:selector.split('=')[1]})
+  selectors = get_selectors()
 
-  if ENTITY == "help":
-    get_help(COMMAND)
-  elif ENTITY in ['schedules']:
-    current_context = AppD_Configuration().get_current_context(output="None")
-    applicationList = get_application_list()
-    if len(applicationList) == 0:
-     sys.stderr.write("\rpatch "+ENTITY+" ("+current_context+"): no application was found.\n")
-     exit()
-
-    if not options.patchJSON:
-      optParser.error("Missing patch JSON.")
-
-    if 'timezone' not in options.patchJSON:
-      sys.stderr.write("Only timezone patch is currently supported.\n")
-      exit()
-
-    if options.patchJSON in ['name','description','scheduleConfiguration']:
-      sys.stderr.write("Warn: schedule (name|description|scheduleConfiguration) patching not implemented yet.\n")
-      exit()
-
-    index = 0
-    sys.stderr.write("patch "+ENTITY+" ("+current_context+")... 0%")
-    sys.stderr.flush()
-    entityObj = entityDict[ENTITY]
-    for appID in applicationList:
-        index += 1
-        percentage = index*100/len(applicationList)
-        sys.stderr.write("\rpatch "+ENTITY+" ("+current_context+")... " + str(percentage) + "%")
-        sys.stderr.flush()
-        entityObj.patch(appID=appID,streamdata=options.patchJSON,selectors=selectors)
-    sys.stderr.write("\n")
-  else:
-    optParser.error("incorrect entity \""+ENTITY+"\"")
-
-
-#######################################
-############ APPLY COMMAND ############
-#######################################
-elif COMMAND.lower() == "apply":
-  if len(args) == 2 and args[1] == "help":
-    get_help(COMMAND)
-  elif options.filename:
+  if options.filename:
     if options.filename == "-":
       data = sys.stdin.read()
     elif os.path.isfile(options.filename):
@@ -407,6 +369,76 @@ elif COMMAND.lower() == "apply":
       exit()
 
     entityObj = entityDict[get_entity_type(data)]
+    entityObj.patch(patchJSON=options.patchJSON,streamdata=data,selectors=selectors)
+
+  elif args[1] in ['applications','dashboards','config','users']:
+    ENTITY = args[1]
+    sys.stderr.write("patch "+ENTITY+" ("+current_context+")... 0%")
+    entityObj = entityDict[ENTITY]
+    entityObj.patch(patchJSON=options.patchJSON,selectors=selectors)
+
+  elif args[1] in ['nodes','detection-rules','businesstransactions','backends','entrypoints','healthrules','policies','actions','schedules']:
+    ENTITY = args[1]
+    current_context = AppD_Configuration().get_current_context(output="None")
+    applicationList = get_application_list()
+    if len(applicationList) == 0:
+     sys.stderr.write("\rpatch "+ENTITY+" ("+current_context+"): no application was found.\n")
+     exit()
+
+    if ENTITY in ['schedules']:
+      if 'timezone' not in options.patchJSON:
+        sys.stderr.write("Only timezone patch is currently supported.\n")
+        exit()
+      if options.patchJSON in ['name','description','scheduleConfiguration']:
+        sys.stderr.write("Warn: schedule (name|description|scheduleConfiguration) patching not implemented yet.\n")
+        exit()
+
+    index = 0
+    sys.stderr.write("patch "+ENTITY+" ("+current_context+")... 0%")
+    sys.stderr.flush()
+    entityObj = entityDict[ENTITY]
+    for appID in applicationList:
+        index += 1
+        percentage = index*100/len(applicationList)
+        sys.stderr.write("\rpatch "+ENTITY+" ("+current_context+")... " + str(percentage) + "%")
+        sys.stderr.flush()
+        entityObj.patch(patchJSON=options.patchJSON,appID=appID,selectors=selectors)
+    sys.stderr.write("\n")
+  elif args[1] in ['healthrule-violations','snapshots','allothertraffic', 'errors']:
+    sys.stderr.write("incorrect entity: "+args[1]+" cannot be patched.")
+  else:
+    optParser.error("incorrect arguments: no input data was specified (use -f for file or -a for controller application")
+
+
+#######################################
+############ APPLY COMMAND ############
+#######################################
+elif COMMAND.lower() == "apply":
+  if len(args) == 2 and args[1] == "help":
+    get_help(COMMAND)
+    exit()
+
+  if not options.filename:
+    optParser.error("incorrect arguments: no input file was specified (use -f for file)")
+    exit()
+
+  if options.filename == "-":
+    data = sys.stdin.read()
+  elif os.path.isfile(options.filename):
+    data = open(options.filename).read()
+  elif options.filename.startswith("http"):
+    sys.stderr.write(os.path.basename(__file__)+": URL resources not implemented yet.\n")
+    exit()
+  else:
+    sys.stderr.write("Don't know what to do with "+options.filename+"\n")
+    exit()
+
+  ENTITY = get_entity_type(data)
+  entityObj = entityDict[ENTITY]
+
+  if ENTITY in ['applications','dashboards','config','users']:
+    sys.stderr.write("INFO: patch command not yet implemented for "+ENTITY+".")
+  elif ENTITY in ['nodes','detection-rules','businesstransactions','backends','entrypoints','healthrules','policies','actions','schedules']:
     current_context = AppD_Configuration().get_current_context(output="None")
     applicationList = get_application_list()
     if len(applicationList) == 0:
@@ -428,10 +460,10 @@ elif COMMAND.lower() == "apply":
         else:
           sys.stderr.write("Nothing to do with file containing "+str(entityObj.info())+"\n")
     sys.stderr.write("\n")
-
+  elif ENTITY in ['healthrule-violations','snapshots','allothertraffic', 'errors']:
+    sys.stderr.write("incorrect data input: "+ENTITY+" cannot be modified.")
   else:
-    optParser.error("no input file specified.")
-
+    sys.stderr.write("ERROR: cannot recognize source file entity.")
 
 #######################################
 ############ DRAIN COMMAND ############
