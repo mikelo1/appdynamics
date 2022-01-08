@@ -94,12 +94,14 @@ echo_appd_access_token() {
  # Get the Application ID for an application name.
  # @param BASE_URL The consistent part of the Appdynamics controller web address. i.e.: https://demo1.appdynamics.com:443
  # @param ACCESS_TOKEN Authentication access token.
+ # @param APP_NAME The full name of the application
  # @return the ID of the specified application name. Nothing if the application was not found.
 ###
 get_App_ID() {
   BASE_URL=$1
   ACCESS_TOKEN=$2
-  response=$(curl -si -H "Authorization:Bearer ${ACCESS_TOKEN}" ${BASE_URL}/controller/rest/applications/${APPLICATION})
+  APP_NAME=$3
+  response=$(curl -si -H "Authorization:Bearer ${ACCESS_TOKEN}" ${BASE_URL}/controller/rest/applications/${APP_NAME})
   respCode=$(echo $response | grep -o "^HTTP\/......." | awk '{print $2}')
   if [ "$respCode" = "200" ]; then
     echo $response | grep -o "<id>.*</id>" | awk -F"[<>]" '{print $3}'
@@ -297,7 +299,9 @@ run_ImpExp_controller() {
   ACCESS_TOKEN=$2
   FILEPATH=$3
 
-  if [ $OPERATION != "retrieve" ]; then echo "ERROR: Only retrieve operation permitted."; exit 1; fi
+  if [ ! -d ${FILEPATH} ]; then
+   if [ "$OPERATION" == "retrieve" ]; then mkdir -p ${FILEPATH}; else echo "ERROR: Only retrieve operation permitted."; return; fi
+  fi
 
   GREEN='\033[0;32m'
   NC='\033[0m' # No Color
@@ -440,23 +444,25 @@ if [ -z $? ]; then echo "No user definition found in config YAML file"; exit; fi
 USERNAME=`echo $USER | awk -F[/] '{print $1}' | sed 's/\"//g'`
 if [ -z $? ]; then echo "User definition not correctly formatted in config YAML file"; exit; fi
 
-PASS=`echo "${CONFIG}" | grep "$USER_INDEX.user.password[^ ]*" | awk -F[=] '{print $2}' | sed 's/\"//g' | base64 -d`
+PASS=`echo "${CONFIG}" | grep "$USER_INDEX.user.password[^ ]*" | sed -e "s/$USER_INDEX.user.password=//g" -e 's/\"//g' | base64 -d`
 if [ -z $? ]; then echo "No user password found in config YAML file"; exit; fi
 
 URL=`echo "${CONFIG}" | grep "$CONTEXT_INDEX.context.server[^ ]*" | awk -F[=] '{print $2}' | sed 's/\"//g'`
 if [ -z $? ]; then echo "No URL definition found in config YAML file"; exit; fi
 
+#echo "Connection details: $URL $USERNAME $PASS"
 
-### Get access token and Application name ###
-
+### Get access token ###
 ACCESS_TOKEN=$(echo_appd_access_token ${URL} ${USERNAME} ${PASS})
-APP_ID=$(get_App_ID ${URL} ${ACCESS_TOKEN})
-if [ -z $APP_ID ]; then echo "Could not find the App ID for application $APP_NAME."; exit; fi
-#if application_exists $APPLICATION ; then echo "Application exists"; else echo "Application does NOT exist."; fi
 
 ### Run Imp/Exp function ###
 if [ -z ${APPLICATION} ]; then
+  echo "Export controller data from context $CONTEXT..."
   run_ImpExp_controller ${URL} ${ACCESS_TOKEN} $(echo "${CONTEXT}" | sed 's/\"//g')
 else
+  echo "${OPERATION} from application ${APPLICATION}(${CONTEXT})..."
+  APP_ID=$(get_App_ID ${URL} ${ACCESS_TOKEN} ${APPLICATION})
+  if [ -z $APP_ID ]; then echo "Could not find the App ID for application $APP_NAME."; exit; fi
+  #if application_exists $APPLICATION ; then echo "Application exists"; else echo "Application does NOT exist."; fi
   run_ImpExp_legacy ${URL} ${ACCESS_TOKEN} ${APP_ID} $(echo "${CONTEXT}" | sed 's/\"//g')/${APPLICATION}
 fi
