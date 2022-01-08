@@ -107,7 +107,7 @@ get_App_ID() {
 }
 
 ###
- # Import / Export of entities to a SaaS or OnPrem Appdynamics controller.
+ # Import / Export of application entities to a SaaS or OnPrem Appdynamics controller.
  # @param BASE_URL The consistent part of the Appdynamics controller web address. i.e.: https://demo1.appdynamics.com:443
  # @param ACCESS_TOKEN Authentication access token.
  # @param APP_ID Application ID number to be imported/exported.
@@ -208,7 +208,7 @@ run_ImpExp() {
 }
 
 ###
- # Import / Export of entities to a SaaS or OnPrem Appdynamics controller, using the legacy REST application.
+ # Import / Export of application entities to a SaaS or OnPrem Appdynamics controller, using the legacy REST application.
  # https://docs.appdynamics.com/display/PRO44/Configuration+Import+and+Export+API
  # @param BASE_URL The consistent part of the Appdynamics controller web address. i.e.: https://demo1.appdynamics.com:443
  # @param ACCESS_TOKEN Authentication access token.
@@ -285,6 +285,90 @@ run_ImpExp_legacy() {
 }
 
 
+###
+ # Export of entities to a SaaS or OnPrem Appdynamics controller, using the legacy REST application.
+ # https://docs.appdynamics.com/display/PRO44/Configuration+Import+and+Export+API
+ # @param BASE_URL The consistent part of the Appdynamics controller web address. i.e.: https://demo1.appdynamics.com:443
+ # @param ACCESS_TOKEN Authentication access token.
+ # @param FILEPATH Path where to import/export files.
+###
+run_ImpExp_controller() {
+  BASE_URL=$1
+  ACCESS_TOKEN=$2
+  FILEPATH=$3
+
+  if [ $OPERATION != "retrieve" ]; then echo "ERROR: Only retrieve operation permitted."; exit 1; fi
+
+  GREEN='\033[0;32m'
+  NC='\033[0m' # No Color
+
+  #CONTROLLER_VERSION
+  echo -ne "AppDynamics Controller version: "
+  curl -s -H "Authorization:Bearer ${ACCESS_TOKEN}" "${BASE_URL}/controller/rest/configuration?name=schema.version&output=JSON" | grep value | awk '{print $2}' | sed -e 's/"//g'
+  if [ $? -ne 0 ]; then
+    echo "Something went wrong with the cURL command. Exiting..." ; exit
+  fi
+
+  #APPLICATION_LIST
+  curl -s -H "Authorization:Bearer ${ACCESS_TOKEN}" "${BASE_URL}/controller/restui/applicationManagerUiBean/getApplicationsAllTypes" -o ${FILEPATH}/applications.json
+  if [ $? -ne 0 ]; then
+    echo "Something went wrong with the cURL command. Exiting..." ; exit
+  else
+    echo -e "Application list downloaded to file ${GREEN}${FILEPATH}/applications.json${NC}"
+  fi
+
+  #CONFIGURATION
+  curl -s -H "Authorization:Bearer ${ACCESS_TOKEN}" "${BASE_URL}/controller/rest/configuration?output=JSON" -o ${FILEPATH}/config.json
+  if [ $? -ne 0 ]; then
+    echo "Something went wrong with the cURL command. Exiting..."; exit
+  else
+    echo -e "Controller configuration downloaded to file ${GREEN}${FILEPATH}/config.json${NC}"
+  fi
+
+  #CONTROLLER AUDIT HISTORY
+  end_time=`date +%FT%T.000-0000 -d "30 days ago"`
+  start_time=`date +%FT%T.000-0000 -d "31 days ago"`
+  curl -s -H "Authorization:Bearer ${ACCESS_TOKEN}" "${BASE_URL}/controller/ControllerAuditHistory?startTime=${start_time}&endTime=${end_time}" -o ${FILEPATH}/audit_log.json
+  if [ $? -ne 0 ]; then
+    echo "Something went wrong with the cURL command. Exiting..."; exit
+  else
+    echo -e "Controller audit history downloaded to file ${GREEN}${FILEPATH}/audit_log.json${NC}"
+  fi
+
+  #EMAIL TEMPLATES
+  curl -s -H "Authorization:Bearer ${ACCESS_TOKEN}" ${BASE_URL}/controller/actiontemplate/email -o ${FILEPATH}/emailTemplates.json
+  if [ $? -ne 0 ]; then
+    echo "Something went wrong with the cURL command. Exiting..." ; exit
+  else
+    echo -e "Controller email templates downloaded to file ${GREEN}${FILEPATH}/emailTemplates.json${NC}"
+  fi
+
+  #DASHBOARD_LIST
+  DASHBOARDS_BY_TYPE=`curl -s -H "Authorization:Bearer ${ACCESS_TOKEN}" \
+                              "${BASE_URL}/controller/restui/dashboards/getAllDashboardsByType/false"`
+  if [ $? -ne 0 ]; then
+    echo "Something went wrong with the cURL command. Exiting..."; exit
+  else
+    echo $DASHBOARDS_BY_TYPE > ${FILEPATH}/dashboards.json
+    echo -e "Dashboard list downloaded to file ${GREEN}${FILEPATH}/dashboards.json${NC}"
+  fi
+
+  #DASHBOARD_EXPORT_ALL
+   if [ $? ] && [ DASHBOARDS_BY_TYPE != "Failed to authenticate: invalid access token." ]; then
+    DASHBOARD_LIST=`echo ${DASHBOARDS_BY_TYPE} | grep -o "\"id\" : [0-9]*," | sed -e 's/[id:",]//g'`
+    for DASHBOARD_ID in $DASHBOARD_LIST; do
+      curl -s -H "Authorization:Bearer ${ACCESS_TOKEN}" "${BASE_URL}/controller/CustomDashboardImportExportServlet?dashboardId=${DASHBOARD_ID}" -o ${FILEPATH}/dashboards/${DASHBOARD_ID}.json
+      if [ $? -ne 0 ]; then
+        echo "Something went wrong with the cURL command. Exiting..."; exit
+      else
+        echo -e "Dashboard ${DASHBOARD_ID} downloaded to file ${GREEN}${FILEPATH}/dashboards/${DASHBOARD_ID}.json${NC}"
+      fi
+    done
+  else
+    echo $DASHBOARDS_BY_TYPE
+  fi
+}
+
 ### Read arguments ###
 
 POSITIONAL_ARGS=()
@@ -329,7 +413,7 @@ elif [ -z ${CONF_FILE} ]; then
   echo "ERROR: No configuration file was specified."; exit 1
 fi
 if [ -z ${APPLICATION} ]; then
-  echo "ERROR: No application was specified."; exit 1
+  echo "INFO: No application was specified, retrieve operation only allowed."; OPERATION="retrieve"
 elif [ "${OPERATION}" != "retrieve" ] && [ "${OPERATION}" != "create" ] && [ "${OPERATION}" != "update" ]; then
   echo "Syntax: $0 [-f|--file <configuration_file>] [-c|--context <context-name>] [-a|--application <application_name>] <retrieve|create|update>"; exit
 fi
@@ -370,4 +454,9 @@ APP_ID=$(get_App_ID ${URL} ${ACCESS_TOKEN})
 if [ -z $APP_ID ]; then echo "Could not find the App ID for application $APP_NAME."; exit; fi
 #if application_exists $APPLICATION ; then echo "Application exists"; else echo "Application does NOT exist."; fi
 
-run_ImpExp_legacy ${URL} ${ACCESS_TOKEN} ${APP_ID} $(echo "${CONTEXT}" | sed 's/\"//g')/${APPLICATION}
+### Run Imp/Exp function ###
+if [ -z ${APPLICATION} ]; then
+  run_ImpExp_controller ${URL} ${ACCESS_TOKEN} $(echo "${CONTEXT}" | sed 's/\"//g')
+else
+  run_ImpExp_legacy ${URL} ${ACCESS_TOKEN} ${APP_ID} $(echo "${CONTEXT}" | sed 's/\"//g')/${APPLICATION}
+fi
