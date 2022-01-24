@@ -143,7 +143,7 @@ class ErrorDict(AppEntity):
         """
         count = 0
         for tierID in self.controller.applications.getTiers_ID_List(appID):
-            tierName = self.controller.applications.getTierName(appID,tierID)
+            tierName = self.controller.applications.getTierName(appID=appID,tierID=tierID)
             data = self.entityAPIFunctions['fetch'](app_ID=appID,tier_ID=tierName,time_range_type="AFTER_TIME",duration=duration,startEpoch=sinceEpoch,selectors=selectors)
             count += self.load(streamdata=data,appID=appID)
         return count
