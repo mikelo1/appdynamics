@@ -3,6 +3,7 @@ import json
 import sys
 from getpass import getpass
 import time
+from requests_toolbelt.utils import dump
 
 
 class RESTfulAPI:
@@ -32,22 +33,19 @@ class RESTfulAPI:
         """
         if 'DEBUG' in locals(): print ("Fetching access token for controller " + serverURL + "...")
         # https://docs.appdynamics.com/display/PRO45/API+Clients#APIClients-using-the-access-token
-        response = requests.post(serverURL + "/controller/api/oauth/access_token",
+
+        try:
+            response = requests.post(serverURL + "/controller/api/oauth/access_token",
                                     auth=(API_username, API_password),
                                     headers={"Content-Type": "application/vnd.appd.cntrl+protobuf", "v":"1"},
                                     data={"grant_type": "client_credentials", "client_id": API_username, "client_secret": API_password})
+        except (requests.exceptions.InvalidURL,requests.exceptions.ConnectionError) as error:
+            sys.stderr.write("fetch_access_token: "+str(error)+"\n")
+            if 'DEBUG' in locals(): print(dump.dump_all(response).decode("utf-8"))
+            return None
+
         if response.status_code > 399:
-            sys.stderr.write("Something went wrong on HTTP request. Status:" + str(response.status_code) + " ")
-            if response.content.find("<b>description</b>"):
-                sys.stderr.write("Description: "+response.content[response.content.find("<b>description</b>")+18:response.content.rfind("</p>")] + "\n" )
-            else:
-                sys.stderr.write("Description not available\n")
-            if 'DEBUG' in locals():
-                print ("   header:", response.headers)
-                print ("Writing content to file: response.txt")
-                file1 = open("response.txt","w") 
-                file1.write(response.content)
-                file1.close()
+            sys.stderr.write("Something went wrong on HTTP request.\n   Status:" + str(response.status_code) + "\n   Header:"+ str(response.headers) + "\n")
             return None
         token_data = json.loads(response.content)
         return token_data
@@ -149,6 +147,7 @@ class RESTfulAPI:
         data = json.dumps(streamdata) if type(streamdata) is dict else streamdata
         requestMethod = requests.post if method=="POST" else requests.put
         if serverURL is None: serverURL = self.appD_Config.get_current_context_serverURL()
+
         if userName and password:
             try:
                 response = requestMethod(serverURL + RESTfulPath, headers=headers, auth=(userName, password), data=data)
@@ -160,8 +159,13 @@ class RESTfulAPI:
             if token is None: return None
             if headers is not None: headers.update({"Authorization": "Bearer "+token})
             else: headers = {"Authorization": "Bearer "+token}
+
+            if 'DEBUG' in locals():
+                print ("\nRequest RESTful path:",serverURL + RESTfulPath,"\nparams:","\nheaders:",headers,"\ndata:",data,"\nfiles:","\nmethod:",requestMethod.__name__)
+
             try:
                 response = requestMethod(serverURL + RESTfulPath, headers=headers, data=data)
+                if 'DEBUG' in locals(): print(dump.dump_all(response).decode("utf-8"))
             except requests.exceptions.InvalidURL:
                 sys.stderr.write ("Invalid URL: " + serverURL + RESTfulPath + ". Do you have the right controller hostname and RESTful path?\n")
                 return None
@@ -405,7 +409,6 @@ class RESTfulAPI:
         if selectors: params.update(selectors)
         return self.__fetch_RESTfulPath(restfulPath,params=params)
 
-
     def fetch_entrypoints_TierRules(self,tier_ID,selectors=None):
         """
         Fetch tier entrypoints from a controller.
@@ -417,7 +420,8 @@ class RESTfulAPI:
         restfulPath = "/controller/restui/serviceEndpoint/getAll"
         data = {"agentType": "APP_AGENT","attachedEntity": {"entityId": tier_ID,"entityType": "APPLICATION_COMPONENT"} }
         if selectors: params.update(selectors)
-        return self.__update_RESTfulPath(restfulPath,streamdata=data,method="POST",headers={"Content-Type": "application/json","Accept": "application/json"})
+        response = self.__update_RESTfulPath(restfulPath,streamdata=data,method="POST",headers={"Content-Type": "application/json","Accept": "application/json"})
+        return response.content
 
     def fetch_health_rules_XML(self,app_ID,selectors=None):
         """
