@@ -96,7 +96,6 @@ class ApplicationDict(ControllerEntity):
                     exit(1)
         if fileName is not None: csvfile.close()
 
-
     def load_tiers_and_nodes(self,app_ID):
         """
         Load tiers and nodes details for one specific application
@@ -198,7 +197,8 @@ class ApplicationDict(ControllerEntity):
                         self.load_tiers_and_nodes(appID)
                     return [ tier['id'] for tier in apmApp['tiers'] ]
 
-    def getTierName(self,appID,tierID):
+
+    def getTierName(self,tierID,appID=None):
         """
         Get the name for a tier ID.
         :param appID: the ID of the application
@@ -207,11 +207,9 @@ class ApplicationDict(ControllerEntity):
         """
         if 'apmApplications' not in self.entityDict or self.entityDict['apmApplications'] is None: return None
         if type(appID) is str: appID = int(appID)
-        if type(self.entityDict['apmApplications']) is dict and self.entityDict['apmApplications']['id'] == appID:
-            return [ tier['name'] for tier in apmApp['tiers'] if tier['id'] == tierID ][0]
-        elif type(self.entityDict['apmApplications']) is list:
-            for apmApp in self.entityDict['apmApplications']:
-                if apmApp['id'] == appID:
-                    for tier in apmApp['tiers']:
-                        if tier['id'] == tierID:
-                            return tier['name']
+        for apmApp in self.entityDict['apmApplications']:
+            if appID and apmApp['id'] != appID: continue
+            if 'tiers' not in apmApp: continue
+            for tier in apmApp['tiers']:
+               if tier['id'] == tierID:
+                   return tier['name']
