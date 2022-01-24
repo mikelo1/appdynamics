@@ -28,7 +28,7 @@ class EntrypointDict(AppEntity):
     def __init__(self,controller):
         self.entityDict = dict()
         self.controller = controller
-        self.entityAPIFunctions = {'fetch': self.controller.RESTfulAPI.fetch_entrypoints_TierRules}
+        self.entityAPIFunctions = {'fetchByID': self.controller.RESTfulAPI.fetch_entrypoints_TierRules}
         self.entityKeywords = ["hierarchicalConfigKey"]
         self.CSVfields = {  'name':           self.__str_backend_name,
                             'Tier':           self.__str_backend_tierName,
@@ -39,7 +39,7 @@ class EntrypointDict(AppEntity):
         return entrypoint['definitionName'] if sys.version_info[0] >= 3 else entrypoint['definitionName'].encode('ASCII', 'ignore')
 
     def __str_backend_tierName(self,entrypoint):
-        return self.controller.applications.getTierName(appID,entrypoint['hierarchicalConfigKey']['attachedEntity']['entityId'])
+        return self.controller.applications.getTierName(tierID=entrypoint['hierarchicalConfigKey']['attachedEntity']['entityId'])
 
     def __str_backend_matchCondition(self,entrypoint):
         matchCondition = entrypoint['matchPointRule']['uri']['matchType']+"  "+entrypoint['matchPointRule']['uri']['matchPattern']
@@ -63,6 +63,7 @@ class EntrypointDict(AppEntity):
         self.controller.applications.load_tiers_and_nodes(appID)
         count = 0
         for tierID in self.controller.applications.getTiers_ID_List(appID):
-            data = self.entityAPIFunctions['fetch'](tier_ID=tierID,selectors=selectors)
+            #data = self.entityAPIFunctions['fetchByID'](tier_ID=tierID,selectors=selectors)
+            data = self.controller.RESTfulAPI.send_request(entityType=self.__class__.__name__,verb="fetchByID",app_ID=appID,entity_ID=tierID,selectors=selectors)
             count += self.load(streamdata=data,appID=appID)
         return count
