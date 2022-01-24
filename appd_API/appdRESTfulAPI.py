@@ -3,7 +3,7 @@ import json
 import sys
 from getpass import getpass
 import time
-from requests_toolbelt.utils import dump
+#from requests_toolbelt.utils import dump
 
 
 class RESTfulAPI:
@@ -41,7 +41,7 @@ class RESTfulAPI:
                                     data={"grant_type": "client_credentials", "client_id": API_username, "client_secret": API_password})
         except (requests.exceptions.InvalidURL,requests.exceptions.ConnectionError) as error:
             sys.stderr.write("fetch_access_token: "+str(error)+"\n")
-            if 'DEBUG' in locals(): print(dump.dump_all(response).decode("utf-8"))
+            #if 'DEBUG' in locals(): print(dump.dump_all(response).decode("utf-8"))
             return None
 
         if response.status_code > 399:
@@ -165,7 +165,7 @@ class RESTfulAPI:
 
             try:
                 response = requestMethod(serverURL + RESTfulPath, headers=headers, data=data)
-                if 'DEBUG' in locals(): print(dump.dump_all(response).decode("utf-8"))
+                #if 'DEBUG' in locals(): print(dump.dump_all(response).decode("utf-8"))
             except requests.exceptions.InvalidURL:
                 sys.stderr.write ("Invalid URL: " + serverURL + RESTfulPath + ". Do you have the right controller hostname and RESTful path?\n")
                 return None
