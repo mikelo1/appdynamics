@@ -38,7 +38,7 @@ def get_help(COMMAND,SUBCOMMAND=None,output=sys.stdout):
     sys.stderr.write("Usage: appdctl get [policies|actions|schedules|healthrules|\n" + \
                      "                    detection-rules|businesstransactions|backends|entrypoints|\n" + \
                      "                    healthrule-violations|errors|snapshots|allothertraffic|\n" + \
-                     "                    applications|nodes|dashboards|config|users] [options]\n\n")
+                     "                    applications|tiers|nodes|dashboards|config|users] [options]\n\n")
   elif COMMAND=="config" and SUBCOMMAND is None:
     output.write ("Modify appdconfig files using subcommands like \"appdctl config set current-context my-context\"\n\n" + \
                 " The loading order follows these rules:\n\n" + \
@@ -144,6 +144,7 @@ entityDict =  { 'applications': controller.applications,
                 'dashboards': controller.dashboards,
                 'config': controller.config,
                 'users': controller.users,
+                'tiers': controller.tiers,
                 'nodes': controller.nodes,
                 'detection-rules': controller.transactiondetection,
                 'businesstransactions': controller.businesstransactions,
@@ -267,7 +268,7 @@ elif COMMAND.lower() == "get":
     elif not options.outFormat or options.outFormat == "CSV":
         entityObj.generate_CSV()
 
-  elif ENTITY in ['nodes','detection-rules','businesstransactions','backends','entrypoints','healthrules','policies','actions','schedules']:
+  elif ENTITY in ['nodes','tiers','detection-rules','businesstransactions','backends','entrypoints','healthrules','policies','actions','schedules']:
     current_context = AppD_Configuration().get_current_context(output="None")
     applicationList = get_application_list()
     if len(applicationList) == 0:

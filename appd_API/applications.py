@@ -197,6 +197,17 @@ class ApplicationDict(ControllerEntity):
                         self.load_tiers_and_nodes(appID)
                     return [ tier['id'] for tier in apmApp['tiers'] ]
 
+    def hasTiers(self,appID):
+        """
+        Check if an application has tiers.
+        :param appID: the ID of the application
+        :returns: true if the specified application has Tiers. False otherwise.
+        """
+        if 'apmApplications' not in self.entityDict or self.entityDict['apmApplications'] is None: return False
+        for apmApp in self.entityDict['apmApplications']:
+            if apmApp['id'] == appID:
+                return apmApp['applicationTypeInfo']['hasTiers']
+        return False
 
     def getTierName(self,tierID,appID=None):
         """

@@ -3,7 +3,7 @@ from .applications import ApplicationDict
 from .dashboards import DashboardDict
 from .rbac import RBACDict
 from .settings import ConfigurationDict
-from .nodes import NodeDict
+from .nodes import NodeDict, TierDict
 from .transactiondetection import DetectionruleDict
 from .businesstransactions import BusinessTransactionDict
 from .backends import BackendDict, EntrypointDict
@@ -31,6 +31,7 @@ class Controller:
         self.dashboards   = DashboardDict(self)
         self.users        = RBACDict(self)
         self.config       = ConfigurationDict(self)
+        self.tiers                = TierDict(self)
         self.nodes                = NodeDict(self)
         self.transactiondetection = DetectionruleDict(self)
         self.businesstransactions = BusinessTransactionDict(self)

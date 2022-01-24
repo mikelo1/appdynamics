@@ -118,3 +118,40 @@ class NodeDict(AppEntity):
                 if node['id'] == nodeID:
                     return node['name']
         return ""
+
+
+class TierDict(AppEntity):
+
+    def __init__(self,controller):
+        self.entityDict = dict()
+        self.controller = controller
+        self.entityAPIFunctions = { 'fetch': self.controller.RESTfulAPI.fetch_tiers,
+                                    'fetchByID': self.controller.RESTfulAPI.fetch_tier_nodes }
+        self.entityKeywords = ['numberOfNodes','agentType']
+        self.CSVfields = {  'Tier':            self.__str_tier_name,
+                            'Type':            self.__str_tier_type,
+                            'Number of nodes': self.__str_tier_number_of_nodes }
+
+    def __str_tier_name(self,tier):
+        return tier['name']
+
+    def __str_tier_type(self,tier):
+        return tier['type']
+
+    def __str_tier_number_of_nodes(self,tier):
+        return tier['numberOfNodes']
+
+    ###### FROM HERE PUBLIC FUNCTIONS ######
+
+    def fetch(self,appID,selectors=None):
+        """
+        Fetch entities from controller RESTful API.
+        :param appID: the ID number of the application entities to fetch.
+        :param selectors: fetch only entities filtered by specified selectors
+        :returns: the number of fetched entities. Zero if no entity was found.
+        """
+        if self.controller.applications.hasTiers(appID):
+            data = self.entityAPIFunctions['fetch'](app_ID=appID,selectors=selectors)
+            #data = self.controller.RESTfulAPI.send_request(entityType=self.__class__.__name__,verb="fetch",app_ID=appID,selectors=selectors)
+            return self.load(streamdata=data,appID=appID)
+        return 0
