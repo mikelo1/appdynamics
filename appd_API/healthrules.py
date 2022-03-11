@@ -145,6 +145,9 @@ class HealthRuleDict(AppEntity):
         def str_custom_condition_expression(condition,expression):
             # In custom conditions the expression is given, only need to replace shortNames by metric name
             if 'metricExpression' in condition:
+                if 'expression1' in condition['metricExpression']:
+                    ### TO DO: add multiple expression support
+                    return ""
                 return expression.replace( condition['shortName'],
                                            condition['metricExpression']['metricDefinition']['logicalMetricName'].lower() + " " + \
                                            condition['operator'].lower() + " " + \
@@ -230,7 +233,7 @@ class HealthRuleXMLDict(AppEntity):
         try:
             root = ET.fromstring(streamdata)
         except:
-            if 'DEBUG' in locals(): print ("parse_healthrules_XML: Could not process XML content.")
+            if 'DEBUG' in locals(): sys.stderr.write ("parse_healthrules_XML: Could not process XML content.\n")
             return []
 
         healthrules = []
@@ -304,7 +307,7 @@ class HealthRuleXMLDict(AppEntity):
                                                                 "patternMatcher": { "matchTo": amc.find('match-type').text,
                                                                                     "matchValue": amc.find('match-pattern').text,
                                                                                     "shouldNot": amc.find('inverse').text } } })
-            else: print ("parse_healthrules_XML: [WARN] Unknown affectScopeType",affectScopeType)
+            else: sys.stderr.write ("parse_healthrules_XML: [WARN] Unknown affectScopeType"+affectScopeType+"\n")
         # 3) Tier / Node Health - Transaction Performance (load,response time,slow calls)
         # 4) Tier / Node Health - Hardware, JVM, CLR (cpu,heap,disk,IO)
         # 6) Advanced Network
@@ -365,9 +368,9 @@ class HealthRuleXMLDict(AppEntity):
                                         "typeofNode": "ALL_NODES","affectedNodes":{
                                                                 "affectedNodeScope": "NODES_MATCHING_PROPERTY",
                                                                 "patternMatcher": patternJSON } } })
-                    else: print ("parse_healthrules_XML: [WARN] Unknown node matching criteria.")
-                else: print ("parse_healthrules_XML: [WARN] Unknown nodeMatchType",nodeMatchType)
-            else: print ("parse_healthrules_XML: [WARN] Unknown affectScopeType",affectScopeType)
+                    else: sys.stderr.write ("parse_healthrules_XML: [WARN] Unknown node matching criteria.\n")
+                else: sys.stderr.write ("parse_healthrules_XML: [WARN] Unknown nodeMatchType"+nodeMatchType+"\n")
+            else: sys.stderr.write ("parse_healthrules_XML: [WARN] Unknown affectScopeType"+affectScopeType+"\n")
 
         # 5) Tier / Node Health - JMX (connection pools,thread pools)
         elif entityType == "JMX":
@@ -413,12 +416,12 @@ class HealthRuleXMLDict(AppEntity):
                                                 "patternMatcher": { "matchTo": amc.find('match-type').text,
                                                                     "matchValue": amc.find('match-pattern').text,
                                                                     "shouldNot": amc.find('inverse').text } } })
-            else: print ("parse_healthrules_XML: [WARN] Unknown affectScopeType",affectScopeType)
+            else: sys.stderr.write ("parse_healthrules_XML: [WARN] Unknown affectScopeType"+affectScopeType+"\n")
         elif entityType == "OTHER":
             amc = element.find('other-affected-entities-match-criteria')
             EntityType = "Custom metric: " + amc.find('entity').find('entity-type').text
         else:
-            print ("Unknown type: " + entityType)
+            sys.stderr.write ("Unknown type: "+entityType+"\n")
 
         return affects
 
