@@ -39,6 +39,10 @@ def get_help(COMMAND,SUBCOMMAND=None,output=sys.stdout):
                      "                    detection-rules|businesstransactions|backends|entrypoints|\n" + \
                      "                    healthrule-violations|errors|snapshots|allothertraffic|\n" + \
                      "                    applications|tiers|nodes|dashboards|config|users] [options]\n\n")
+  elif COMMAND=="describe" and SUBCOMMAND is None:
+    sys.stderr.write("Usage: appdctl describe [policy|action|schedule|healthrule|\n" + \
+                     "                    detection-rule|businesstransaction|backend|entrypoint|\n" + \
+                     "                    application|tier|node|dashboard|config|user] <entyty_name> [options]\n\n")
   elif COMMAND=="config" and SUBCOMMAND is None:
     output.write ("Modify appdconfig files using subcommands like \"appdctl config set current-context my-context\"\n\n" + \
                 " The loading order follows these rules:\n\n" + \
@@ -334,6 +338,48 @@ elif COMMAND.lower() == "get":
     elif not options.outFormat or options.outFormat == "CSV":
         entityObj.generate_CSV(appID_List=applicationList)
 
+  else:
+    optParser.error("incorrect entity \""+ENTITY+"\"")
+
+
+#######################################
+########## DESCRIBE COMMAND ###########
+#######################################
+elif COMMAND.lower() == "describe":
+
+  ENTITY = args[1]
+  entityName = args[2]
+
+  if AppD_Configuration().get_current_context(output="None") is None:
+    sys.stderr.write("No context is selected.\n")
+    exit()
+
+  if ENTITY == 'help':
+    get_help(COMMAND)
+  elif ENTITY in ['application','dashboard','config','user']:
+    entityType = ENTITY+"s" if ENTITY != 'config' else ENTITY
+    entityObj  = entityDict[entityType]
+    data=entityObj.fetch_with_details(entityName=entityName)
+    print (data)
+  elif ENTITY in ['node','tier','detection-rule','businesstransaction','backend','entrypoint','healthrule','policy','action','schedule']:
+    entityType = ENTITY+"s" if ENTITY != 'policy' else "policies"
+    entityObj  = entityDict[entityType]
+    current_context = AppD_Configuration().get_current_context(output="None")
+    applicationList = get_application_list()
+    if len(applicationList) == 0:
+      sys.stderr.write("\rget "+ENTITY+" ("+current_context+"): no application was found.\n")
+      exit()
+    index = 0
+    sys.stderr.write("get "+ENTITY+" ("+current_context+")... 0%")
+    sys.stderr.flush()
+    for appID in applicationList:
+        index += 1
+        percentage = index*100/len(applicationList)
+        sys.stderr.write("\rget "+ENTITY+" ("+current_context+")... " + str(percentage) + "%")
+        sys.stderr.flush()
+        data=entityObj.fetch_with_details(appID=appID,entityName=entityName)
+        print (data)
+    sys.stderr.write("\n")
   else:
     optParser.error("incorrect entity \""+ENTITY+"\"")
 

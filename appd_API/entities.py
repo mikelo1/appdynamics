@@ -39,15 +39,20 @@ class AppEntity:
         data = self.entityAPIFunctions['fetch'](app_ID=appID,selectors=selectors)
         return self.load(streamdata=data,appID=appID)
 
-    def fetch_with_details(self,appID,selectors=None):
+    def fetch_with_details(self,appID,entityName,selectors=None):
         """
-        Fetch entities with details from controller RESTful API.
+        Fetch entity with details from controller RESTful API.
         :param appID: the ID number of the application entities to fetch.
+        :param entityName: the name of the entity to fetch.
         :param selectors: fetch only entities filtered by specified selectors
-        :returns: the number of fetched entities. Zero if no entity was found.
+        :returns: the entity data. Empty string if no entity was found.
         """
-        data = self.entityAPIFunctions['fetch'](app_ID=appID,selectors=selectors)
-        return self.load_with_details(streamdata=data,appID=appID)
+        streamdata = self.entityAPIFunctions['fetch'](app_ID=appID,selectors=selectors)
+        self.load(streamdata,appID)
+        for entity in self.entityDict[str(appID)]:
+            if entity['name'] == entityName:
+                return self.entityAPIFunctions['fetchByID'](appID,entity['id'])
+        return ""
 
     def fetch_after_time(self,appID,duration,sinceEpoch,selectors=None):
         """
@@ -58,6 +63,31 @@ class AppEntity:
         """
         data = self.entityAPIFunctions['fetch'](app_ID=appID,time_range_type="AFTER_TIME",duration=duration,startEpoch=sinceEpoch,selectors=selectors)
         return self.load(streamdata=data,appID=appID)
+
+    def fetch_all_entities_with_details(self,appID=None,selectors=None):
+        """
+        Load entities with details for all entities within an application
+        :param streamdata: the stream data with the entity list, in JSON format
+        :param appID: the ID number of the application to fetch entities
+        :returns: the number of fetched entities. Zero if no entity was found.
+        """
+        if appID is None: appID = 0
+        streamdata = self.entityAPIFunctions['fetch'](app_ID=appID,selectors=selectors)
+        self.load(streamdata,appID)
+        index = 0
+        for entity in self.entityDict[str(appID)]:
+            streamdata = self.entityAPIFunctions['fetchByID'](appID,entity['id'])
+            if streamdata is None:
+                sys.stderr.write("load_AppEntity_with_details("+str(appID)+"): Failed to retrieve entity "+entity['name']+".\n")
+                continue
+            try:
+                entityJSON = json.loads(streamdata)
+            except TypeError as error:
+                sys.stderr.write("load_AppEntity_with_details("+str(appID)+"): "+str(error)+"\n")
+                continue
+            self.entityDict[str(appID)][index] = entityJSON
+            index = index + 1
+        return index
 
     def load(self,streamdata,appID=None):
         """
@@ -80,30 +110,6 @@ class AppEntity:
         else:
             self.entityDict[str(appID)].extend(entities)
         return len(entities)
-
-    def load_with_details(self,streamdata,appID=None):
-        """
-        Load entities with details for all entities within an application
-        :param streamdata: the stream data with the entity list, in JSON format
-        :param appID: the ID number of the application to fetch entities
-        :returns: the number of fetched entities. Zero if no entity was found.
-        """
-        if appID is None: appID = 0
-        self.load(streamdata,appID)
-        index = 0
-        for entity in self.entityDict[str(appID)]:
-            streamdata = self.entityAPIFunctions['fetchByID'](appID,entity['id'])
-            if streamdata is None:
-                sys.stderr.write("load_AppEntity_with_details("+str(appID)+"): Failed to retrieve entity "+entity['name']+".\n")
-                continue
-            try:
-                entityJSON = json.loads(streamdata)
-            except TypeError as error:
-                sys.stderr.write("load_AppEntity_with_details("+str(appID)+"): "+str(error)+"\n")
-                continue
-            self.entityDict[str(appID)][index] = entityJSON
-            index = index + 1
-        return index
 
     def verify(self,streamdata):
         """
@@ -189,7 +195,7 @@ class AppEntity:
                 appID = 0
         elif appID is not None:
             # Reload entity data for provided application
-            if self.fetch_with_details(appID) == 0:
+            if self.fetch_all_entities_with_details(appID) == 0:
                 sys.stderr.write("patch_entity: Failed to retrieve entities for application " + str(appID) + "...\n")
                 return 0
 
@@ -314,35 +320,27 @@ class ControllerEntity:
         data = self.entityAPIFunctions['fetch']()
         return self.load(streamdata=data)
 
-    def fetch_with_details(self,selectors=None):
+    def fetch_with_details(self,entityName,selectors=None):
         """
-        Fetch entities with details from controller RESTful API.
+        Fetch entity with details from controller RESTful API.
+        :param entityName: the name of the entity to fetch.
         :param selectors: fetch only entities filtered by specified selectors
-        :returns: the number of fetched entities. Zero if no entity was found.
+        :returns: the entity data. Empty string if no entity was found.
         """
-        data = self.entityAPIFunctions['fetch']()
-        return self.load_with_details(streamdata=data)
+        streamdata = self.entityAPIFunctions['fetch']()
+        self.load(streamdata=streamdata)
+        for entity in self.entityDict:
+            if entity['name'] == entityName:
+                return self.entityAPIFunctions['fetchByID'](entity['id'])
+        return ""
 
-    def load(self,streamdata):
-        """
-        Load entities from a JSON stream data.
-        :param streamdata: the stream data in JSON format
-        :returns: the number of loaded entities. Zero if no entity was loaded.
-        """
-        try:
-            entities = json.loads(streamdata)
-        except (TypeError,ValueError) as error:
-            if 'DEBUG' in locals(): sys.stderr.write("load_ControllerEntity("+str(appID)+"): "+str(error)+"\n")
-            return 0
-        self.entityDict=entities
-        return len(entities)
-
-    def load_with_details(self,streamdata):
+    def fetch_all_entities_with_details(self,selectors=None):
         """
         Load entities with details
         :param streamdata: the stream data with the entity list, in JSON format
         :returns: the number of fetched entities. Zero if no entity was found.
         """
+        streamdata = self.entityAPIFunctions['fetch']()
         self.load(streamdata)
         count = 0
         for entity in self.entityDict:
@@ -358,6 +356,20 @@ class ControllerEntity:
             self.entityDict[count]=entityJSON
             count += 1
         return count
+
+    def load(self,streamdata):
+        """
+        Load entities from a JSON stream data.
+        :param streamdata: the stream data in JSON format
+        :returns: the number of loaded entities. Zero if no entity was loaded.
+        """
+        try:
+            entities = json.loads(streamdata)
+        except (TypeError,ValueError) as error:
+            if 'DEBUG' in locals(): sys.stderr.write("load_ControllerEntity("+str(appID)+"): "+str(error)+"\n")
+            return 0
+        self.entityDict=entities
+        return len(entities)
 
     def verify(self,streamdata):
         """

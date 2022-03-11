@@ -238,7 +238,6 @@ class RESTfulAPI:
 
        ###### FROM HERE PUBLIC FUNCTIONS ######
 
-
     def fetch_applicationsAllTypes(self):
         """
         Fetch applications from a controller.
@@ -319,7 +318,8 @@ class RESTfulAPI:
         # Retrieve Node Information by Node Name
         # GET /controller/rest/applications/application_name/nodes/node_name
         restfulPath = "/controller/rest/applications/" + str(app_ID) + "/nodes/" + str(node_ID)
-        return self.__fetch_RESTful_JSON(restfulPath)
+        params = {"output": "JSON"}
+        return self.__fetch_RESTfulPath(restfulPath,params=params)
 
     def fetch_agent_status(self,nodeList,start_epoch,end_epoch):
         """
