@@ -142,10 +142,10 @@ class MetricDict(AppEntity):
         return self.load(streamdata=data,appID=appID)
 
 
-class ErrorDict(MetricDict):
+class ErrorDict(MetricDict, object):
 
     def __init__(self,controller):
-        super().__init__(controller)
+        super(ErrorDict,self).__init__(controller)
         self.entityAPIFunctions = { 'fetch': self.controller.RESTfulAPI.fetch_errors }
 
     def fetch_after_time(self,appID,duration,sinceEpoch,selectors=None):
