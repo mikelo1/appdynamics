@@ -42,7 +42,7 @@ def get_help(COMMAND,SUBCOMMAND=None,output=sys.stdout):
   elif COMMAND=="describe" and SUBCOMMAND is None:
     sys.stderr.write("Usage: appdctl describe [policy|action|schedule|healthrule|\n" + \
                      "                    detection-rule|businesstransaction|backend|entrypoint|\n" + \
-                     "                    application|tier|node|dashboard|config|user] <entyty_name> [options]\n\n")
+                     "                    application|tier|node|dashboard|config|user] <entity_name> [options]\n\n")
   elif COMMAND=="config" and SUBCOMMAND is None:
     output.write ("Modify appdconfig files using subcommands like \"appdctl config set current-context my-context\"\n\n" + \
                 " The loading order follows these rules:\n\n" + \
@@ -104,7 +104,7 @@ def get_selectors():
     return { selector.split('=')[0]:selector.split('=')[1] for selector in options.selector.split(',') } if options.selector else {}
 
 
-usage = "usage: %prog [get|config|apply|patch|drain] [options]"
+usage = "usage: %prog [get|describe|config|apply|patch|drain] [options]"
 epilog= "examples: %prog get applications"
 
 optParser = OptionParser(usage=usage, version="%prog 0.1", epilog=epilog)
@@ -161,7 +161,8 @@ entityDict =  { 'applications': controller.applications,
                 'healthrule-violations': controller.events,
                 'snapshots': controller.snapshots,
                 'allothertraffic': controller.snapshots,
-                'errors': controller.errors
+                'errors': controller.errors,
+                'metrics': controller.metrics
               }
 
 
@@ -295,7 +296,7 @@ elif COMMAND.lower() == "get":
     elif not options.outFormat or options.outFormat == "CSV":
         entityObj.generate_CSV(appID_List=applicationList)
 
-  elif ENTITY in ['healthrule-violations','snapshots','allothertraffic', 'errors']:
+  elif ENTITY in ['healthrule-violations','snapshots','allothertraffic', 'errors', 'metrics']:
     if options.since is None:
       optParser.error("No duration was specified. (use --since=0 for all events)")
       exit()
@@ -327,6 +328,11 @@ elif COMMAND.lower() == "get":
             sys.stderr.write("All Other Traffic transaction not found in application "+str(appID)+"\n")
             continue
           selectors.update({"business-transaction-ids": ''+str(AllOtherTraffic_ID)+''})
+        elif ENTITY == "metrics":
+          if len(args) < 3:
+            optParser.error("Metric path is not specified")
+            exit()
+          selectors = args[2]
         for i in range(minutes,0,-1440): # loop specified minutes in chunks of 1440 minutes (1 day)
             sinceTime = datetime.today()-timedelta(minutes=i)
             sinceEpoch= int(time.mktime(sinceTime.timetuple())*1000)

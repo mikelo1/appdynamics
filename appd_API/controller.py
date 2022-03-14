@@ -11,7 +11,7 @@ from .healthrules import HealthRuleDict
 from .policies import PolicyDict
 from .actions import ActionDict
 from .schedules import ScheduleDict
-from .events import EventDict, ErrorDict
+from .events import EventDict, ErrorDict, MetricDict
 from .snapshots import SnapshotDict
 
 class Controller:
@@ -43,6 +43,7 @@ class Controller:
         self.schedules   = ScheduleDict(self)
         self.events    = EventDict(self)
         self.errors    = ErrorDict(self)
+        self.metrics   = MetricDict(self)
         self.snapshots = SnapshotDict(self)
 
     def __str__(self):

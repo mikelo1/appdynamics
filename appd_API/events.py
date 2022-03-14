@@ -99,40 +99,54 @@ class EventDict(AppEntity):
     ###### FROM HERE PUBLIC FUNCTIONS ######
 
 
-
-class ErrorDict(AppEntity):
+class MetricDict(AppEntity):
 
     def __init__(self,controller):
         self.entityDict = dict()
         self.controller = controller
-        self.entityAPIFunctions = { 'fetch': self.controller.RESTfulAPI.fetch_errors }
+        self.entityAPIFunctions = { 'fetch': self.controller.RESTfulAPI.fetch_metric_data }
         self.entityKeywords = ["metricPath"]
-        self.CSVfields = {  'ErrorCode': self.__str_errorMetric_start_time,
-                            'Value':     self.__str_errorMetric_value,
-                            'Max':       self.__str_errorMetric_max,
-                            'Min':       self.__str_errorMetric_min,
-                            'Sum':       self.__str_errorMetric_sum,
-                            'Count':     self.__str_errorMetric_count }
+        self.CSVfields = {  'ErrorCode': self.__str_metric_start_time,
+                            'Value':     self.__str_metric_value,
+                            'Max':       self.__str_metric_max,
+                            'Min':       self.__str_metric_min,
+                            'Sum':       self.__str_metric_sum,
+                            'Count':     self.__str_metric_count }
+
+    def __str_metric_start_time(self,metric):
+        return metric['metricPath'].split("|")[2]
+
+    def __str_metric_value(self,metric):
+        return metric['metricValues'][0]['value'] if len(metric['metricValues']) > 0 else "-"
+
+    def __str_metric_max(self,metric):
+        return metric['metricValues'][0]['max'] if len(metric['metricValues']) > 0 else "-"
+
+    def __str_metric_min(self,metric):
+        return metric['metricValues'][0]['min'] if len(metric['metricValues']) > 0 else "-"
+
+    def __str_metric_sum(self,metric):
+        return metric['metricValues'][0]['sum'] if len(metric['metricValues']) > 0 else "-"
+
+    def __str_metric_count(self,metric):
+        return metric['metricValues'][0]['count'] if len(metric['metricValues']) > 0 else "-"
+
+    def fetch_after_time(self,appID,duration,sinceEpoch,selectors=None):
+        """
+        Fetch entities from controller RESTful API.
+        :param appID: the ID number of the application entities to fetch.
+        :param selectors: fetch only entities filtered by specified selectors
+        :returns: the number of fetched entities. Zero if no entity was found.
+        """
+        data = self.entityAPIFunctions['fetch'](app_ID=appID,metric_path=selectors,time_range_type="AFTER_TIME",duration=duration,startEpoch=sinceEpoch)
+        return self.load(streamdata=data,appID=appID)
 
 
-    def __str_errorMetric_start_time(self,errorMetric):
-        return errorMetric['metricPath'].split("|")[2]
+class ErrorDict(MetricDict):
 
-    def __str_errorMetric_value(self,errorMetric):
-        return errorMetric['metricValues'][0]['value'] if len(errorMetric['metricValues']) > 0 else "-"
-
-    def __str_errorMetric_max(self,errorMetric):
-        return errorMetric['metricValues'][0]['max'] if len(errorMetric['metricValues']) > 0 else "-"
-
-    def __str_errorMetric_min(self,errorMetric):
-        return errorMetric['metricValues'][0]['min'] if len(errorMetric['metricValues']) > 0 else "-"
-
-    def __str_errorMetric_sum(self,errorMetric):
-        return errorMetric['metricValues'][0]['sum'] if len(errorMetric['metricValues']) > 0 else "-"
-
-    def __str_errorMetric_count(self,errorMetric):
-        return errorMetric['metricValues'][0]['count'] if len(errorMetric['metricValues']) > 0 else "-"
-
+    def __init__(self,controller):
+        super().__init__(controller)
+        self.entityAPIFunctions = { 'fetch': self.controller.RESTfulAPI.fetch_errors }
 
     def fetch_after_time(self,appID,duration,sinceEpoch,selectors=None):
         """
@@ -147,6 +161,3 @@ class ErrorDict(AppEntity):
             data = self.entityAPIFunctions['fetch'](app_ID=appID,tier_ID=tierName,time_range_type="AFTER_TIME",duration=duration,startEpoch=sinceEpoch,selectors=selectors)
             count += self.load(streamdata=data,appID=appID)
         return count
-
-    ###### FROM HERE PUBLIC FUNCTIONS ######
-
