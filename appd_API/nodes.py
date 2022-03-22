@@ -158,11 +158,12 @@ class TierDict(AppEntity):
     def getTiers_ID_List(self,appID):
         """
         Get a list of tier IDs for an application.
-        :returns: a list with all tier IDs for an application. None if no tier was found.
+        :returns: a list with all tier IDs for an application. Empty list if no tier was found.
         """
         if type(appID) is int: appID = str(appID)
         if appID not in self.entityDict:
-            self.fetch(appID=appID)
+            if not self.fetch(appID=appID):
+                return []
         return [ tier['id'] for tier in self.entityDict[appID] ]
 
     def getTierName(self,tierID,appID=None):
