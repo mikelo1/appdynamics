@@ -164,7 +164,19 @@ class TestSum(unittest.TestCase):
             if 'VERBOSE' in locals(): print ("Last test didn't work well, can't run test set.")
             return
 
+        result = subprocess.call("./appdctl.py get dashboards --basic-auth-file=basicauth.csv ", stdout=FNULL, shell=True)
+        self.assertEqual(result, 0)
+
+        result = subprocess.call("./appdctl.py get users --basic-auth-file=basicauth.csv ", stdout=FNULL, shell=True)
+        self.assertEqual(result, 0)
+
+        result = subprocess.call("./appdctl.py get config --basic-auth-file=basicauth.csv ", stdout=FNULL, shell=True)
+        self.assertEqual(result, 0)
+
         result = subprocess.call("./appdctl.py get nodes -a "+self.applicationList[0]+" --basic-auth-file=basicauth.csv ", stdout=FNULL, shell=True)
+        self.assertEqual(result, 0)
+
+        result = subprocess.call("./appdctl.py get tiers -a "+self.applicationList[0]+" --basic-auth-file=basicauth.csv ", stdout=FNULL, shell=True)
         self.assertEqual(result, 0)
 
         result = subprocess.call("./appdctl.py get detection-rules -a "+self.applicationList[0]+" --basic-auth-file=basicauth.csv ", stdout=FNULL, shell=True)
