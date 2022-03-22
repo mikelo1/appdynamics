@@ -77,13 +77,13 @@ class NodeDict(AppEntity):
         for appID in appID_List:
             sys.stderr.write("drain_nodes: [INFO] update nodes status for application "+self.controller.applications.getAppName(appID)+"...\n")
             if str(appID) not in self.entityDict:
-                if self.load(self.controller.RESTfulAPI.fetch_nodes(appID,selectors=selectors),appID) == 0: continue
+                if self.fetch(appID=appID,selectors=selectors) == 0: continue
             self.__update_availability_nodes(appID)
             unavailNodeList = [ node['id'] for node in self.entityDict[str(appID)] if node['availability'] == 0.0 ]
             for i in range(0,len(unavailNodeList),25):
                 if 'DEBUG' in locals(): sys.stdout.write("drain_nodes: [INFO] Unavailable node list: "+str(unavailNodeList)+"\n")
                 response = self.controller.RESTfulAPI.mark_nodes_as_historical(unavailNodeList[i:i+25])
-            self.controller.RESTfulAPI.fetch_nodes(appID,selectors=selectors)
+            self.fetch(appID=appID,selectors=selectors)
             if 'DEBUG' in locals(): sys.stdout.write("drain_nodes: [INFO] Nodes marked as historical in application "+ \
                                                     self.controller.applications.getAppName(appID)+": "+str(len(unavailNodeList))+"\n")
             updated += len(unavailNodeList)
@@ -152,6 +152,31 @@ class TierDict(AppEntity):
         """
         if self.controller.applications.hasTiers(appID):
             data = self.entityAPIFunctions['fetch'](app_ID=appID,selectors=selectors)
-            #data = self.controller.RESTfulAPI.send_request(entityType=self.__class__.__name__,verb="fetch",app_ID=appID,selectors=selectors)
             return self.load(streamdata=data,appID=appID)
         return 0
+
+    def getTiers_ID_List(self,appID):
+        """
+        Get a list of tier IDs for an application.
+        :returns: a list with all tier IDs for an application. None if no tier was found.
+        """
+        if type(appID) is int: appID = str(appID)
+        if appID not in self.entityDict:
+            self.fetch(appID=appID)
+        return [ tier['id'] for tier in self.entityDict[appID] ]
+
+    def getTierName(self,tierID,appID=None):
+        """
+        Get the name for a tier ID.
+        :param appID: the ID of the application
+        :param tierID: the ID of the tier
+        :returns: the name of the specified tier ID. Empty string if the tier was not found.
+        """
+        if appID and appID not in self.entityDict:
+            self.fetch(appID=appID)
+        keys = self.entityDict.keys() if not appID else [str(appID)]
+        for key in keys:
+            for tier in self.entityDict[key]:
+                if tier['id'] == tierID:
+                    return tier['name']
+        return None
