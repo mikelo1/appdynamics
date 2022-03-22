@@ -51,13 +51,16 @@ class AppEntity:
         self.load(streamdata,appID)
         for entity in self.entityDict[str(appID)]:
             if entity['name'] == entityName:
-                return self.entityAPIFunctions['fetchByID'](appID,entity['id'])
+                entity_ID = entity['id'] if 'id' in entity else entity['name']
+                return self.entityAPIFunctions['fetchByID'](appID,entity_ID)
         return ""
 
     def fetch_after_time(self,appID,duration,sinceEpoch,selectors=None):
         """
         Fetch entities from controller RESTful API.
         :param appID: the ID number of the application entities to fetch.
+        :param duration: duration (in minutes) to return the metric data
+        :param sinceEpoch: start time (in unix epoch time) from which the metric data is returned.
         :param selectors: fetch only entities filtered by specified selectors
         :returns: the number of fetched entities. Zero if no entity was found.
         """
@@ -76,7 +79,8 @@ class AppEntity:
         self.load(streamdata,appID)
         index = 0
         for entity in self.entityDict[str(appID)]:
-            streamdata = self.entityAPIFunctions['fetchByID'](appID,entity['id'])
+            entity_ID = entity['id'] if 'id' in entity else entity['name']
+            streamdata = self.entityAPIFunctions['fetchByID'](appID,entity_ID)
             if streamdata is None:
                 sys.stderr.write("load_AppEntity_with_details("+str(appID)+"): Failed to retrieve entity "+entity['name']+".\n")
                 continue
@@ -127,7 +131,7 @@ class AppEntity:
                 if 'DEBUG' in locals(): sys.stderr.write("verify "+ str(self.__class__)+": "+str(error)+"\n")
                 return False
             # Input data is XML format
-            return len( [ True for keyword in self.entityKeywords if root.find(keyword) is not None ] ) > 0
+            return len( [ True for keyword in self.entityKeywords if root.find(keyword) ] ) > 0
         # Input data is JSON format
         if dataJSON is not None and type(dataJSON) is list:
             return len( [ True for keyword in self.entityKeywords if keyword in dataJSON[0] ] ) > 0
@@ -135,36 +139,40 @@ class AppEntity:
             return len( [ True for keyword in self.entityKeywords if keyword in dataJSON ] ) > 0
         return False
 
-    def file_import(self,appID,filePath):
+    def create_or_update(self,appID,filePath):
         """
-        Import entities within an application, using an entity data input file.
-        :param filePath: the path to the file where data is stored
-        :param appID: the ID number of the application to fetch entities
-        :returns: True if the update was successful. False if no data was updated.
-        """
-        return self.entityAPIFunctions['import'](app_ID=appID,filePath=filePath)
-
-    def create(self,appID,streamdata):
-        """
-        Create one entity for a specific application, using an entity data input.
-        :param appID: the ID number of the application to create a new entity
-        :param streamdata: the stream data with the entity configuration, in JSON format
-        :returns: true if the new entity was successfully created. False otherwise.
-        """
-        return self.entityAPIFunctions['create'](app_ID=appID,dataJSON=streamdata)
-
-    def update(self,appID,streamdata):
-        """
-        Update existing entity for a specific application, using an entity data input.
+        Import, create new entity or update existing entity for a specific application, using an entity data input file.
         :param appID: the ID number of the application to update an existing entity
-        :param streamdata: the stream data with the entity configuration, in JSON format
-        :returns: true if the new entity was successfully created. False otherwise.
+        :param filePath: the path to the file where data is stored
+        :returns: true if the new entity was successfully created/updated. False otherwise.
         """
         if len(self.entityDict) == 0:
             self.fetch(appID=appID)
-        entityData = json.loads(streamdata)
-        entity_IDs = [ entity['id'] for entity in self.entityDict[str(appID)] if entity['name'] == entityData['name'] ]
-        return len(entity_IDs) > 0 and self.entityAPIFunctions['update'](app_ID=appID,entity_ID=entity_IDs[0],dataJSON=streamdata)
+
+        streamdata = open(filePath).read()
+        try:
+            JSONdata = json.loads(streamdata)
+        except (TypeError,ValueError) as error:
+            if 'DEBUG' in locals(): sys.stderr.write("create_or_update "+ str(self.__class__) +": "+str(error)+"\n")
+            try:
+                root = ET.fromstring(streamdata)
+            except (TypeError,ET.ParseError) as error:
+                if 'DEBUG' in locals(): sys.stderr.write("create_or_update "+ str(self.__class__)+": "+str(error)+"\n")
+                return False
+
+        if type(JSONdata) is dict and 'id' in JSONdata: # Data file in New format
+            if not self.entityAPIFunctions['create'](app_ID=appID,dataJSON=streamdata):
+                # Entity creation failed, find out if entity already exists
+                for entity in self.entityDict[str(appID)]:
+                    if entity['name'] == JSONdata['name']:
+                        self.fetch_with_details(appID=appID,entityName=entity['name'])
+                    return len(entity_IDs) > 0 and self.entityAPIFunctions['update'](app_ID=appID,entity_ID=entity['id'],dataJSON=streamdata)
+            return True
+        elif (type(JSONdata) is list and 'id' not in JSONdata[0]) or 'root' in locals(): # Data file in Old format
+                return self.entityAPIFunctions['import'](app_ID=appID,filePath=filePath)
+        else:
+            return False
+
 
     # *****************************************************************************************************
     # ************************ EXPERIMENTAL: Only tested for health rule schedules ************************
@@ -403,25 +411,40 @@ class ControllerEntity:
         """
         return self.entityAPIFunctions['import'](filePath=filePath)
 
-    def create(self,streamdata):
+    def create_or_update(self,filePath):
         """
-        Create one entity, using an entity data input.
-        :param streamdata: the stream data with the entity configuration, in JSON format
-        :returns: true if the new entity was successfully created. False otherwise.
-        """
-        return self.entityAPIFunctions['create'](dataJSON=streamdata)
-
-    def update(self,streamdata):
-        """
-        Update existing entity, using an entity data input.
-        :param streamdata: the stream data with the entity configuration, in JSON format
+        Import, create new entity or update existing entity, using an entity data input file.
+        :param filePath: the path to the file where data is stored
         :returns: true if the existing entity was successfully updated. False otherwise.
         """
         if len(self.entityDict) == 0:
             self.fetch()
-        entityData = json.loads(streamdata)
-        entity_IDs = [ entity['id'] for entity in self.entityDict if entity['name'] == entityData['name'] ]
-        return len(entity_IDs) > 0 and self.entityAPIFunctions['update'](entity_ID=entity_IDs[0],dataJSON=streamdata)
+
+        streamdata = open(filePath).read()
+        try:
+            JSONdata = json.loads(streamdata)
+        except (TypeError,ValueError) as error:
+            if 'DEBUG' in locals(): sys.stderr.write("create_or_update "+ str(self.__class__) +": "+str(error)+"\n")
+            try:
+                root = ET.fromstring(streamdata)
+            except (TypeError,ET.ParseError) as error:
+                if 'DEBUG' in locals(): sys.stderr.write("create_or_update "+ str(self.__class__)+": "+str(error)+"\n")
+                return False
+
+        if type(JSONdata) is dict and 'id' in JSONdata: # Data file in New format
+            #if not self.entityAPIFunctions['create'](dataJSON=streamdata):
+            if not self.controller.RESTfulAPI.send_request(entityType=self.__class__.__name__,verb="create",streamdata=streamdata):
+                # Entity creation failed, find out if entity already exists
+                for entity in self.entityDict:
+                    if entity['name'] == JSONdata['name']:
+                        self.fetch_with_details(entityName=entity['name'])
+                    return len(entity_IDs) > 0 and self.entityAPIFunctions['update'](entity_ID=entity['id'],dataJSON=streamdata)
+            return True
+        elif (type(JSONdata) is list and 'id' not in JSONdata[0]) or 'root' in locals(): # Data file in Old format
+                return self.entityAPIFunctions['import'](filePath=filePath)
+        else:
+            return False
+
 
     def patch(self,appID,streamdata,selectors=None):
         """

@@ -11,7 +11,7 @@ class DetectionruleDict(AppEntity):
         self.controller = controller
         self.entityAPIFunctions = { 'fetch': self.controller.RESTfulAPI.fetch_transactiondetection,
                                     'import': self.controller.RESTfulAPI.import_transactiondetection }
-        self.entityKeywords = ["rule-list"]
+        self.entityKeywords = ["mds-data","rule-list"]
 
 
     def __str_transactiondetection_matchrules(self,txMatchRuleData):

@@ -94,11 +94,12 @@ def get_application_list():
 
 def get_entity_type(data):
     entityList = [ entity for entity in entityDict if entityDict[entity].verify(streamdata=data) ]
-    if len(entityList) == 0:
-      sys.stderr.write("INFO: Could not recognize data.\n")
-      exit()
-    if 'DEBUG' in locals(): sys.stderr.write("INFO: Found to be a "+str(entityList[0])+" file.\n")
-    return entityList[0]
+    if 'DEBUG' in locals():
+      if len(entityList):
+        sys.stderr.write("INFO: Found to be a "+str(entityList)+" file.\n")
+      else:
+        sys.stderr.write("INFO: No matching entity found for data.\n")
+    return entityList[0] if len(entityList) else None
 
 def get_selectors():
     return { selector.split('=')[0]:selector.split('=')[1] for selector in options.selector.split(',') } if options.selector else {}
@@ -241,7 +242,11 @@ elif COMMAND.lower() == "get":
       sys.stderr.write("Don't know what to do with "+options.filename+"\n")
       exit()
 
-    entityObj = entityDict[get_entity_type(data)]
+    ENTITY = get_entity_type(data)
+    if ENTITY is None:
+      sys.stderr.write("[Warn] Unknown format for file "+options.filename+" "+data[0:80]+"\n")
+      exit(-1)
+    entityObj = entityDict[ENTITY]
     entityObj.load(streamdata=data)
     if options.outFormat and options.outFormat == "JSON":
       entityObj.generate_JSON()
@@ -421,7 +426,11 @@ elif COMMAND.lower() == "patch":
       sys.stderr.write("Don't know what to do with "+options.filename+"\n")
       exit()
 
-    entityObj = entityDict[get_entity_type(data)]
+    ENTITY = get_entity_type(data)
+    if ENTITY is None:
+      sys.stderr.write("[Warn] Unknown format for file "+options.filename+"\n")
+      exit()    
+    entityObj = entityDict[ENTITY]
     entityObj.patch(patchJSON=options.patchJSON,streamdata=data,selectors=selectors)
 
   elif args[1] in ['applications','dashboards','config','users']:
@@ -475,23 +484,23 @@ elif COMMAND.lower() == "apply":
     optParser.error("incorrect arguments: no input file was specified (use -f for file)")
     exit()
 
-  if options.filename == "-":
-    data = sys.stdin.read()
-  elif os.path.isfile(options.filename):
-    data = open(options.filename).read()
-  elif options.filename.startswith("http"):
-    sys.stderr.write(os.path.basename(__file__)+": URL resources not implemented yet.\n")
-    exit()
-  else:
+  if not os.path.isfile(options.filename):
     sys.stderr.write("Don't know what to do with "+options.filename+"\n")
     exit()
 
+  data = open(options.filename).read()
   ENTITY = get_entity_type(data)
+  if ENTITY is None:
+    sys.stderr.write("[Warn] Unknown format for file "+options.filename+"\n")
+    exit()    
   entityObj = entityDict[ENTITY]
 
-  if ENTITY in ['applications','dashboards','config','users']:
-    sys.stderr.write("INFO: patch command not yet implemented for "+ENTITY+".")
-  elif ENTITY in ['nodes','detection-rules','businesstransactions','backends','entrypoints','healthrules','policies','actions','schedules']:
+  if ENTITY in ['dashboards']:
+    entityObj = entityDict[ENTITY]
+    sys.stderr.write("\rapply "+options.filename+" ("+current_context+")...\n")
+    if not entityObj.create_or_update(filePath=options.filename):
+       sys.stderr.write("Failed to create/update "+str(entityObj.info())+"\n")
+  elif ENTITY in ['detection-rules','healthrules','policies','actions','schedules']:
     current_context = AppD_Configuration().get_current_context(output="None")
     applicationList = get_application_list()
     if len(applicationList) == 0:
@@ -502,18 +511,12 @@ elif COMMAND.lower() == "apply":
     for appID in applicationList:
         index += 1
         percentage = index*100/len(applicationList)
-        sys.stderr.write("\rapply ("+current_context+")... " + str(percentage) + "%")
+        sys.stderr.write("\rapply "+options.filename+" ("+current_context+")... " + str(percentage) + "%")
         sys.stderr.flush()
-        if entityObj in [ entityDict['detection-rules'] ]:
-          entityObj.file_import(appID=appID,filePath=options.filename)
-        elif entityObj in [ entityDict['healthrules'], entityDict['schedules'] ]:
-          if not entityObj.create(appID=appID,streamdata=data):
-            if not entityObj.update(appID=appID,streamdata=data):
-               sys.stderr.write("Failed to create/update "+str(entityObj.info())+"\n")
-        else:
-          sys.stderr.write("Nothing to do with file containing "+str(entityObj.info())+"\n")
+        if not entityObj.create_or_update(appID=appID,filePath=options.filename):
+             sys.stderr.write("Failed to create/update "+str(entityObj.info())+"\n")
     sys.stderr.write("\n")
-  elif ENTITY in ['healthrule-violations','snapshots','allothertraffic', 'errors']:
+  elif ENTITY in ['applications','config','users','nodes','businesstransactions','backends','entrypoints','healthrule-violations','snapshots','allothertraffic', 'errors']:
     sys.stderr.write("incorrect data input: "+ENTITY+" cannot be modified.")
   else:
     sys.stderr.write("ERROR: cannot recognize source file entity.")

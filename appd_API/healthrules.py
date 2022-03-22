@@ -12,7 +12,7 @@ class HealthRuleDict(AppEntity):
                                     'fetchByID': self.controller.RESTfulAPI.fetch_health_rule_by_ID,
                                     'create': self.controller.RESTfulAPI.create_health_rule,
                                     'update': self.controller.RESTfulAPI.update_health_rule }
-        self.entityKeywords = ["affects","affectedEntityDefinitionRule","health-rules"]
+        self.entityKeywords = ["affectedEntityType","affects","affectedEntityDefinitionRule","health-rules"]
         self.CSVfields = {  'HealthRule':         self.__str_healthrule_name,
                             'Duration':           self.__str_healthrule_duration,
                             'Wait_Time':          self.__str_healthrule_waitTime,

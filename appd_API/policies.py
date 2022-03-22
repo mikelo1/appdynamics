@@ -9,7 +9,7 @@ class PolicyDict(AppEntity):
         self.controller = controller
         self.entityAPIFunctions = { 'fetch': self.controller.RESTfulAPI.fetch_policies_legacy,
                                     'fetchByID': self.controller.RESTfulAPI.fetch_policy_by_ID }
-        self.entityKeywords = ["reactorType"]
+        self.entityKeywords = ["actions","reactorType"]
         self.CSVfields = {  'PolicyName': self.__str_policy_name,
                             'Events':     self.__str_policy_healthrules,
                             'Entities':   self.__str_policy_entities,
@@ -39,7 +39,7 @@ class PolicyDict(AppEntity):
             for healthRule in policy['eventFilterTemplate']['healthRuleNames']:
                 healthrules = healthrules + "," + healthRule['entityName'] if 'healthrules' in locals() else healthRule['entityName']
             return healthrules
-        elif 'events' in policy and policy['events']['healthRuleEvents']['healthRuleScope']['healthRuleScopeType'] == "SPECIFIC_HEALTH_RULES":
+        elif 'events' in policy and policy['events']['healthRuleEvents']['healthRuleScopeType'] == "SPECIFIC_HEALTH_RULES":
             return ",".join(policy['events']['healthRuleEvents']['healthRuleScope']['healthRules'])
         else:
             return "ANY"

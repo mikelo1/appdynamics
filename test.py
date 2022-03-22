@@ -8,6 +8,9 @@ from appdConfig import AppD_Configuration, BasicAuth
 from appd_API import Controller
 
 class TestSum(unittest.TestCase):
+
+    applicationList = []
+
     def test_contexts(self):
         """
         Integrity tests for contexts
@@ -69,20 +72,20 @@ class TestSum(unittest.TestCase):
 
             FNULL = open(os.devnull, 'w')
             if 'VERBOSE' in locals(): print ("Get XML entities from file")
-            for XML_ENTITY in ['healthrules','transactiondetection-custom']:
+            for XML_ENTITY in ['transactiondetection-custom']:
                 if 'VERBOSE' in locals(): print ("### Get "+XML_ENTITY+" ###")
                 with testzip.open(XML_ENTITY+".xml") as testfile:
                     filedata = testfile.read()
 
                     if sys.version_info[0] < 3:
                         filePipe = subprocess.Popen(["echo",filedata],stdout=subprocess.PIPE)
-                        result = subprocess.call("./appdctl.py  get -f - ", stdin=filePipe.stdout, stdout=FNULL, shell=True)
-                        self.assertEqual(result, 0)
+                        result = subprocess.call("./appdctl.py get -f - ", stdin=filePipe.stdout, stdout=FNULL, shell=True)
+                        self.assertEqual(result, 0, "Loading of file"+XML_ENTITY+".xml failed.")
                         filePipe.stdout.close()
                     else:
                         with subprocess.Popen(["echo",filedata],stdout=subprocess.PIPE) as filePipe:
-                            result = subprocess.call("./appdctl.py  get -f - ", stdin=filePipe.stdout, stdout=FNULL, shell=True)
-                            self.assertEqual(result, 0)
+                            result = subprocess.call("./appdctl.py get -f - ", stdin=filePipe.stdout, stdout=FNULL, shell=True)
+                            self.assertEqual(result, 0, "Loading of file"+XML_ENTITY+".xml failed.")
 
                 #unzip -p tests.zip $XML_ENTITY.xml | $SCRIPTPATH/./appdctl.py  get -f -
 
@@ -96,24 +99,25 @@ class TestSum(unittest.TestCase):
 
                     if sys.version_info[0] < 3:
                         filePipe = subprocess.Popen(["echo",filedata],stdout=subprocess.PIPE)
-                        result = subprocess.call("./appdctl.py  get -f - ", stdin=filePipe.stdout, stdout=FNULL, shell=True)
-                        self.assertEqual(result, 0)
+                        result = subprocess.call("./appdctl.py get -f - ", stdin=filePipe.stdout, stdout=FNULL, shell=True)
+                        self.assertEqual(result, 0, "Loading of file "+JSON_ENTITY+".xml failed.")
                         filePipe = subprocess.Popen(["echo",filedata],stdout=subprocess.PIPE)
-                        result = subprocess.call("./appdctl.py  get -o JSON -f - ", stdin=filePipe.stdout, stdout=FNULL, shell=True)
-                        self.assertEqual(result, 0)
+                        result = subprocess.call("./appdctl.py get -o JSON -f - ", stdin=filePipe.stdout, stdout=FNULL, shell=True)
+                        self.assertEqual(result, 0, "Loading of file "+JSON_ENTITY+".xml failed.")
                         filePipe.stdout.close()
                     else:
                         with subprocess.Popen(["echo",filedata],stdout=subprocess.PIPE) as filePipe:
-                            result = subprocess.call("./appdctl.py  get -f - ", stdin=filePipe.stdout, stdout=FNULL, shell=True)
-                            self.assertEqual(result, 0)
+                            result = subprocess.call("./appdctl.py get -f - ", stdin=filePipe.stdout, stdout=FNULL, shell=True)
+                            self.assertEqual(result, 0, "Loading of file "+JSON_ENTITY+".xml failed.")
                         with subprocess.Popen(["echo",filedata],stdout=subprocess.PIPE) as filePipe:
-                            result = subprocess.call("./appdctl.py  get -o JSON -f - ", stdin=filePipe.stdout, stdout=FNULL, shell=True)
-                            self.assertEqual(result, 0)
+                            result = subprocess.call("./appdctl.py get -o JSON -f - ", stdin=filePipe.stdout, stdout=FNULL, shell=True)
+                            self.assertEqual(result, 0, "Loading of file "+JSON_ENTITY+".xml failed.")
             FNULL.close()
+
 
     def test_entities_basicauth(self):
         """
-        Integrity tests for API entity export calls, using basic auth
+        Integrity tests for API calls, using basic auth
         """
         FNULL = open(os.devnull, 'w')
         if os.path.isfile("basicauth.csv") == False:
@@ -144,46 +148,59 @@ class TestSum(unittest.TestCase):
         self.assertIsNotNone(password)
         controller = Controller(appD_Config,{user:password})
         controller.applications.fetch()
-        applicationList = controller.applications.get_application_Name_list(application_type="apmApplications")
-        self.assertNotEqual(len(applicationList), 0)
+        self.applicationList.extend ( controller.applications.get_application_Name_list(application_type="apmApplications") )
+        self.assertNotEqual(len(self.applicationList), 0)
 
-        result = subprocess.call("./appdctl.py get nodes -a "+applicationList[0]+" --basic-auth-file=basicauth.csv ", stdout=FNULL, shell=True)
+        FNULL.close()
+
+
+    def test_retrieve_entities(self):
+        """
+        Integrity tests for retrieving entity data from controller
+        """
+        FNULL = open(os.devnull, 'w')
+
+        if len(self.applicationList) == 0:
+            if 'VERBOSE' in locals(): print ("Last test didn't work well, can't run test set.")
+            return
+
+        result = subprocess.call("./appdctl.py get nodes -a "+self.applicationList[0]+" --basic-auth-file=basicauth.csv ", stdout=FNULL, shell=True)
         self.assertEqual(result, 0)
 
-        result = subprocess.call("./appdctl.py get detection-rules -a "+applicationList[0]+" --basic-auth-file=basicauth.csv ", stdout=FNULL, shell=True)
+        result = subprocess.call("./appdctl.py get detection-rules -a "+self.applicationList[0]+" --basic-auth-file=basicauth.csv ", stdout=FNULL, shell=True)
         self.assertEqual(result, 0)
 
-        result = subprocess.call("./appdctl.py get businesstransactions -a "+applicationList[0]+" --basic-auth-file=basicauth.csv ", stdout=FNULL, shell=True)
+        result = subprocess.call("./appdctl.py get businesstransactions -a "+self.applicationList[0]+" --basic-auth-file=basicauth.csv ", stdout=FNULL, shell=True)
         self.assertEqual(result, 0)
 
-        result = subprocess.call("./appdctl.py get backends -a "+applicationList[0]+" --basic-auth-file=basicauth.csv ", stdout=FNULL, shell=True)
+        result = subprocess.call("./appdctl.py get backends -a "+self.applicationList[0]+" --basic-auth-file=basicauth.csv ", stdout=FNULL, shell=True)
         self.assertEqual(result, 0)
 
-        result = subprocess.call("./appdctl.py get entrypoints -a "+applicationList[0]+" --basic-auth-file=basicauth.csv ", stdout=FNULL, shell=True)
+        result = subprocess.call("./appdctl.py get entrypoints -a "+self.applicationList[0]+" --basic-auth-file=basicauth.csv ", stdout=FNULL, shell=True)
         self.assertEqual(result, 0)
 
-        result = subprocess.call("./appdctl.py get healthrules -a "+applicationList[0]+" --basic-auth-file=basicauth.csv ", stdout=FNULL, shell=True)
+        result = subprocess.call("./appdctl.py get healthrules -a "+self.applicationList[0]+" --basic-auth-file=basicauth.csv ", stdout=FNULL, shell=True)
         self.assertEqual(result, 0)
 
-        result = subprocess.call("./appdctl.py get policies -a "+applicationList[0]+" --basic-auth-file=basicauth.csv ", stdout=FNULL, shell=True)
+        result = subprocess.call("./appdctl.py get policies -a "+self.applicationList[0]+" --basic-auth-file=basicauth.csv ", stdout=FNULL, shell=True)
         self.assertEqual(result, 0)
 
-        result = subprocess.call("./appdctl.py get actions -a "+applicationList[0]+" --basic-auth-file=basicauth.csv ", stdout=FNULL, shell=True)
+        result = subprocess.call("./appdctl.py get actions -a "+self.applicationList[0]+" --basic-auth-file=basicauth.csv ", stdout=FNULL, shell=True)
         self.assertEqual(result, 0)
 
-        result = subprocess.call("./appdctl.py get schedules -a "+applicationList[0]+" --basic-auth-file=basicauth.csv ", stdout=FNULL, shell=True)
+        result = subprocess.call("./appdctl.py get schedules -a "+self.applicationList[0]+" --basic-auth-file=basicauth.csv ", stdout=FNULL, shell=True)
         self.assertEqual(result, 0)
 
-        result = subprocess.call("./appdctl.py get healthrule-violations -a "+applicationList[0]+" --since=1h --basic-auth-file=basicauth.csv ", stdout=FNULL, shell=True)
+        result = subprocess.call("./appdctl.py get healthrule-violations -a "+self.applicationList[0]+" --since=1h --basic-auth-file=basicauth.csv ", stdout=FNULL, shell=True)
         self.assertEqual(result, 0)
 
-        result = subprocess.call("./appdctl.py get snapshots -a "+applicationList[0]+" --since=1h --basic-auth-file=basicauth.csv ", stdout=FNULL, shell=True)
+        result = subprocess.call("./appdctl.py get snapshots -a "+self.applicationList[0]+" --since=1h --basic-auth-file=basicauth.csv ", stdout=FNULL, shell=True)
         self.assertEqual(result, 0)
 
-        result = subprocess.call("./appdctl.py get errors -a "+applicationList[0]+" --since=1h --basic-auth-file=basicauth.csv ", stdout=FNULL, shell=True)
+        result = subprocess.call("./appdctl.py get errors -a "+self.applicationList[0]+" --since=1h --basic-auth-file=basicauth.csv ", stdout=FNULL, shell=True)
         self.assertEqual(result, 0)
 
-        result = subprocess.call("./appdctl.py get nodes -a "+applicationList[0]+","+applicationList[1]+" --basic-auth-file=basicauth.csv ", stdout=FNULL, shell=True)
+        result = subprocess.call("./appdctl.py get nodes -a "+self.applicationList[0]+","+self.applicationList[1]+" --basic-auth-file=basicauth.csv ", stdout=FNULL, shell=True)
         self.assertEqual(result, 0)
 
         result = subprocess.call("./appdctl.py get nodes -A --basic-auth-file=basicauth.csv ", stdout=FNULL, shell=True)
@@ -199,7 +216,6 @@ class TestSum(unittest.TestCase):
         JSON_Content = '{"timezone":"Europe/Brussels"}'
         result = subprocess.call("./appdctl.py patch schedules -a sandbox -p '"+JSON_Content+"'", stdout=FNULL, shell=True)
         self.assertEqual(result, 0)
-
 
         FNULL.close()
 
