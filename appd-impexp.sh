@@ -454,6 +454,7 @@ if [ -z $? ]; then echo "No URL definition found in config YAML file"; exit; fi
 
 ### Get access token ###
 ACCESS_TOKEN=$(echo_appd_access_token ${URL} ${USERNAME} ${PASS})
+if [ -z ${ACCESS_TOKEN} ]; then echo "Failed to get access token from context $CONTEXT..."; exit; fi
 
 ### Run Imp/Exp function ###
 if [ -z ${APPLICATION} ]; then
@@ -462,7 +463,7 @@ if [ -z ${APPLICATION} ]; then
 else
   echo "${OPERATION} from application ${APPLICATION}(${CONTEXT})..."
   APP_ID=$(get_App_ID ${URL} ${ACCESS_TOKEN} ${APPLICATION})
-  if [ -z $APP_ID ]; then echo "Could not find the App ID for application $APP_NAME."; exit; fi
+  if [ -z $APP_ID ]; then echo "Could not find the App ID for application $APPLICATION."; exit; fi
   #if application_exists $APPLICATION ; then echo "Application exists"; else echo "Application does NOT exist."; fi
   run_ImpExp_legacy ${URL} ${ACCESS_TOKEN} ${APP_ID} $(echo "${CONTEXT}" | sed 's/\"//g')/${APPLICATION}
 fi
