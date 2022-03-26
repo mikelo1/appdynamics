@@ -9,6 +9,11 @@ import time
 class RESTfulAPI:
     basicAuth   = dict()
     appD_Config = None
+    time_range = {  "BEFORE_NOW":   {"time-range-type": "BEFORE_NOW","duration-in-mins": "{duration}"},
+                    "BEFORE_TIME":  {"time-range-type": "BEFORE_TIME","duration-in-mins": "{duration}","end-time": "{endEpoch}"},
+                    "AFTER_TIME":   {"time-range-type": "AFTER_TIME","duration-in-mins": "{duration}","start-time": "{startEpoch}"},
+                    "BETWEEN_TIMES":{"time-range-type": "BETWEEN_TIMES","start-time": "{startEpoch}","end-time": "{endEpoch}"}
+                 }
 
     def __init__(self,appD_Config,basicAuth=None):
         #self._session   = None
@@ -84,94 +89,35 @@ class RESTfulAPI:
             if 'DEBUG' in locals(): print ("Current context "+ self.appD_Config.get_current_context(output=None) + " has valid token: "+token)
         return token
 
-    def __fetch_RESTfulPath(self,RESTfulPath,params=None,serverURL=None,userName=None,password=None):
+
+    def __do_request(self,reqFunction,url,params,data,headers,files,auth):
         """
-        Fetch RESTful Path from a controller. Either provide an username/password or let it get an access token automatically.
-        :param RESTfulPath: RESTful path to retrieve data
-        :param params: additional HTTP parameters (if any)
-        :param serverURL: Full hostname of the Appdynamics controller. i.e.: https://demo1.appdynamics.com:443
-        :param userName: Full username, including account. i.e.: myuser@customer1
-        :param password: password for the specified user and host. i.e.: mypassword
+        Send a request to a RESTful Path from a controller
+        :param reqFunction: request function to be executed. Could be one of these: "requests.get", "requests.post", "request.put"
+        :param url: URL for the new Request object.
+        :param params: (optional) Dictionary, list of tuples or bytes to send in the query string for the Request.
+        :param data: (optional) Dictionary, list of tuples, bytes, or file-like object to send in the body of the Request.
+        :param headers: (optional) Dictionary of HTTP Headers to send with the Request.
+        :param files: (optional) Dictionary of 'name': file-like-objects (or {'name': file-tuple}) for multipart encoding upload
+        :param auth: (optional) Auth tuple to enable Basic/Digest/Custom HTTP Auth.
         :returns: the response data. Null if no data was received.
         """
-        if 'DEBUG' in locals(): print ("Fetching JSON from RESTful path " + RESTfulPath + " with params " + json.dumps(params) + " ...")
-        if serverURL is None: serverURL = self.appD_Config.get_current_context_serverURL()
-        if userName and password:
-            try:
-                response = requests.get(serverURL + RESTfulPath,
-                                        auth=(userName, password), params=params)
-            except requests.exceptions.InvalidURL:
-                sys.stderr.write("Invalid URL: " + serverURL + RESTfulPath + ". Do you have the right controller hostname and RESTful path?\n")
-                return None
-        else:
-            token = self.__get_access_token()
-            if token is None: return None
-            try:
-                response = requests.get(serverURL + RESTfulPath,
-                                    headers={"Authorization": "Bearer "+token}, params=params)
-            except requests.exceptions.InvalidURL:
-                sys.stderr.write("Invalid URL: " + serverURL + RESTfulPath + ". Do you have the right controller hostname and RESTful path?\n")
-                return None
+        #DEBUG=True
+        token = self.__get_access_token()
+        if token is None: return None
+        headers.update({"Authorization": "Bearer "+token,"Content-Type": "application/json","Accept": "application/json"})
+        serverURL = self.appD_Config.get_current_context_serverURL()
+        url = serverURL + url
 
-        if response.status_code != 200:
-            sys.stderr.write("Something went wrong on HTTP request. Status:" + str(response.status_code) + "\n")
-            content = str(response.content)
-            message_start = content.find('<b>message</b>')
-            if message_start >= 0:
-                message_end = content.find("</p>",message_start)
-                sys.stderr.write("Message: "+content[message_start+14:message_end] + "\n" )
-            description_start = content.find('<b>description</b>')
-            if description_start >= 0:
-                description_end = content.find("</p>",description_start)
-                sys.stderr.write("Description: "+content[description_start+18:description_end] + "\n" )
-            if 'DEBUG' in locals():
-                sys.stderr.write ("   header:"+ str(response.headers))
-                sys.stderr.write(str(response.content))
+        try:
+            response = reqFunction(url=url,auth=auth,params=params,headers=headers,data=data,files=files)
+            #if 'DEBUG' in locals(): print(dump.dump_all(response).decode("utf-8"))
+        except requests.exceptions.InvalidURL:
+            sys.stderr.write("Invalid URL: " + url + ". Do you have the right controller hostname and RESTful path?\n")
             return None
-        return response.content
 
-
-    def __update_RESTfulPath(self,RESTfulPath,streamdata,method,headers=None,serverURL=None,userName=None,password=None):
-        """
-        Update data from a controller. Either provide an username/password or let it get an access token automatically.
-        :param RESTfulPath: RESTful path to upload data
-        :param streamdata: the data to be updated, in JSON or XML format
-        :param method: HTTP method, could be either POST or PUT.
-        :param headers: additional request headers. i.e: Content-Type:application/json, Accept:text/xml, ...
-        :param serverURL: Full hostname of the Appdynamics controller. i.e.: https://demo1.appdynamics.com:443
-        :param userName: Full username, including account. i.e.: myuser@customer1
-        :param password: password for the specified user and host. i.e.: mypassword
-        :returns: response of the update request, if request was OK. None, if request failed.
-        """
-        if 'DEBUG' in locals(): print ("Updating RESTful path " + RESTfulPath + " with provided stream data...")
-        data = json.dumps(streamdata) if type(streamdata) is dict else streamdata
-        requestMethod = requests.post if method=="POST" else requests.put
-        if serverURL is None: serverURL = self.appD_Config.get_current_context_serverURL()
-
-        if userName and password:
-            try:
-                response = requestMethod(serverURL + RESTfulPath, headers=headers, auth=(userName, password), data=data)
-            except requests.exceptions.InvalidURL:
-                sys.stderr.write ("Invalid URL: " + serverURL + RESTfulPath + ". Do you have the right controller hostname and RESTful path?\n")
-                return None
-        else:
-            token = self.__get_access_token()
-            if token is None: return None
-            if headers is not None: headers.update({"Authorization": "Bearer "+token})
-            else: headers = {"Authorization": "Bearer "+token}
-
-            if 'DEBUG' in locals():
-                print ("\nRequest RESTful path:",serverURL + RESTfulPath,"\nparams:","\nheaders:",headers,"\ndata:",data,"\nfiles:","\nmethod:",requestMethod.__name__)
-
-            try:
-                response = requestMethod(serverURL + RESTfulPath, headers=headers, data=data)
-                #if 'DEBUG' in locals(): print(dump.dump_all(response).decode("utf-8"))
-            except requests.exceptions.InvalidURL:
-                sys.stderr.write ("Invalid URL: " + serverURL + RESTfulPath + ". Do you have the right controller hostname and RESTful path?\n")
-                return None
-
-        if 'DEBUG' in locals() and response.status_code > 399:
-            sys.stderr.write("Something went wrong on HTTP request. Status:" + str(response.status_code) + " ")
+        if response.status_code > 399:
+            sys.stderr.write("[Warn] Something went wrong on HTTP request. Status:" + str(response.status_code) + "\n")
             content = str(response.content)
             message_start = content.find('<b>message</b>')
             if message_start >= 0:
@@ -181,59 +127,13 @@ class RESTfulAPI:
             if description_start >= 0:
                 description_end = content.find("</p>",description_start)
                 sys.stderr.write("Description: "+content[description_start+18:description_end] + "\n" )
+            elif message_start < 0 and description_start < 0:
+                sys.stderr.write(content)
+            return None
+            if 'DEBUG' in locals(): sys.stderr.write("\nurl: "+str(url)+"\nauth: "+str(auth)+"\nparams: "+str(params)+"\nheaders: "+str(headers)+"\ndata: "+str(data)+"\nfiles:"+str(files)+"\n")
         elif 'DEBUG' in locals():
-            sys.stderr.write("HTTP request successful with status:" + str(response.status_code) + " ")
-        return response
-
-    def __import_RESTfulPath(self,RESTfulPath,filePath,method,headers=None,serverURL=None,userName=None,password=None):
-        """
-        Update data from a controller. Either provide an username/password or let it get an access token automatically.
-        :param RESTfulPath: RESTful path to upload data
-        :param filePath: path to the datasource file
-        :param method: HTTP method, could be either POST or PUT.
-        :param headers: additional request headers. i.e: Content-Type:application/json, Accept:text/xml, ...
-        :param serverURL: Full hostname of the Appdynamics controller. i.e.: https://demo1.appdynamics.com:443
-        :param userName: Full username, including account. i.e.: myuser@customer1
-        :param password: password for the specified user and host. i.e.: mypassword
-        :returns: True if the update was successful. False if no data was updated.
-        """
-        if 'DEBUG' in locals(): print ("Importing RESTful path " + RESTfulPath + " with provided datasource file...")
-        requestMethod = requests.post if method=="POST" else requests.put
-        files={'files': open(filePath,'rb')}
-        if serverURL is None: serverURL = self.appD_Config.get_current_context_serverURL()
-        if userName and password:
-            try:
-                response = requestMethod(serverURL + RESTfulPath, headers=headers, auth=(userName, password), files=files)
-            except requests.exceptions.InvalidURL:
-                sys.stderr.write ("Invalid URL: " + serverURL + RESTfulPath + ". Do you have the right controller hostname and RESTful path?\n")
-                return False
-        else:
-            token = self.__get_access_token()
-            if token is None: return None
-            if headers is not None: headers.update({"Authorization": "Bearer "+token})
-            else: headers = {"Authorization": "Bearer "+token}
-            try:
-                response = requestMethod(serverURL + RESTfulPath, headers=headers, files=files)
-            except requests.exceptions.InvalidURL:
-                sys.stderr.write ("Invalid URL: " + serverURL + RESTfulPath + ". Do you have the right controller hostname and RESTful path?\n")
-                return False
-
-        if response.status_code != 200:
-            sys.stderr.write("Something went wrong on HTTP request. Status:" + str(response.status_code) + " ")
-            content = str(response.content)
-            message_start = content.find('<b>message</b>')
-            if message_start >= 0:
-                message_end = content.find("</p>",message_start)
-                sys.stderr.write("Message: "+content[message_start+14:message_end] + "\n" )
-            description_start = content.find('<b>description</b>')
-            if description_start >= 0:
-                description_end = content.find("</p>",description_start)
-                sys.stderr.write("Description: "+content[description_start+18:description_end] + "\n" )
-            if 'DEBUG' in locals():
-                print ("   header:", response.headers)
-                print (response.content)
-            return False
-        return True
+            sys.stderr.write("HTTP request successful with status:" + str(response.status_code) + "\n")
+        return response.content if response.content else response.status_code
 
 
        ###### FROM HERE PUBLIC FUNCTIONS ######
@@ -244,7 +144,7 @@ class RESTfulAPI:
         :returns: the fetched data. Null if no data was received.
         """
         restfulPath = "/controller/restui/applicationManagerUiBean/getApplicationsAllTypes"
-        return self.__fetch_RESTfulPath(restfulPath)
+        return self.__do_request(reqFunction=requests.get,url=restfulPath,params={},data='',headers={},files=None,auth=None)
 
     def fetch_applications(self):
         """
@@ -255,44 +155,44 @@ class RESTfulAPI:
         # GET /controller/rest/applications
         restfulPath = "/controller/rest/applications/"
         params = {"output": "JSON"}
-        return self.__fetch_RESTfulPath(restfulPath,params=params)
+        return self.__do_request(reqFunction=requests.get,url=restfulPath,params=params,data='',headers={},files=None,auth=None)
 
-    def fetch_application(self,appKey):
+    def fetch_application(self,app_ID):
         """
         Fetch application from a controller.
-        :param appKey: name or ID number of the application to fetch
+        :param app_ID: name or ID number of the application to fetch
         :returns: the fetched data. Null if no data was received.
         """
         # Retrieve a specific Business Application
         # GET /controller/rest/applications/application_name
-        restfulPath = "/controller/rest/applications/" + str(appKey)
+        restfulPath = "/controller/rest/applications/" + str(app_ID)
         params = {"output": "JSON"}
-        return self.__fetch_RESTfulPath(restfulPath,params=params)
+        return self.__do_request(reqFunction=requests.get,url=restfulPath,params=params,data='',headers={},files=None,auth=None)
 
-    def fetch_tiers(self,appKey):
+    def fetch_tiers(self,app_ID,selectors=None):
         """
         Fetch tiers for an application.
-        :param appKey: name or ID number of the application to fetch
+        :param app_ID: name or ID number of the application to fetch
         :returns: the fetched data. Null if no data was received.
         """
         # Retrieve All Tiers in a Business Application
         # GET /controller/rest/applications/application_name/tiers
-        restfulPath = "/controller/rest/applications/" + str(appKey) + "/tiers"
+        restfulPath = "/controller/rest/applications/" + str(app_ID) + "/tiers"
         params = {"output": "JSON"}
-        return self.__fetch_RESTfulPath(restfulPath,params=params)
+        return self.__do_request(reqFunction=requests.get,url=restfulPath,params=params,data='',headers={},files=None,auth=None)
 
-    def fetch_tier_nodes(self,appKey,tierKey):
+    def fetch_tier_nodes(self,app_ID,entity_ID):
         """
-        Fetch nodes for an application
-        :param appKey: name or ID number of the application to fetch nodes
-        :param tierName: name or ID of the tier to fetch nodes
+        Fetch nodes for an application tier
+        :param app_ID: name or ID number of the application to fetch nodes
+        :param entity_ID: name or ID of the tier to fetch nodes
         :returns: the fetched data. Null if no data was received.
         """
         # Retrieve Node Information for All Nodes in a Tier
         # GET /controller/rest/applications/application_name/tiers/tier_name/nodes
-        restfulPath = "/controller/rest/applications/" + str(appKey) + "/tiers/" + str(tierKey) + "/nodes"
+        restfulPath = "/controller/rest/applications/" + str(app_ID) + "/tiers/" + str(entity_ID) + "/nodes"
         params = {"output": "JSON"}
-        return self.__fetch_RESTfulPath(restfulPath,params=params)
+        return self.__do_request(reqFunction=requests.get,url=restfulPath,params=params,data='',headers={},files=None,auth=None)
 
     def fetch_nodes(self,app_ID,selectors=None):
         """
@@ -306,20 +206,20 @@ class RESTfulAPI:
         restfulPath = "/controller/rest/applications/" + str(app_ID) + "/nodes"
         params = {"output": "JSON"}
         if selectors: params.update(selectors)
-        return self.__fetch_RESTfulPath(restfulPath,params=params)
+        return self.__do_request(reqFunction=requests.get,url=restfulPath,params=params,data='',headers={},files=None,auth=None)
 
-    def fetch_node_by_ID(self,app_ID,node_ID):
+    def fetch_node_by_ID(self,app_ID,entity_ID):
         """
         Fetch node details from a controller.
         :param app_ID: the ID number of the application nodes to fetch
-        :param node_ID: the ID number of the node to fetch
+        :param entity_ID: the ID number of the node to fetch
         :returns: the fetched data. Null if no data was received.
         """
         # Retrieve Node Information by Node Name
         # GET /controller/rest/applications/application_name/nodes/node_name
-        restfulPath = "/controller/rest/applications/" + str(app_ID) + "/nodes/" + str(node_ID)
+        restfulPath = "/controller/rest/applications/" + str(app_ID) + "/nodes/" + str(entity_ID)
         params = {"output": "JSON"}
-        return self.__fetch_RESTfulPath(restfulPath,params=params)
+        return self.__do_request(reqFunction=requests.get,url=restfulPath,params=params,data='',headers={},files=None,auth=None)
 
     def fetch_agent_status(self,nodeList,start_epoch,end_epoch):
         """
@@ -333,11 +233,10 @@ class RESTfulAPI:
         # POST /controller/restui/v1/nodes/list/health/ids
         # BODY {"requestFilter":[<comma seperated list of node id's>],"resultColumns":["LAST_APP_SERVER_RESTART_TIME","VM_RUNTIME_VERSION","MACHINE_AGENT_STATUS","APP_AGENT_VERSION","APP_AGENT_STATUS","HEALTH"],"offset":0,"limit":-1,"searchFilters":[],"columnSorts":[],"timeRangeStart":<start_time>,"timeRangeEnd":<end_time>}
         restfulPath= "/controller/restui/v1/nodes/list/health/ids"
-        params     = {"requestFilter":nodeList,"offset":0,"limit":-1,"searchFilters":[],"columnSorts":[],
-                      "resultColumns":["APP_AGENT_STATUS","HEALTH"],
-                      "timeRangeStart":start_epoch,"timeRangeEnd":end_epoch}
-        response = self.__update_RESTfulPath(restfulPath,streamdata=params,method="POST",headers={"Content-Type": "application/json","Accept": "application/json"})
-        return response.content if response.status_code < 400 else None
+        data       = json.dumps( {  "requestFilter":nodeList,"offset":0,"limit":-1,"searchFilters":[],"columnSorts":[],
+                                    "resultColumns":["APP_AGENT_STATUS","HEALTH"],
+                                    "timeRangeStart":start_epoch,"timeRangeEnd":end_epoch} )
+        return self.__do_request(reqFunction=requests.post,url=restfulPath,params={},data=data,headers={},files=None,auth=None)
 
     def mark_nodes_as_historical(self,nodeList):
         """
@@ -350,8 +249,7 @@ class RESTfulAPI:
         # POST /controller/rest/mark-nodes-historical?application-component-node-ids=value
         nodeList_str = ','.join(map(lambda x: str(x),nodeList))
         restfulPath= "/controller/rest/mark-nodes-historical?application-component-node-ids="+nodeList_str
-        response = self.__update_RESTfulPath(restfulPath,streamdata="",method="POST",headers={"Content-Type": "application/json","Accept": "application/json"})
-        return response.content if response.status_code < 400 else None
+        return self.__do_request(reqFunction=requests.post,url=restfulPath,params={},data='',headers={},files=None,auth=None)
 
     def fetch_transactiondetection(self,app_ID,selectors=None):
         """
@@ -366,7 +264,7 @@ class RESTfulAPI:
         restfulPath = "/controller/transactiondetection/" + str(app_ID) + "/custom"
         params = {"output": "XML"}
         if selectors: params.update(selectors)
-        return self.__fetch_RESTfulPath(restfulPath,params=params)
+        return self.__do_request(reqFunction=requests.get,url=restfulPath,params=params,data='',headers={},files=None,auth=None)
 
     def import_transactiondetection(self,app_ID,filePath):
         """
@@ -379,7 +277,8 @@ class RESTfulAPI:
         # POST /controller/transactiondetection/application_id/[scope_name]/rule_type/[entry_point_type]/[rule_name] -F file=@exported_file_name.xml
         # https://docs.appdynamics.com/display/PRO45/Configuration+Import+and+Export+API#ConfigurationImportandExportAPI-ImportTransactionDetectionRules
         restfulPath = "/controller/transactiondetection/" + str(app_ID) + "/custom?overwrite=true"
-        return self.__import_RESTfulPath(restfulPath,method="POST",filePath=filePath)
+        files={'files': open(filePath,'rb')}
+        return self.__do_request(reqFunction=requests.post,url=restfulPath,params={},data='',headers={},files=files,auth=None)
 
     def fetch_business_transactions(self,app_ID,selectors=None):
         """
@@ -393,7 +292,7 @@ class RESTfulAPI:
         restfulPath = "/controller/rest/applications/" + str(app_ID) + "/business-transactions"
         params = {"output": "JSON"}
         if selectors: params.update(selectors)
-        return self.__fetch_RESTfulPath(restfulPath,params=params)
+        return self.__do_request(reqFunction=requests.get,url=restfulPath,params=params,data='',headers={},files=None,auth=None)
 
     def fetch_backends(self,app_ID,selectors=None):
         """
@@ -407,21 +306,22 @@ class RESTfulAPI:
         restfulPath = "/controller/rest/applications/" + str(app_ID) + "/backends"
         params = {"output": "JSON"}
         if selectors: params.update(selectors)
-        return self.__fetch_RESTfulPath(restfulPath,params=params)
+        return self.__do_request(reqFunction=requests.get,url=restfulPath,params=params,data='',headers={},files=None,auth=None)
 
-    def fetch_entrypoints_TierRules(self,tier_ID,selectors=None):
+    def fetch_entrypoints_TierRules(self,entity_ID,selectors=None):
         """
         Fetch tier entrypoints from a controller.
-        :param tier_ID: the ID number of the tier endpoints to fetch
+        :param entity_ID: the ID number of the tier endpoints to fetch
         :param selectors: fetch only endpoints filtered by specified selectors
         :returns: the fetched data. Null if no data was received.
         """
         #GetAPMSEPTierRules
         restfulPath = "/controller/restui/serviceEndpoint/getAll"
-        data = {"agentType": "APP_AGENT","attachedEntity": {"entityId": tier_ID,"entityType": "APPLICATION_COMPONENT"} }
+        data = json.dumps( {"agentType": "APP_AGENT","attachedEntity": {"entityId": entity_ID,"entityType": "APPLICATION_COMPONENT"} } )
+        headers={"Content-Type": "application/json","Accept": "application/json"}
+        params = {"output": "JSON"}
         if selectors: params.update(selectors)
-        response = self.__update_RESTfulPath(restfulPath,streamdata=data,method="POST",headers={"Content-Type": "application/json","Accept": "application/json"})
-        return response.content
+        return self.__do_request(reqFunction=requests.post,url=restfulPath,params=params,data=data,headers=headers,files=None,auth=None)
 
     def fetch_health_rules_XML(self,app_ID,selectors=None):
         """
@@ -435,7 +335,7 @@ class RESTfulAPI:
         restfulPath = "/controller/healthrules/" + str(app_ID)
         params = {"output": "XML"}
         if selectors: params.update(selectors)
-        return self.__fetch_RESTfulPath(restfulPath,params=params)
+        return self.__do_request(reqFunction=requests.get,url=restfulPath,params=params,data='',headers=headers,files=None,auth=None)
 
     def fetch_health_rules_JSON(self,app_ID,selectors=None):
         """
@@ -447,7 +347,7 @@ class RESTfulAPI:
         restfulPath = "/controller/restui/policy2/policies/" + str(app_ID)
         params = {"Content-Type": "application/json","resultColumns": ["LAST_APP_SERVER_RESTART_TIME", "VM_RUNTIME_VERSION", "MACHINE_AGENT_STATUS", "APP_AGENT_VERSION", "APP_AGENT_STATUS", "HEALTH"]}
         if selectors: params.update(selectors)
-        return self.__fetch_RESTfulPath(restfulPath,params=params)
+        return self.__do_request(reqFunction=requests.get,url=restfulPath,params=params,data='',headers={},files=None,auth=None)
 
     def fetch_health_rule_by_ID(self,app_ID,entityID):
         """
@@ -460,7 +360,7 @@ class RESTfulAPI:
         # GET <controller_url>/controller/alerting/rest/v1/applications/<application_id>/health-rules/{health-rule-id}
         restfulPath = "/controller/alerting/rest/v1/applications/" + str(app_ID) + "/health-rules/" + str(entityID)
         params = {"output": "JSON"}
-        return self.__fetch_RESTfulPath(restfulPath,params=params)
+        return self.__do_request(reqFunction=requests.get,url=restfulPath,params=params,data='',headers={},files=None,auth=None)
 
     def import_health_rules_XML(self,app_ID,filePath):
         """
@@ -473,7 +373,9 @@ class RESTfulAPI:
         # You can import health rules defined in an XML file into a business application.
         # POST /controller/healthrules/application_id?overwrite=true_or_false
         restfulPath = "/controller/healthrules/" + str(app_ID) + "?overwrite=true"
-        return self.__import_RESTfulPath(restfulPath,method="POST",filePath=filePath)
+        files={'files': open(filePath,'rb')}
+        return self.__do_request(reqFunction=requests.post,url=restfulPath,params={},data='',headers={},files=files,auth=None)
+
 
     def create_health_rule(self,app_ID,dataJSON):
         """
@@ -485,8 +387,10 @@ class RESTfulAPI:
         # Creates a new health rule from the specified JSON payload.
         # PUT <controller_url>/controller/alerting/rest/v1/applications/<application_id>/health-rules
         restfulPath = "/controller/alerting/rest/v1/applications/" + str(app_ID) + "/health-rules"
-        response = self.__update_RESTfulPath(restfulPath,streamdata=dataJSON,method="POST",headers={"Content-Type": "application/json"})
-        return response is not None and response.status_code == 201
+        data = json.dumps(dataJSON)
+        headers={"Content-Type": "application/json"}
+        response = self.__do_request(reqFunction=requests.post,url=restfulPath,params={},data=data,headers=headers,files=None,auth=None)
+        return response == "201"
 
     def update_health_rule(self,app_ID,entity_ID,dataJSON):
         """
@@ -499,8 +403,10 @@ class RESTfulAPI:
         # This API updates an existing health rule (required fields) with details from the specified health rule ID.
         # PUT <controller_url>/controller/alerting/rest/v1/applications/<application_id>/health-rules/{health-rule-id}
         restfulPath = "/controller/alerting/rest/v1/applications/" + str(app_ID) + "/health-rules/" + str(entity_ID)
-        response = self.__update_RESTfulPath(restfulPath,streamdata=dataJSON,method="PUT",headers={"Content-Type": "application/json"})
-        return response is not None and response.status_code == 200
+        data = json.dumps(dataJSON)
+        headers={"Content-Type": "application/json"}
+        response = self.__do_request(reqFunction=requests.put,url=restfulPath,params=params,data=data,headers=headers,files=None,auth=None)
+        return response == "200"
 
     def fetch_policies(self,app_ID):
         """
@@ -512,19 +418,20 @@ class RESTfulAPI:
         # GET <controller_url>/controller/alerting/rest/v1/applications/<application_id>/policies
         restfulPath = "/controller/alerting/rest/v1/applications/" + str(app_ID) + "/policies"
         params = {"output": "JSON"}
-        return self.__fetch_RESTfulPath(restfulPath,params=params)
+        return self.__do_request(reqFunction=requests.get,url=restfulPath,params=params,data='',headers={},files=None,auth=None)
 
-    def fetch_policy_by_ID(self,app_ID,policy_ID):
+    def fetch_policy_by_ID(self,app_ID,entity_ID):
         """
         Fetch policy details from a controller.
         :param app_ID: the ID number of the application policies to fetch
-        :param policy_ID: the ID number of the policy to fetch
+        :param entity_ID: the ID number of the policy to fetch
         :returns: the fetched data. Null if no data was received.
         """
         # Retrieve Details of a Specified Policy
         # GET <controller_url>/controller/alerting/rest/v1/applications/<application_id>/policies/{policy-id}
-        restfulPath = "/controller/alerting/rest/v1/applications/" + str(app_ID) + "/policies/" + str(policy_ID)
-        return self.__fetch_RESTfulPath(restfulPath)
+        restfulPath = "/controller/alerting/rest/v1/applications/" + str(app_ID) + "/policies/" + str(entity_ID)
+        params = {"output": "JSON"}
+        return self.__do_request(reqFunction=requests.get,url=restfulPath,params=params,data='',headers={},files=None,auth=None)
 
     def fetch_policies_legacy(self,app_ID,selectors=None):
         """
@@ -537,7 +444,7 @@ class RESTfulAPI:
         # GET /controller/policies/application_id
         restfulPath = "/controller/policies/" + str(app_ID)
         params = {"output": "JSON"}
-        return self.__fetch_RESTfulPath(restfulPath,params=params)
+        return self.__do_request(reqFunction=requests.get,url=restfulPath,params=params,data='',headers={},files=None,auth=None)
 
     def fetch_actions(self,app_ID):
         """
@@ -549,19 +456,20 @@ class RESTfulAPI:
         # GET <controller_url>/controller/alerting/rest/v1/applications/<application_id>/actions
         restfulPath = "/controller/alerting/rest/v1/applications/" + str(app_ID) + "/actions"
         params = {"output": "JSON"}
-        return self.__fetch_RESTfulPath(restfulPath,params=params)
+        return self.__do_request(reqFunction=requests.get,url=restfulPath,params=params,data='',headers={},files=None,auth=None)
 
-    def fetch_action_by_ID(self,app_ID,action_ID):
+    def fetch_action_by_ID(self,app_ID,entity_ID):
         """
         Fetch action details from a controller.
         :param app_ID: the ID number of the application actions to fetch
-        :param action_ID: the ID number of the action to fetch
+        :param entity_ID: the ID number of the action to fetch
         :returns: the fetched data. Null if no data was received.
         """
         # Retrieve Details of a Specified Action
         # GET <controller_url>/controller/alerting/rest/v1/applications/<application_id>/actions/{action-id}
-        restfulPath = "/controller/alerting/rest/v1/applications/" + str(app_ID) + "/actions/" + str(action_ID)
-        return self.__fetch_RESTfulPath(restfulPath)
+        restfulPath = "/controller/alerting/rest/v1/applications/" + str(app_ID) + "/actions/" + str(entity_ID)
+        params = {"output": "JSON"}
+        return self.__do_request(reqFunction=requests.get,url=restfulPath,params=params,data='',headers={},files=None,auth=None)
 
     def fetch_actions_legacy(self,app_ID,selectors=None):
         """
@@ -575,7 +483,7 @@ class RESTfulAPI:
         # GET /controller/actions/application_id
         restfulPath = "/controller/actions/" + str(app_ID)
         params = {"output": "JSON"}
-        return self.__fetch_RESTfulPath(restfulPath,params=params)
+        return self.__do_request(reqFunction=requests.get,url=restfulPath,params=params,data='',headers={},files=None,auth=None)
 
     def fetch_schedules(self,app_ID,selectors=None):
         """
@@ -589,20 +497,20 @@ class RESTfulAPI:
         # GET <controller_url>/controller/alerting/rest/v1/applications/<application_id>/schedules
         restfulPath = "/controller/alerting/rest/v1/applications/" + str(app_ID) + "/schedules"
         params = {"output": "JSON"}
-        return self.__fetch_RESTfulPath(restfulPath,params=params)
+        return self.__do_request(reqFunction=requests.get,url=restfulPath,params=params,data='',headers={},files=None,auth=None)
 
-    def fetch_schedule_by_ID(self,app_ID,schedule_ID):
+    def fetch_schedule_by_ID(self,app_ID,entity_ID):
         """
         Fetch schedule details from a controller.
         :param app_ID: the ID number of the application schedule to fetch
-        :param schedule_ID: the ID number of the schedule to fetch
+        :param entity_ID: the ID number of the schedule to fetch
         :returns: the fetched data. Null if no data was received.
         """
         # Retrieve the Details of a Specified Schedule with a specified ID
         # GET <controller_url>/controller/alerting/rest/v1/applications/<application_id>/schedules/{schedule-id}
-        restfulPath = "/controller/alerting/rest/v1/applications/" + str(app_ID) + "/schedules/" + str(schedule_ID)
+        restfulPath = "/controller/alerting/rest/v1/applications/" + str(app_ID) + "/schedules/" + str(entity_ID)
         params = {"output": "JSON"}
-        return self.__fetch_RESTfulPath(restfulPath,params=params)
+        return self.__do_request(reqFunction=requests.get,url=restfulPath,params=params,data='',headers={},files=None,auth=None)
 
     def create_schedule(self,app_ID,dataJSON):
         """
@@ -615,8 +523,11 @@ class RESTfulAPI:
         # Creates a new schedule with the specified JSON payload
         # POST <controller_url>/controller/alerting/rest/v1/applications/<application_id>/schedules/
         restfulPath = "/controller/alerting/rest/v1/applications/" + str(app_ID) + "/schedules/"
-        response = self.__update_RESTfulPath(restfulPath,streamdata=dataJSON,method="POST",headers={"Content-Type": "application/json"})
-        return response is not None and response.status_code == 201
+        data = json.dumps(dataJSON)
+        headers={"Content-Type": "application/json"}
+        params = {"output": "JSON"}
+        response = self.__do_request(reqFunction=requests.post,url=restfulPath,params=params,data=data,headers=headers,files=None,auth=None)
+        return response == "201"
 
     def update_schedule(self,app_ID,entity_ID,dataJSON):
         """
@@ -629,8 +540,11 @@ class RESTfulAPI:
         # Updates an existing schedule with a specified JSON payload
         # PUT <controller_url>/controller/alerting/rest/v1/applications/<application_id>/schedules/{schedule-id}
         restfulPath = "/controller/alerting/rest/v1/applications/" + str(app_ID) + "/schedules/" + str(entity_ID)
-        response = self.__update_RESTfulPath(restfulPath,streamdata=dataJSON,method="PUT",headers={"Content-Type": "application/json"})
-        return response is not None and response.status_code == 200
+        data = json.dumps(dataJSON)
+        headers={"Content-Type": "application/json"}
+        params = {"output": "JSON"}
+        response = self.__do_request(reqFunction=requests.put,url=restfulPath,params=params,data=data,headers=headers,files=None,auth=None)
+        return response == "200"
 
     def fetch_metric_hierarchy(self,app_ID,metric_path):
         """
@@ -642,122 +556,95 @@ class RESTfulAPI:
         # Retrieve Metric Hierarchy
         # GET /controller/rest/applications/application_name/metrics
         restfulPath = "/controller/rest/applications/"+ str(app_ID) + "/metrics"
-        params.update({'metric-path': metric_path,'output':'JSON'})
-        return self.__fetch_RESTfulPath(restfulPath,params=params)
+        params={'metric-path': metric_path,'output':'JSON'}
+        return self.__do_request(reqFunction=requests.get,url=restfulPath,params=params,data='',headers={},files=None,auth=None)
 
-    def fetch_metric_data(self,app_ID,metric_path,time_range_type,duration=None,startEpoch=None,endEpoch=None):
+    def fetch_metric_data(self,app_ID,time_range_type,**kwargs):
         """
         Fetch metric data from a controller.
         :param app_ID: the ID number of the application metrics to fetch
-        :param metric_path: The path to the metric in the metric hierarchy.
         :param time_range_type: could be one of these: {"BEFORE_NOW","BEFORE_TIME","AFTER_TIME","BETWEEN_TIMES"}
-        :param duration: duration in minutes
-        :param startEpoch: range start time in Unix Epoch format
-        :param endEpoch: range end time in Unix Epoch format
-        :param selectors: fetch only errors filtered by specified selectors
+        :param duration-in-mins: (optional) duration in minutes
+        :param start-time: (optional) range start time in Unix Epoch format
+        :param end-time: (optional) range end time in Unix Epoch format
+        :param selectors: Must contain the path to the metric in the metric hierarchy
         :returns: the fetched data. Null if no data was received.
         """
         MAX_RESULTS="9999"
         # Retrieve Metric Data
         # GET /controller/rest/applications/application_name/metric-data
+        if 'selectors' not in kwargs or kwargs['selectors'] is None: return None # selectors must contain the path to the metric in the metric hierarchy
         restfulPath = "/controller/rest/applications/"+ str(app_ID) + "/metric-data"
-        if time_range_type == "BEFORE_NOW" and duration is not None:
-            params={"time-range-type": time_range_type,"duration-in-mins": duration}
-        elif time_range_type == "BEFORE_TIME" and duration is not None and endEpoch is not None:
-            params={"time-range-type": time_range_type,"duration-in-mins": duration,"end-time": endEpoch}
-        elif time_range_type == "AFTER_TIME" and duration is not None and startEpoch is not None:
-            params={"time-range-type": time_range_type,"duration-in-mins": duration,"start-time": startEpoch}
-        elif time_range_type == "BETWEEN_TIMES" and startEpoch is not None and endEpoch is not None:
-            params={"time-range-type": time_range_type,"start-time": startEpoch,"end-time": endEpoch}
-        else:
-            return None
-        params.update({'metric-path': metric_path,'rollup': True,'output':'JSON'})
-        return self.__fetch_RESTfulPath(restfulPath,params=params)
+        params = self.time_range[time_range_type]
+        for i in params: params[i] = kwargs[i] if i in kwargs else ""
+        params.update({'time-range-type':time_range_type,'rollup': True,'output':'JSON'})
+        params.update(kwargs['selectors'])
+        return self.__do_request(reqFunction=requests.get,url=restfulPath,params=params,data='',headers={},files=None,auth=None)
 
-    def fetch_healthrule_violations(self,app_ID,time_range_type,duration=None,startEpoch=None,endEpoch=None,selectors=None):
+    def fetch_healthrule_violations(self,app_ID,time_range_type,**kwargs):
         """
         Fetch healtrule violations from a controller.
         :param app_ID: the ID number of the application healtrule violations to fetch
         :param time_range_type: could be one of these: {"BEFORE_NOW","BEFORE_TIME","AFTER_TIME","BETWEEN_TIMES"}
-        :param duration: duration in minutes
-        :param startEpoch: range start time in Unix Epoch format
-        :param endEpoch: range end time in Unix Epoch format
-        :param selectors: fetch only events filtered by specified selectors
+        :param duration-in-mins: (optional) duration in minutes
+        :param start-time: (optional) range start time in Unix Epoch format
+        :param end-time: (optional) range end time in Unix Epoch format
+        :param selectors: (optional) fetch only events filtered by specified selectors
         :returns: the fetched data. Null if no data was received.
         """
         # https://docs.appdynamics.com/display/PRO45/Events+and+Action+Suppression+API
         # Retrieve All Health Rule Violations that have occurred in an application within a specified time frame. 
         # URI /controller/rest/applications/application_id/problems/healthrule-violations
         restfulPath = "/controller/rest/applications/" + str(app_ID) + "/problems/healthrule-violations"
-        if time_range_type == "BEFORE_NOW" and duration is not None:
-            params={"time-range-type": time_range_type,"duration-in-mins": duration,"output": "JSON"}
-        elif time_range_type == "BEFORE_TIME" and duration is not None and endEpoch is not None:
-            params={"time-range-type": time_range_type,"duration-in-mins": duration,"end-time": endEpoch,"output": "JSON"}
-        elif time_range_type == "AFTER_TIME" and duration is not None and startEpoch is not None:
-            params={"time-range-type": time_range_type,"duration-in-mins": duration,"start-time": startEpoch,"output": "JSON"}
-        elif time_range_type == "BETWEEN_TIMES" and startEpoch is not None and endEpoch is not None:
-            params={"time-range-type": time_range_type,"start-time": startEpoch,"end-time": endEpoch,"output": "JSON"}
-        else:
-            return None
-        if selectors: params.update(selectors)
-        return self.__fetch_RESTfulPath(restfulPath,params=params)
+        params = self.time_range[time_range_type]
+        for i in params: params[i] = kwargs[i] if i in kwargs else ""
+        params.update({"time-range-type":time_range_type, "output": "JSON"})
+        if 'selectors' in kwargs and kwargs['selectors'] is not None: params.update(kwargs['selectors'])
+        return self.__do_request(reqFunction=requests.get,url=restfulPath,params=params,data='',headers={},files=None,auth=None)
 
-    def fetch_snapshots(self,app_ID,time_range_type,duration=None,startEpoch=None,endEpoch=None,selectors=None):
+    def fetch_snapshots(self,app_ID,time_range_type,**kwargs):
         """
         Fetch snapshot from a controller.
         :param app_ID: the ID number of the application healtrule violations to fetch
         :param time_range_type: could be one of these: {"BEFORE_NOW","BEFORE_TIME","AFTER_TIME","BETWEEN_TIMES"}
-        :param duration: duration in minutes
-        :param startEpoch: range start time in Unix Epoch format
-        :param endEpoch: range end time in Unix Epoch format
-        :param selectors: fetch only events filtered by specified selectors
+        :param duration-in-mins: (optional) duration in minutes
+        :param start-time: (optional) range start time in Unix Epoch format
+        :param end-time: (optional) range end time in Unix Epoch format
+        :param selectors: (optional) fetch only errors filtered by specified selectors
         :returns: the fetched data. Null if no data was received.
         """
         MAX_RESULTS="9999"
         #Retrieve Transaction Snapshots
         # GET /controller/rest/applications/application_name/request-snapshots
         restfulPath = "/controller/rest/applications/" + str(app_ID) + "/request-snapshots"
-        if time_range_type == "BEFORE_NOW" and duration is not None:
-            params={"time-range-type": time_range_type,"duration-in-mins": duration,"output": "JSON"}
-        elif time_range_type == "BEFORE_TIME" and duration is not None and endEpoch is not None:
-            params={"time-range-type": time_range_type,"duration-in-mins": duration,"end-time": endEpoch,"output": "JSON"}
-        elif time_range_type == "AFTER_TIME" and duration is not None and startEpoch is not None:
-            params={"time-range-type": time_range_type,"duration-in-mins": duration,"start-time": startEpoch,"output": "JSON"}
-        elif time_range_type == "BETWEEN_TIMES" and startEpoch is not None and endEpoch is not None:
-            params={"time-range-type": time_range_type,"start-time": startEpoch,"end-time": endEpoch,"output": "JSON"}
-        else:
-            return None
-        if selectors: params.update(selectors)
-        return self.__fetch_RESTfulPath(restfulPath,params=params)
+        params = self.time_range[time_range_type]
+        for i in params: params[i] = kwargs[i] if i in kwargs else ""
+        params.update({"time-range-type":time_range_type, "output": "JSON"})
+        if 'selectors' in kwargs and kwargs['selectors'] is not None: params.update(kwargs['selectors'])
+        return self.__do_request(reqFunction=requests.get,url=restfulPath,params=params,data='',headers={},files=None,auth=None)
 
-    def fetch_errors(self,app_ID,tier_ID,time_range_type,duration=None,startEpoch=None,endEpoch=None,selectors=None):
+    def fetch_errors(self,app_ID,entity_ID,time_range_type,**kwargs):
         """
         Fetch errors from a controller.
         :param app_ID: the ID number of the application errors to fetch
-        :param tier_ID: the ID number of the application tier errors to fetch
+        :param entity_ID: the ID number of the application tier errors to fetch
         :param time_range_type: could be one of these: {"BEFORE_NOW","BEFORE_TIME","AFTER_TIME","BETWEEN_TIMES"}
-        :param duration: duration in minutes
-        :param startEpoch: range start time in Unix Epoch format
-        :param endEpoch: range end time in Unix Epoch format
-        :param selectors: fetch only errors filtered by specified selectors
+        :param duration-in-mins: (optional) duration in minutes
+        :param start-time: (optional) range start time in Unix Epoch format
+        :param end-time: (optional) range end time in Unix Epoch format
+        :param selectors: (optional) fetch only errors filtered by specified selectors
         :returns: the fetched data. Null if no data was received.
         """
         MAX_RESULTS="9999"
         # "controller/rest/applications/{applicationName}/metrics?metric-path=Errors|{tierName}&time-range-type=BEFORE_NOW&duration-in-mins=15&output=JSON"
         restfulPath = "/controller/rest/applications/"+ str(app_ID) + "/metric-data"#?metric-path=Errors%7CAPIManager%7CSocketException%7CErrors per Minute&time-range-type=BEFORE_NOW&duration-in-mins=60"
-        if time_range_type == "BEFORE_NOW" and duration is not None:
-            params={"time-range-type": time_range_type,"duration-in-mins": duration}
-        elif time_range_type == "BEFORE_TIME" and duration is not None and endEpoch is not None:
-            params={"time-range-type": time_range_type,"duration-in-mins": duration,"end-time": endEpoch}
-        elif time_range_type == "AFTER_TIME" and duration is not None and startEpoch is not None:
-            params={"time-range-type": time_range_type,"duration-in-mins": duration,"start-time": startEpoch}
-        elif time_range_type == "BETWEEN_TIMES" and startEpoch is not None and endEpoch is not None:
-            params={"time-range-type": time_range_type,"start-time": startEpoch,"end-time": endEpoch}
-        else:
-            return None
-        params.update({"metric-path":"Errors|"+str(tier_ID)+"|*|Errors per Minute",'rollup': True,"output":"JSON"})
-        if selectors: params.update(selectors)
-        return self.__fetch_RESTfulPath(restfulPath,params=params)
+        params = self.time_range[time_range_type]
+        for i in params: params[i] = kwargs[i] if i in kwargs else ""
+        params.update({"time-range-type":time_range_type, "output": "JSON"})
+        params.update({"metric-path":"Errors|"+str(entity_ID)+"|*|Errors per Minute",'rollup': True,"output":"JSON"})
+        if 'selectors' in kwargs and kwargs['selectors'] is not None: params.update(kwargs['selectors'])
+        #print ("params:",params)
+        return self.__do_request(reqFunction=requests.get,url=restfulPath,params=params,data='',headers={},files=None,auth=None)
 
     def fetch_dashboards(self,selectors=None):
         """
@@ -771,19 +658,19 @@ class RESTfulAPI:
         restfulPath = "/controller/restui/dashboards/getAllDashboardsByType/false"
         params = {"output": "JSON"}
         if selectors: params.update(selectors)
-        return self.__fetch_RESTfulPath(restfulPath,params=params)
+        return self.__do_request(reqFunction=requests.get,url=restfulPath,params=params,data='',headers={},files=None,auth=None)
 
-    def fetch_dashboard_by_ID(self,dashboard_id):
+    def fetch_dashboard_by_ID(self,entity_ID):
         """
         Fetch custom dashboards from a controller.
-        :param dashboard_id: the ID number of the dashboards to fetch
+        :param entity_ID: the ID number of the dashboards to fetch
         :returns: the fetched data. Null if no data was received.
         """
         # Export Custom Dashboards and Templates
         # GET /controller/CustomDashboardImportExportServlet?dashboardId=dashboard_id
-        restfulPath = "/controller/CustomDashboardImportExportServlet?dashboardId=" + str(dashboard_id)
-        return self.__fetch_RESTfulPath(restfulPath)
-
+        restfulPath = "/controller/CustomDashboardImportExportServlet?dashboardId=" + str(entity_ID)
+        params = {"output": "JSON"}
+        return self.__do_request(reqFunction=requests.get,url=restfulPath,params=params,data='',headers={},files=None,auth=None)
 
     def fetch_configuration(self,selectors=None):
         """
@@ -796,7 +683,7 @@ class RESTfulAPI:
         restfulPath = "/controller/rest/configuration"
         params = {"output": "JSON"}
         if selectors: restfulPath = restfulPath + "?name=" + selectors
-        return self.__fetch_RESTfulPath(restfulPath,params=params)
+        return self.__do_request(reqFunction=requests.get,url=restfulPath,params=params,data='',headers={},files=None,auth=None)
 
     def fetch_users(self,selectors=None):
         """
@@ -809,7 +696,7 @@ class RESTfulAPI:
         restfulPath = "/controller/api/rbac/v1/users"
         params = {"output": "JSON"}
         if selectors: restfulPath = restfulPath + selectors
-        return self.__fetch_RESTfulPath(restfulPath,params=params)
+        return self.__do_request(reqFunction=requests.get,url=restfulPath,params=params,data='',headers={},files=None,auth=None)
 
     def fetch_users_extended(self):
         """
@@ -818,18 +705,20 @@ class RESTfulAPI:
         """
         restfulPath = "/controller/restui/userAdministrationUiService/users"
         params = {"output": "JSON"}
-        return self.__fetch_RESTfulPath(restfulPath,params=params)
+        return self.__do_request(reqFunction=requests.get,url=restfulPath,params=params,data='',headers={},files=None,auth=None)
 
-    def fetch_user_by_ID(self,userID):
+    def fetch_user_by_ID(self,entity_ID):
         """
         Fetch specific user from a controller.
-        :param userID: the ID number of the user to fetch
+        :param entity_ID: the ID number of the user to fetch
         :returns: the fetched data. Null if no data was received.
         """
         # Get User by ID
         # GET /controller/api/rbac/v1/users/userId
-        restfulPath = "/controller/api/rbac/v1/users/" + str(userID)
-        return self.__fetch_RESTfulPath(restfulPath)
+        restfulPath = "/controller/api/rbac/v1/users/" + str(entity_ID)
+        params = {"output": "JSON"}
+        return self.__do_request(reqFunction=requests.get,url=restfulPath,params=params,data='',headers={},files=None,auth=None)
+
 
     def get_account_usage_summary(self):
         """
@@ -839,8 +728,9 @@ class RESTfulAPI:
         # Retrieve account license usage summary
         # POST /controller/restui/licenseRule/getAccountUsageSummary
         restfulPath = "/controller/restui/licenseRule/getAccountUsageSummary"
-        data        = {"type": "BEFORE_NOW","durationInMinutes": 5}
-        response = self.__update_RESTfulPath(restfulPath,streamdata=data,method="POST")
+        data        = json.dumps({"type": "BEFORE_NOW","durationInMinutes": 5})
+        return self.__do_request(reqFunction=requests.post,url=restfulPath,params={},data=data,headers={},files=None,auth=None)
+
 
     def get_controller_version(self):
         """
@@ -850,8 +740,8 @@ class RESTfulAPI:
         # Retrieve All Controller Settings
         # GET /controller/rest/configuration
         restfulPath = "/controller/rest/configuration",
-        params={"name": "schema.version","output": "JSON"}
-        response = self.__fetch_RESTfulPath(restfulPath)
+        params      = {"name": "schema.version","output": "JSON"}
+        response = self.__do_request(reqFunction=requests.get,url=restfulPath,params={},data='',headers={},files=None,auth=None)
         if response is not None:
             schemaVersion = json.loads(response.content)
             return schemaVersion[0]['value'].replace("-","")

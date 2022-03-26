@@ -63,7 +63,6 @@ class EntrypointDict(AppEntity):
         self.controller.tiers.fetch(appID=appID)
         count = 0
         for tierID in self.controller.tiers.getTiers_ID_List(appID=appID):
-            #data = self.entityAPIFunctions['fetchByID'](tier_ID=tierID,selectors=selectors)
-            data = self.controller.RESTfulAPI.send_request(entityType=self.__class__.__name__,verb="fetchByID",app_ID=appID,entity_ID=tierID,selectors=selectors)
+            data = self.entityAPIFunctions['fetchByID'](entity_ID=tierID,selectors=selectors)
             count += self.load(streamdata=data,appID=appID)
         return count

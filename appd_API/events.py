@@ -131,16 +131,6 @@ class MetricDict(AppEntity):
     def __str_metric_count(self,metric):
         return metric['metricValues'][0]['count'] if len(metric['metricValues']) > 0 else "-"
 
-    def fetch_after_time(self,appID,duration,sinceEpoch,selectors=None):
-        """
-        Fetch entities from controller RESTful API.
-        :param appID: the ID number of the application entities to fetch.
-        :param selectors: fetch only entities filtered by specified selectors
-        :returns: the number of fetched entities. Zero if no entity was found.
-        """
-        data = self.entityAPIFunctions['fetch'](app_ID=appID,metric_path=selectors,time_range_type="AFTER_TIME",duration=duration,startEpoch=sinceEpoch)
-        return self.load(streamdata=data,appID=appID)
-
 
 class ErrorDict(MetricDict, object):
 
@@ -158,6 +148,7 @@ class ErrorDict(MetricDict, object):
         count = 0
         for tierID in self.controller.tiers.getTiers_ID_List(appID=appID):
             tierName = self.controller.tiers.getTierName(appID=appID,tierID=tierID)
-            data = self.entityAPIFunctions['fetch'](app_ID=appID,tier_ID=tierName,time_range_type="AFTER_TIME",duration=duration,startEpoch=sinceEpoch,selectors=selectors)
+            data = self.entityAPIFunctions['fetch'](app_ID=appID,entity_ID=tierName,time_range_type="AFTER_TIME",
+                                                    **{"duration-in-mins":duration,"start-time":sinceEpoch,"selectors":selectors})
             count += self.load(streamdata=data,appID=appID)
         return count
