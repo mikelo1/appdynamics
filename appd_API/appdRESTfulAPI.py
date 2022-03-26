@@ -831,6 +831,17 @@ class RESTfulAPI:
         restfulPath = "/controller/api/rbac/v1/users/" + str(userID)
         return self.__fetch_RESTfulPath(restfulPath)
 
+    def get_account_usage_summary(self):
+        """
+        Get the account license usage summary.
+        :returns: the ysage summary in JSON data format. Null if no data was received.
+        """
+        # Retrieve account license usage summary
+        # POST /controller/restui/licenseRule/getAccountUsageSummary
+        restfulPath = "/controller/restui/licenseRule/getAccountUsageSummary"
+        data        = {"type": "BEFORE_NOW","durationInMinutes": 5}
+        response = self.__update_RESTfulPath(restfulPath,streamdata=data,method="POST")
+
     def get_controller_version(self):
         """
         Get the controller version. Either provide an username/password or let it get an access token automatically.
