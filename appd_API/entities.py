@@ -150,6 +150,7 @@ class AppEntity:
             self.fetch(appID=appID)
 
         streamdata = open(filePath).read()
+        JSONdata = root = None
         try:
             JSONdata = json.loads(streamdata)
         except (TypeError,ValueError) as error:
@@ -162,7 +163,6 @@ class AppEntity:
 
         if type(JSONdata) is dict and 'id' in JSONdata: # Data file in New format
             if not self.entityAPIFunctions['create'](app_ID=appID,dataJSON=streamdata):
-                # Entity creation failed, find out if entity already exists
                 for entity in self.entityDict[str(appID)]:
                     if entity['name'] == JSONdata['name']:
                         self.fetch_with_details(appID=appID,entityName=entity['name'])
@@ -339,7 +339,8 @@ class ControllerEntity:
         self.load(streamdata=streamdata)
         for entity in self.entityDict:
             if entity['name'] == entityName:
-                return self.entityAPIFunctions['fetchByID'](entity['id'])
+                entity_ID = entity['id'] if 'id' in entity else entity['name']
+                return self.entityAPIFunctions['fetchByID'](entity_ID=entity_ID,selectors=selectors)
         return ""
 
     def fetch_all_entities_with_details(self,selectors=None):
@@ -352,14 +353,15 @@ class ControllerEntity:
         self.load(streamdata)
         count = 0
         for entity in self.entityDict:
-            response = RESTfulAPI().fetch_custom_dashboard(dashboard['id'])
+            entity_ID = entity['id'] if 'id' in entity else entity['name']
+            streamdata = self.entityAPIFunctions['fetchByID'](entity_ID=entity_ID,selectors=selectors)
             if streamdata is None:
-                sys.stderr.write("load_AppEntity_with_details("+str(appID)+"): Failed to retrieve entity.\n")
+                sys.stderr.write("load_ControllerEntity_with_details("+str(appID)+"): Failed to retrieve entity.\n")
                 continue
             try:
                 entityJSON = json.loads(response)
             except TypeError as error:
-                sys.stderr.write("load_AppEntity_with_details: "+str(error)+"\n")
+                sys.stderr.write("load_ControllerEntity_with_details: "+str(error)+"\n")
                 continue
             self.entityDict[count]=entityJSON
             count += 1
@@ -395,21 +397,13 @@ class ControllerEntity:
                 if 'DEBUG' in locals(): sys.stderr.write("verify "+ str(self.__class__)+": "+str(error)+"\n")
                 return False
             # Input data is XML format
-            return len( [ True for keyword in self.entityKeywords if root.find(keyword) is not None ] ) > 0
+            return len( [ True for keyword in self.entityKeywords if root.find(keyword) ] ) > 0
         # Input data is JSON format
         if dataJSON is not None and type(dataJSON) is list:
             return len( [ True for keyword in self.entityKeywords if keyword in dataJSON[0] ] ) > 0
         elif dataJSON is not None and type(dataJSON) is dict:
             return len( [ True for keyword in self.entityKeywords if keyword in dataJSON ] ) > 0
         return False
-
-    def file_import(self,filePath):
-        """
-        Import entities using an entity data input file.
-        :param filePath: the path to the file where data is stored
-        :returns: True if the update was successful. False if no data was updated.
-        """
-        return self.entityAPIFunctions['import'](filePath=filePath)
 
     def create_or_update(self,filePath):
         """
@@ -432,8 +426,7 @@ class ControllerEntity:
                 return False
 
         if type(JSONdata) is dict and 'id' in JSONdata: # Data file in New format
-            #if not self.entityAPIFunctions['create'](dataJSON=streamdata):
-            if not self.controller.RESTfulAPI.send_request(entityType=self.__class__.__name__,verb="create",streamdata=streamdata):
+            if not self.entityAPIFunctions['create'](dataJSON=streamdata):
                 # Entity creation failed, find out if entity already exists
                 for entity in self.entityDict:
                     if entity['name'] == JSONdata['name']:
@@ -444,7 +437,6 @@ class ControllerEntity:
                 return self.entityAPIFunctions['import'](filePath=filePath)
         else:
             return False
-
 
     def patch(self,appID,streamdata,selectors=None):
         """

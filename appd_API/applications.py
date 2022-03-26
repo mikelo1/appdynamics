@@ -167,6 +167,7 @@ class ApplicationDict(ControllerEntity):
         :returns: true if the specified application has Tiers. False otherwise.
         """
         if 'apmApplications' not in self.entityDict or self.entityDict['apmApplications'] is None: return False
+        if type(appID) is str: appID = int(appID)
         for apmApp in self.entityDict['apmApplications']:
             if apmApp['id'] == appID:
                 return apmApp['applicationTypeInfo']['hasTiers']

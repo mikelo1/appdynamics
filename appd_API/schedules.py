@@ -42,7 +42,7 @@ class ScheduleDict(AppEntity):
         return schedule['timezone']
 
     def __str_schedule_frequency(self,schedule):
-        return schedule['scheduleConfiguration']['scheduleFrequency'] if 'scheduleConfiguration' in schedule else "",
+        return schedule['scheduleConfiguration']['scheduleFrequency'] if 'scheduleConfiguration' in schedule else ""
 
     def __str_schedule_start(self,schedule):
         """
