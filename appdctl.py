@@ -149,6 +149,7 @@ entityDict =  { 'applications': controller.applications,
                 'dashboards': controller.dashboards,
                 'config': controller.config,
                 'users': controller.users,
+                'account': controller.account,
                 'tiers': controller.tiers,
                 'nodes': controller.nodes,
                 'detection-rules': controller.transactiondetection,
@@ -270,7 +271,7 @@ elif COMMAND.lower() == "get":
   if ENTITY == 'help':
     get_help(COMMAND)
 
-  elif ENTITY in ['applications','dashboards','config','users']:
+  elif ENTITY in ['applications','dashboards','config','users', 'account']:
     entityObj = entityDict[ENTITY]
     entityObj.fetch()
     if options.outFormat and options.outFormat == "JSON":
@@ -337,7 +338,7 @@ elif COMMAND.lower() == "get":
           if len(args) < 3:
             optParser.error("Metric path is not specified")
             exit()
-          selectors = args[2]
+          selectors.update({'metric-path':args[2]})
         for i in range(minutes,0,-1440): # loop specified minutes in chunks of 1440 minutes (1 day)
             sinceTime = datetime.today()-timedelta(minutes=i)
             sinceEpoch= int(time.mktime(sinceTime.timetuple())*1000)
@@ -429,7 +430,7 @@ elif COMMAND.lower() == "patch":
     ENTITY = get_entity_type(data)
     if ENTITY is None:
       sys.stderr.write("[Warn] Unknown format for file "+options.filename+"\n")
-      exit()    
+      exit()
     entityObj = entityDict[ENTITY]
     entityObj.patch(patchJSON=options.patchJSON,streamdata=data,selectors=selectors)
 
@@ -492,7 +493,7 @@ elif COMMAND.lower() == "apply":
   ENTITY = get_entity_type(data)
   if ENTITY is None:
     sys.stderr.write("[Warn] Unknown format for file "+options.filename+"\n")
-    exit()    
+    exit()
   entityObj = entityDict[ENTITY]
 
   if ENTITY in ['dashboards']:

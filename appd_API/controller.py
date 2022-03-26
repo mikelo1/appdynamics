@@ -1,7 +1,7 @@
 from .appdRESTfulAPI import RESTfulAPI
 from .applications import ApplicationDict
 from .dashboards import DashboardDict
-from .rbac import RBACDict
+from .rbac import RBACDict, AccountDict
 from .settings import ConfigurationDict
 from .nodes import NodeDict, TierDict
 from .transactiondetection import DetectionruleDict
@@ -15,12 +15,11 @@ from .events import EventDict, ErrorDict, MetricDict
 from .snapshots import SnapshotDict
 
 class Controller:
-    RESTfulAPI   = None
-    applications = None
-    dashboards   = None
-    users        = None
-    config       = None
-    nodes        = None
+    RESTfulAPI      = None
+    dashboards      = None
+    users = account = None
+    config          = None
+    applications = tiers = nodes = None
     transactiondetection = businesstransactions = backends = entrypoints = None
     healthrules = policies = actions = schedules = None
     events = errors = snapshots = None
@@ -30,6 +29,7 @@ class Controller:
         self.applications = ApplicationDict(self)
         self.dashboards   = DashboardDict(self)
         self.users        = RBACDict(self)
+        self.account      = AccountDict(self)
         self.config       = ConfigurationDict(self)
         self.tiers                = TierDict(self)
         self.nodes                = NodeDict(self)
