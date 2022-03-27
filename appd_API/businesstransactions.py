@@ -7,7 +7,7 @@ class BusinessTransactionDict(AppEntity):
     def __init__(self,controller):
         self.entityDict = dict()
         self.controller = controller
-        self.entityAPIFunctions = { 'fetch': self.controller.RESTfulAPI.fetch_business_transactions }
+        #self.entityAPIFunctions = { 'fetch': self.controller.RESTfulAPI.fetch_business_transactions }
         self.entityKeywords = ['internalName','entryPointType']
         self.CSVfields = {  'name':           self.__str_businesstransaction_name,
                             'entryPointType': self.__str_businesstransaction_entryPointType,

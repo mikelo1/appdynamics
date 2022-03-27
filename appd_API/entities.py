@@ -6,7 +6,7 @@ import sys
 
 class AppEntity:
     entityDict = dict()
-    entityAPIFunctions = {} # {'fetch':     RESTfulAPI().fetch_entity
+    #entityAPIFunctions = {} # {'fetch':     RESTfulAPI().fetch_entity
                             #  'fetchByID': RESTfulAPI().fetch_entity_by_ID,
                             #  'import':    RESTfulAPI().import_entity,
                             #  'create':    RESTfulAPI().create_entity,
@@ -36,7 +36,8 @@ class AppEntity:
         :param selectors: fetch only entities filtered by specified selectors
         :returns: the number of fetched entities. Zero if no entity was found.
         """
-        data = self.entityAPIFunctions['fetch'](app_ID=appID,selectors=selectors)
+        #data = self.entityAPIFunctions['fetch'](app_ID=appID,selectors=selectors)
+        data = self.controller.RESTfulAPI.send_request(entityType=self.__class__.__name__,verb="fetch",app_ID=appID,selectors=selectors)
         return self.load(streamdata=data,appID=appID)
 
     def fetch_with_details(self,appID,entityName,selectors=None):
@@ -47,12 +48,14 @@ class AppEntity:
         :param selectors: fetch only entities filtered by specified selectors
         :returns: the entity data. Empty string if no entity was found.
         """
-        streamdata = self.entityAPIFunctions['fetch'](app_ID=appID,selectors=selectors)
+        #streamdata = self.entityAPIFunctions['fetch'](app_ID=appID,selectors=selectors)
+        streamdata = self.controller.RESTfulAPI.send_request(entityType=self.__class__.__name__,verb="fetch",app_ID=appID,selectors=selectors)
         self.load(streamdata,appID)
         for entity in self.entityDict[str(appID)]:
             if entity['name'] == entityName:
                 entity_ID = entity['id'] if 'id' in entity else entity['name']
-                return self.entityAPIFunctions['fetchByID'](appID,entity_ID)
+                #return self.entityAPIFunctions['fetchByID'](appID,entity_ID)
+                return self.controller.RESTfulAPI.send_request(entityType=self.__class__.__name__,verb="fetchByID",app_ID=appID,entity_ID=entity_ID,selectors=selectors)
         return ""
 
     def fetch_after_time(self,appID,duration,sinceEpoch,selectors=None):
@@ -64,7 +67,9 @@ class AppEntity:
         :param selectors: fetch only entities filtered by specified selectors
         :returns: the number of fetched entities. Zero if no entity was found.
         """
-        data = self.entityAPIFunctions['fetch'](app_ID=appID,time_range_type="AFTER_TIME",duration=duration,startEpoch=sinceEpoch,selectors=selectors)
+        #data = self.entityAPIFunctions['fetch'](app_ID=appID,time_range_type="AFTER_TIME",**{"duration-in-mins":duration,"start-time":sinceEpoch,"selectors":selectors})
+        data = self.controller.RESTfulAPI.send_request( entityType=self.__class__.__name__,verb="fetch",app_ID=appID,selectors=selectors,
+                                                        **{"time-range-type":"AFTER_TIME","duration-in-mins":duration,"start-time":sinceEpoch})
         return self.load(streamdata=data,appID=appID)
 
     def fetch_all_entities_with_details(self,appID=None,selectors=None):
@@ -75,12 +80,14 @@ class AppEntity:
         :returns: the number of fetched entities. Zero if no entity was found.
         """
         if appID is None: appID = 0
-        streamdata = self.entityAPIFunctions['fetch'](app_ID=appID,selectors=selectors)
+        #streamdata = self.entityAPIFunctions['fetch'](app_ID=appID,selectors=selectors)
+        streamdata = self.controller.RESTfulAPI.send_request(entityType=self.__class__.__name__,verb="fetch",app_ID=appID,selectors=selectors)
         self.load(streamdata,appID)
         index = 0
         for entity in self.entityDict[str(appID)]:
             entity_ID = entity['id'] if 'id' in entity else entity['name']
-            streamdata = self.entityAPIFunctions['fetchByID'](appID,entity_ID)
+            #streamdata = self.entityAPIFunctions['fetchByID'](appID,entity_ID)
+            streamdata = self.controller.RESTfulAPI.send_request(entityType=self.__class__.__name__,verb="fetchByID",app_ID=appID,entity_ID=entity_ID,selectors=selectors)
             if streamdata is None:
                 sys.stderr.write("load_AppEntity_with_details("+str(appID)+"): Failed to retrieve entity "+entity['name']+".\n")
                 continue
@@ -162,14 +169,18 @@ class AppEntity:
                 return False
 
         if type(JSONdata) is dict and 'id' in JSONdata: # Data file in New format
-            if not self.entityAPIFunctions['create'](app_ID=appID,dataJSON=streamdata):
+            #if not self.entityAPIFunctions['create'](app_ID=appID,dataJSON=streamdata):
+            if not self.controller.RESTfulAPI.send_request(entityType=self.__class__.__name__,verb="create",app_ID=appID,streamdata=streamdata):
+                # Entity creation failed, find out if entity already exists
                 for entity in self.entityDict[str(appID)]:
                     if entity['name'] == JSONdata['name']:
                         self.fetch_with_details(appID=appID,entityName=entity['name'])
-                    return len(entity_IDs) > 0 and self.entityAPIFunctions['update'](app_ID=appID,entity_ID=entity['id'],dataJSON=streamdata)
+                    #return len(entity_IDs) > 0 and self.entityAPIFunctions['update'](app_ID=appID,entity_ID=entity['id'],dataJSON=streamdata)
+                    return len(entity_IDs) > 0 and self.controller.RESTfulAPI.send_request(entityType=self.__class__.__name__,verb="update",app_ID=appID,entity_ID=entity['id'],streamdata=streamdata)
             return True
         elif (type(JSONdata) is list and 'id' not in JSONdata[0]) or 'root' in locals(): # Data file in Old format
-                return self.entityAPIFunctions['import'](app_ID=appID,filePath=filePath)
+                #return self.entityAPIFunctions['import'](app_ID=appID,filePath=filePath)
+                return self.controller.RESTfulAPI.send_request(entityType=self.__class__.__name__,verb="import",app_ID=appID,filePath=filePath)
         else:
             return False
 
@@ -222,7 +233,8 @@ class AppEntity:
                 entity.update(changesJSON)
                 if not streamdata:
                     # Update controller data
-                    if self.entityAPIFunctions['update'](app_ID=appID,entity_ID=entity['id'],dataJSON=entity) == True:
+                    #if self.entityAPIFunctions['update'](app_ID=appID,entity_ID=entity['id'],dataJSON=entity) == True:
+                    if self.controller.RESTfulAPI.send_request(entityType=self.__class__.__name__,verb="update",app_ID=appID,entity_ID=entity['id'],streamdata=entity) == True:
                         count = count + 1
                 else:
                     # Print updated data
@@ -325,7 +337,8 @@ class ControllerEntity:
         :param selectors: fetch only entities filtered by specified selectors
         :returns: the number of fetched entities. Zero if no entity was found.
         """
-        data = self.entityAPIFunctions['fetch']()
+        #data = self.entityAPIFunctions['fetch']()
+        data = self.controller.RESTfulAPI.send_request(entityType=self.__class__.__name__,verb="fetch",selectors=selectors)
         return self.load(streamdata=data)
 
     def fetch_with_details(self,entityName,selectors=None):
@@ -335,12 +348,14 @@ class ControllerEntity:
         :param selectors: fetch only entities filtered by specified selectors
         :returns: the entity data. Empty string if no entity was found.
         """
-        streamdata = self.entityAPIFunctions['fetch']()
+        #streamdata = self.entityAPIFunctions['fetch']()
+        streamdata = self.controller.RESTfulAPI.send_request(entityType=self.__class__.__name__,verb="fetch",selectors=selectors)
         self.load(streamdata=streamdata)
         for entity in self.entityDict:
             if entity['name'] == entityName:
                 entity_ID = entity['id'] if 'id' in entity else entity['name']
-                return self.entityAPIFunctions['fetchByID'](entity_ID=entity_ID,selectors=selectors)
+                #return self.entityAPIFunctions['fetchByID'](entity_ID=entity_ID,selectors=selectors)
+                return self.controller.RESTfulAPI.send_request(entityType=self.__class__.__name__,verb="fetchByID",entity_ID=entity_ID,selectors=selectors)
         return ""
 
     def fetch_all_entities_with_details(self,selectors=None):
@@ -349,12 +364,14 @@ class ControllerEntity:
         :param streamdata: the stream data with the entity list, in JSON format
         :returns: the number of fetched entities. Zero if no entity was found.
         """
-        streamdata = self.entityAPIFunctions['fetch']()
+        #streamdata = self.entityAPIFunctions['fetch']()
+        streamdata = self.controller.RESTfulAPI.send_request(entityType=self.__class__.__name__,verb="fetch",selectors=selectors)
         self.load(streamdata)
         count = 0
         for entity in self.entityDict:
             entity_ID = entity['id'] if 'id' in entity else entity['name']
-            streamdata = self.entityAPIFunctions['fetchByID'](entity_ID=entity_ID,selectors=selectors)
+            #streamdata = self.entityAPIFunctions['fetchByID'](entity_ID=entity_ID,selectors=selectors)
+            streamdata = self.controller.RESTfulAPI.send_request(entityType=self.__class__.__name__,verb="fetchByID",app_ID=appID,entity_ID=entity_ID,selectors=selectors)
             if streamdata is None:
                 sys.stderr.write("load_ControllerEntity_with_details("+str(appID)+"): Failed to retrieve entity.\n")
                 continue
@@ -426,15 +443,18 @@ class ControllerEntity:
                 return False
 
         if type(JSONdata) is dict and 'id' in JSONdata: # Data file in New format
-            if not self.entityAPIFunctions['create'](dataJSON=streamdata):
+            #if not self.entityAPIFunctions['create'](dataJSON=streamdata):
+            if not self.controller.RESTfulAPI.send_request(entityType=self.__class__.__name__,verb="create",streamdata=streamdata):
                 # Entity creation failed, find out if entity already exists
                 for entity in self.entityDict:
                     if entity['name'] == JSONdata['name']:
                         self.fetch_with_details(entityName=entity['name'])
-                    return len(entity_IDs) > 0 and self.entityAPIFunctions['update'](entity_ID=entity['id'],dataJSON=streamdata)
+                    #return len(entity_IDs) > 0 and self.entityAPIFunctions['update'](entity_ID=entity['id'],dataJSON=streamdata)
+                    return len(entity_IDs) > 0 and self.controller.RESTfulAPI.send_request(entityType=self.__class__.__name__,verb="update",entity_ID=entity['id'],streamdata=streamdata)
             return True
         elif (type(JSONdata) is list and 'id' not in JSONdata[0]) or 'root' in locals(): # Data file in Old format
-                return self.entityAPIFunctions['import'](filePath=filePath)
+                #return self.entityAPIFunctions['import'](filePath=filePath)
+                return self.controller.RESTfulAPI.send_request(entityType=self.__class__.__name__,verb="import",filePath=filePath)
         else:
             return False
 

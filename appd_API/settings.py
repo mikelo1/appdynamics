@@ -8,7 +8,7 @@ class ConfigurationDict(ControllerEntity):
     def __init__(self,controller):
         self.entityDict = dict()
         self.controller = controller
-        self.entityAPIFunctions = { 'fetch': self.controller.RESTfulAPI.fetch_configuration }
+        #self.entityAPIFunctions = { 'fetch': self.controller.RESTfulAPI.fetch_configuration }
         self.entityKeywords = ['updateable']
         self.CSVfields = {  'Name':        self.__str_setting_name,
                             'Value':       self.__str_setting_value,

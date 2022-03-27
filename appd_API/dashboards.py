@@ -7,8 +7,8 @@ class DashboardDict(ControllerEntity):
     def __init__(self,controller):
         self.entityDict = dict()
         self.controller = controller
-        self.entityAPIFunctions = { 'fetch': self.controller.RESTfulAPI.fetch_dashboards,
-                                    'fetchByID': self.controller.RESTfulAPI.fetch_dashboard_by_ID }
+        #self.entityAPIFunctions = { 'fetch': self.controller.RESTfulAPI.fetch_dashboards,
+        #                            'fetchByID': self.controller.RESTfulAPI.fetch_dashboard_by_ID }
         self.entityKeywords = ['canvasType']
         self.CSVfields = {  'Name':       self.__str_dashboard_name,
                             'Height':     self.__str_dashboard_height,

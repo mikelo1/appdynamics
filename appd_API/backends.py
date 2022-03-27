@@ -7,7 +7,7 @@ class BackendDict(AppEntity):
     def __init__(self,controller):
         self.entityDict = dict()
         self.controller = controller
-        self.entityAPIFunctions = { 'fetch': self.controller.RESTfulAPI.fetch_backends }
+        #self.entityAPIFunctions = { 'fetch': self.controller.RESTfulAPI.fetch_backends }
         self.entityKeywords = ["exitPointType"]
         self.CSVfields = {  'name':          self.__str_backend_name,
                             'exitPointType': self.__str_backend_exitPointType }
@@ -28,7 +28,7 @@ class EntrypointDict(AppEntity):
     def __init__(self,controller):
         self.entityDict = dict()
         self.controller = controller
-        self.entityAPIFunctions = {'fetchByID': self.controller.RESTfulAPI.fetch_entrypoints_TierRules}
+        #self.entityAPIFunctions = {'fetchByID': self.controller.RESTfulAPI.fetch_entrypoints_TierRules}
         self.entityKeywords = ["hierarchicalConfigKey"]
         self.CSVfields = {  'name':           self.__str_backend_name,
                             'Tier':           self.__str_backend_tierName,
@@ -63,6 +63,7 @@ class EntrypointDict(AppEntity):
         self.controller.tiers.fetch(appID=appID)
         count = 0
         for tierID in self.controller.tiers.getTiers_ID_List(appID=appID):
-            data = self.entityAPIFunctions['fetchByID'](entity_ID=tierID,selectors=selectors)
+            #data = self.entityAPIFunctions['fetchByID'](entity_ID=tierID,selectors=selectors)
+            data = self.controller.RESTfulAPI.send_request(entityType=self.__class__.__name__,verb="fetchByID",app_ID=appID,entity_ID=tierID,selectors=selectors)
             count += self.load(streamdata=data,appID=appID)
         return count

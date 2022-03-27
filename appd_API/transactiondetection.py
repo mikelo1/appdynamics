@@ -9,8 +9,8 @@ class DetectionruleDict(AppEntity):
     def __init__(self,controller):
         self.entityDict = dict()
         self.controller = controller
-        self.entityAPIFunctions = { 'fetch': self.controller.RESTfulAPI.fetch_transactiondetection,
-                                    'import': self.controller.RESTfulAPI.import_transactiondetection }
+        #self.entityAPIFunctions = { 'fetch': self.controller.RESTfulAPI.fetch_transactiondetection,
+        #                            'import': self.controller.RESTfulAPI.import_transactiondetection }
         self.entityKeywords = ["mds-data","rule-list"]
 
 

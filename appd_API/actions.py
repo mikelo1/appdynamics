@@ -8,8 +8,8 @@ class ActionDict(AppEntity):
     def __init__(self,controller):
         self.entityDict = dict()
         self.controller = controller
-        self.entityAPIFunctions = { 'fetch': self.controller.RESTfulAPI.fetch_actions_legacy,
-                                    'fetchByID': self.controller.RESTfulAPI.fetch_action_by_ID }
+        #self.entityAPIFunctions = { 'fetch': self.controller.RESTfulAPI.fetch_actions_legacy,
+        #                            'fetchByID': self.controller.RESTfulAPI.fetch_action_by_ID }
         self.entityKeywords = ["actionType"]
         self.CSVfields = {  'ActionName':       self.__str_action_name,
                             'ActionType':       self.__str_action_type,

@@ -7,8 +7,8 @@ class RBACDict(ControllerEntity):
     def __init__(self,controller):
         self.entityDict = dict()
         self.controller = controller
-        self.entityAPIFunctions = { 'fetch': self.controller.RESTfulAPI.fetch_users_extended,
-                                    'fetchByID': self.controller.RESTfulAPI.fetch_user_by_ID }        
+        #self.entityAPIFunctions = { 'fetch': self.controller.RESTfulAPI.fetch_users_extended,
+        #                            'fetchByID': self.controller.RESTfulAPI.fetch_user_by_ID }
         self.entityKeywords = ["providerUniqueName"]
         self.CSVfields = {  'Name':   self.__str_user_name,
                             'Email':  self.__str_user_email,
@@ -37,7 +37,7 @@ class AccountDict(ControllerEntity):
     def __init__(self,controller):
         self.entityDict = dict()
         self.controller = controller
-        self.entityAPIFunctions = { 'fetch': self.controller.RESTfulAPI.get_account_usage_summary }
+        #self.entityAPIFunctions = { 'fetch': self.controller.RESTfulAPI.get_account_usage_summary }
         self.entityKeywords = ["usageType"]#["machine-agent","dot-net","nodejs","sim-machine-agent","iot","netviz","synthetic","database","java","mobile-rum","browser-rum","apm"]
         self.CSVfields = {  'Type':   self.__str_account_type,
                             'Peak_Usage':  self.__str_account_usage }

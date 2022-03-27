@@ -8,7 +8,7 @@ class ApplicationDict(ControllerEntity):
     def __init__(self,controller):
         self.entityDict = dict()
         self.controller = controller
-        self.entityAPIFunctions = { 'fetch': self.controller.RESTfulAPI.fetch_applicationsAllTypes }
+        #self.entityAPIFunctions = { 'fetch': self.controller.RESTfulAPI.fetch_applicationsAllTypes }
         self.entityKeywords = ['accountGuid','eumWebApplications','dbMonApplication','mobileAppContainers','cloudMonitoringApplication',
                                'iotApplications','simApplication','apmApplications']
         self.CSVfields = {  'Name':        self.__str_application_name,

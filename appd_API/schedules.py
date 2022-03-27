@@ -7,10 +7,10 @@ class ScheduleDict(AppEntity):
     def __init__(self,controller):
         self.entityDict = dict()
         self.controller = controller
-        self.entityAPIFunctions = { 'fetch': self.controller.RESTfulAPI.fetch_schedules,
-                                    'fetchByID': self.controller.RESTfulAPI.fetch_schedule_by_ID,
-                                    'create': self.controller.RESTfulAPI.create_schedule,
-                                    'update': self.controller.RESTfulAPI.update_schedule }
+        #self.entityAPIFunctions = { 'fetch': self.controller.RESTfulAPI.fetch_schedules,
+        #                            'fetchByID': self.controller.RESTfulAPI.fetch_schedule_by_ID,
+        #                            'create': self.controller.RESTfulAPI.create_schedule,
+        #                            'update': self.controller.RESTfulAPI.update_schedule }
         self.entityKeywords = ["timezone","scheduleConfiguration"]
         self.CSVfields = {  'Name':        self.__str_schedule_name,
                             'Description': self.__str_schedule_description,

@@ -9,8 +9,8 @@ class NodeDict(AppEntity):
     def __init__(self,controller):
         self.entityDict = dict()
         self.controller = controller
-        self.entityAPIFunctions = { 'fetch': self.controller.RESTfulAPI.fetch_nodes,
-                                    'fetchByID': self.controller.RESTfulAPI.fetch_node_by_ID }
+        #self.entityAPIFunctions = { 'fetch': self.controller.RESTfulAPI.fetch_nodes,
+        #                            'fetchByID': self.controller.RESTfulAPI.fetch_node_by_ID }
         self.entityKeywords = ["nodeUniqueLocalId"]
         self.CSVfields = {  'Node':         self.__str_node_name,
                             'Tier':         self.__str_node_tierName,
@@ -125,8 +125,8 @@ class TierDict(AppEntity):
     def __init__(self,controller):
         self.entityDict = dict()
         self.controller = controller
-        self.entityAPIFunctions = { 'fetch': self.controller.RESTfulAPI.fetch_tiers,
-                                    'fetchByID': self.controller.RESTfulAPI.fetch_tier_nodes }
+        #self.entityAPIFunctions = { 'fetch': self.controller.RESTfulAPI.fetch_tiers,
+        #                            'fetchByID': self.controller.RESTfulAPI.fetch_tier_nodes }
         self.entityKeywords = ['numberOfNodes','agentType']
         self.CSVfields = {  'Tier':            self.__str_tier_name,
                             'Type':            self.__str_tier_type,
@@ -151,7 +151,8 @@ class TierDict(AppEntity):
         :returns: the number of fetched entities. Zero if no entity was found.
         """
         if self.controller.applications.hasTiers(appID):
-            data = self.entityAPIFunctions['fetch'](app_ID=appID,selectors=selectors)
+            #data = self.entityAPIFunctions['fetch'](app_ID=appID,selectors=selectors)
+            data = self.controller.RESTfulAPI.send_request(entityType=self.__class__.__name__,verb="fetch",app_ID=appID,selectors=selectors)
             return self.load(streamdata=data,appID=appID)
         return 0
 

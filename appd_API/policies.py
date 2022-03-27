@@ -7,8 +7,8 @@ class PolicyDict(AppEntity):
     def __init__(self,controller):
         self.entityDict = dict()
         self.controller = controller
-        self.entityAPIFunctions = { 'fetch': self.controller.RESTfulAPI.fetch_policies_legacy,
-                                    'fetchByID': self.controller.RESTfulAPI.fetch_policy_by_ID }
+        #self.entityAPIFunctions = { 'fetch': self.controller.RESTfulAPI.fetch_policies_legacy,
+        #                            'fetchByID': self.controller.RESTfulAPI.fetch_policy_by_ID }
         self.entityKeywords = ["actions","reactorType"]
         self.CSVfields = {  'PolicyName': self.__str_policy_name,
                             'Events':     self.__str_policy_healthrules,

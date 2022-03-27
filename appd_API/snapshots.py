@@ -9,7 +9,7 @@ class SnapshotDict(AppEntity):
     def __init__(self,controller):
         self.entityDict = dict()
         self.controller = controller
-        self.entityAPIFunctions = {'fetch': self.controller.RESTfulAPI.fetch_snapshots}
+        #self.entityAPIFunctions = {'fetch': self.controller.RESTfulAPI.fetch_snapshots}
         self.entityKeywords = ["snapshotExitCalls"]
         self.CSVfields = {  'Time':                 self.__str_snapshot_time,
                             'UserExperience':       self.__str_snapshot_userExperience,
