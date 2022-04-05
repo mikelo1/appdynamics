@@ -35,7 +35,7 @@ class RESTfulAPI:
                                             'method': requests.get, 'headers': {}, 'params': {}, 'data': '' }
                             },
 
-        'AccountDict':      {'fetch':    {  'RESTfulPath': '/controller/restui/licenseRule/getAccountUsageSummary',
+        'AccountDict':      {'fetch':    {  'RESTfulPath': '/controller/restui/licenseRule/getAllLicenseModuleProperties',
                                             'method': requests.post, 'headers': {'Content-Type': 'application/json', 'Accept': 'application/json'}, 'params': {}, 'data': '{{"type": "BEFORE_NOW","durationInMinutes": 5}}' }
                             },
 

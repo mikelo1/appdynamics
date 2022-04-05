@@ -39,15 +39,20 @@ class AccountDict(ControllerEntity):
         self.controller = controller
         #self.entityAPIFunctions = { 'fetch': self.controller.RESTfulAPI.get_account_usage_summary }
         self.entityKeywords = ["usageType"]#["machine-agent","dot-net","nodejs","sim-machine-agent","iot","netviz","synthetic","database","java","mobile-rum","browser-rum","apm"]
-        self.CSVfields = {  'Type':   self.__str_account_type,
-                            'Peak_Usage':  self.__str_account_usage }
+        self.CSVfields = {  'Provisioned_Licenses':  self.__str_account_provisioned,
+                            'Peak_Usage':  self.__str_account_usage,
+                            'expirationDate': self.__str_account_expiration }
 
-
-    def __str_account_type(self,account):
-        return account['usageType']
+    def __str_account_provisioned(self,account):
+        return account['numOfProvisionedLicense']
 
     def __str_account_usage(self,account):
-        return account['totalUnitsUsed'] if 'totalUnitsUsed' in account else None
+        return account['peakUsage']
+
+    def __str_account_expiration(self,account):
+        import datetime
+        ts_epoch = int(account['expirationDate'])/1000 if account['expirationDate'] is not None else 0
+        return datetime.datetime.fromtimestamp(ts_epoch).strftime('%Y-%m-%d %H:%M:%S') if ts_epoch > 0 else ""
 
 
     ###### FROM HERE PUBLIC FUNCTIONS ######
@@ -68,12 +73,13 @@ class AccountDict(ControllerEntity):
         else:
             csvfile = sys.stdout
 
-        fieldnames = [ name for name in self.CSVfields ]
+        fieldnames = ['type']
+        fieldnames.extend([ name for name in self.CSVfields ])
         filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
 
         for licenseType in self.entityDict:
             # Check if data belongs to a recognized application type
-            if type(self.entityDict[licenseType]) is dict:
+            if type(self.entityDict[licenseType]) is dict and self.entityDict[licenseType]['isLicensed'] is not None:
                 licenseList = [self.entityDict[licenseType]]
             elif type(self.entityDict[licenseType]) is list:
                 licenseList = self.entityDict[licenseType]
@@ -84,7 +90,8 @@ class AccountDict(ControllerEntity):
                 header_is_printed=True
 
             for license in licenseList:
-                row = { name: self.CSVfields[name](license) for name in self.CSVfields }
+                row = {"type":licenseType}
+                row.update({ name: self.CSVfields[name](license) for name in self.CSVfields })
                 try:
                     filewriter.writerow(row)
                 except (TypeError,ValueError) as error:
