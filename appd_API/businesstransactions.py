@@ -47,11 +47,13 @@ class BusinessTransactionDict(AppEntity):
         :param transactionID: the ID of the business transaction
         :returns: the name of the specified business transaction ID. Empty string if no business transaction was found.
         """
-        if appID <= 0 or transactionID <= 0: return None
-        if str(appID) in self.entityDict:
-            for transaction in entityDict[str(appID)]:
-                if transaction['id'] == transactionID:
-                    return transaction['name']
+        if appID <= 0 or transactionID <= 0: return ""
+        if str(appID) not in self.entityDict:
+            if not self.fetch(appID=appID):
+                return ""
+        for transaction in self.entityDict[str(appID)]:
+            if transaction['id'] == transactionID:
+                return transaction['name']
         return ""
 
 

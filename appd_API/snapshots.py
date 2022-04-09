@@ -34,7 +34,7 @@ class SnapshotDict(AppEntity):
         return snapshot['summary'] if 'summary' in snapshot and sys.version_info[0] >= 3 else snapshot['summary'].encode('ASCII', 'ignore') if 'summary' in snapshot else ""
 
     def __str_snapshot_BT(self,snapshot):
-        return snapshot['businessTransactionId']
+        return self.controller.businesstransactions.get_business_transaction_name(appID=snapshot['applicationId'],transactionID=snapshot['businessTransactionId'])
 
     def __str_snapshot_tier(self,snapshot):
         return snapshot['applicationComponentId']
