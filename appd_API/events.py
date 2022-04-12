@@ -146,8 +146,7 @@ class ErrorDict(MetricDict, object):
         :returns: the number of fetched entities. Zero if no entity was found.
         """
         count = 0
-        for tierID in self.controller.tiers.getTiers_ID_List(appID=appID):
-            tierName = self.controller.tiers.getTierName(appID=appID,tierID=tierID)
+        for tierName in self.controller.tiers.getTiers_Name_List(appID=appID):
             selectors.update({'metric-path':'Errors|'+tierName+'|*|Errors per Minute'})
             #data = self.entityAPIFunctions['fetch'](app_ID=appID,entity_ID=tierName,time_range_type="AFTER_TIME",
             #                                        **{"duration-in-mins":duration,"start-time":sinceEpoch,"selectors":selectors})

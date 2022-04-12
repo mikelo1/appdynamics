@@ -85,8 +85,7 @@ class ServiceEndpointDict(AppEntity):
         :returns: the number of fetched entities. Zero if no entity was found.
         """
         count = 0
-        for tierID in self.controller.tiers.getTiers_ID_List(appID=appID):
-            tierName = self.controller.tiers.getTierName(appID=appID,tierID=tierID)
+        for tierName in self.controller.tiers.getTiers_Name_List(appID=appID):
             selectors.update({'metric-path':'Service Endpoints|'+tierName})
             data = self.controller.RESTfulAPI.send_request( entityType=self.__class__.__name__,verb="fetchByID",app_ID=appID,selectors=selectors)
             count += self.load(streamdata=data,appID=appID)
