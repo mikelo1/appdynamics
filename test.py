@@ -64,55 +64,55 @@ class TestSum(unittest.TestCase):
         result = subprocess.call("./appdctl.py config delete-context nonexist", shell=True)
         self.assertEqual(result, 0)
 
-    def test_entities_load(self):
-        """
-        Integrity tests for loading XML and JSON files containing entity data
-        """
-        with ZipFile('tests.zip', 'r') as testzip:
-
-            FNULL = open(os.devnull, 'w')
-            if 'VERBOSE' in locals(): print ("Get XML entities from file")
-            for XML_ENTITY in ['transactiondetection-custom']:
-                if 'VERBOSE' in locals(): print ("### Get "+XML_ENTITY+" ###")
-                with testzip.open(XML_ENTITY+".xml") as testfile:
-                    filedata = testfile.read()
-
-                    if sys.version_info[0] < 3:
-                        filePipe = subprocess.Popen(["echo",filedata],stdout=subprocess.PIPE)
-                        result = subprocess.call("./appdctl.py get -f - ", stdin=filePipe.stdout, stdout=FNULL, shell=True)
-                        self.assertEqual(result, 0, "Loading of file"+XML_ENTITY+".xml failed.")
-                        filePipe.stdout.close()
-                    else:
-                        with subprocess.Popen(["echo",filedata],stdout=subprocess.PIPE) as filePipe:
-                            result = subprocess.call("./appdctl.py get -f - ", stdin=filePipe.stdout, stdout=FNULL, shell=True)
-                            self.assertEqual(result, 0, "Loading of file"+XML_ENTITY+".xml failed.")
-
-                #unzip -p tests.zip $XML_ENTITY.xml | $SCRIPTPATH/./appdctl.py  get -f -
-
-            if 'VERBOSE' in locals(): print ("Get JSON entities from file")
-            for JSON_ENTITY in ['actions','actions-legacy','health-rules','policies','policies-legacy','schedules', \
-                                 'allothertraffic','backends','business-transactions', \
-                                 'applications','dashboards','healthrule-violations','request-snapshots']:
-                if 'VERBOSE' in locals(): print ("### Get "+JSON_ENTITY+" ###")
-                with testzip.open(JSON_ENTITY+".json") as testfile:
-                    filedata = testfile.read()
-
-                    if sys.version_info[0] < 3:
-                        filePipe = subprocess.Popen(["echo",filedata],stdout=subprocess.PIPE)
-                        result = subprocess.call("./appdctl.py get -f - ", stdin=filePipe.stdout, stdout=FNULL, shell=True)
-                        self.assertEqual(result, 0, "Loading of file "+JSON_ENTITY+".xml failed.")
-                        filePipe = subprocess.Popen(["echo",filedata],stdout=subprocess.PIPE)
-                        result = subprocess.call("./appdctl.py get -o JSON -f - ", stdin=filePipe.stdout, stdout=FNULL, shell=True)
-                        self.assertEqual(result, 0, "Loading of file "+JSON_ENTITY+".xml failed.")
-                        filePipe.stdout.close()
-                    else:
-                        with subprocess.Popen(["echo",filedata],stdout=subprocess.PIPE) as filePipe:
-                            result = subprocess.call("./appdctl.py get -f - ", stdin=filePipe.stdout, stdout=FNULL, shell=True)
-                            self.assertEqual(result, 0, "Loading of file "+JSON_ENTITY+".xml failed.")
-                        with subprocess.Popen(["echo",filedata],stdout=subprocess.PIPE) as filePipe:
-                            result = subprocess.call("./appdctl.py get -o JSON -f - ", stdin=filePipe.stdout, stdout=FNULL, shell=True)
-                            self.assertEqual(result, 0, "Loading of file "+JSON_ENTITY+".xml failed.")
-            FNULL.close()
+#    def test_entities_load(self):
+#        """
+#        Integrity tests for loading XML and JSON files containing entity data
+#        """
+#        with ZipFile('tests.zip', 'r') as testzip:
+#
+#            FNULL = open(os.devnull, 'w')
+#            if 'VERBOSE' in locals(): print ("Get XML entities from file")
+#            for XML_ENTITY in ['transactiondetection-custom']:
+#                if 'VERBOSE' in locals(): print ("### Get "+XML_ENTITY+" ###")
+#                with testzip.open(XML_ENTITY+".xml") as testfile:
+#                    filedata = testfile.read()
+#
+#                    if sys.version_info[0] < 3:
+#                        filePipe = subprocess.Popen(["echo",filedata],stdout=subprocess.PIPE)
+#                        result = subprocess.call("./appdctl.py get -f - ", stdin=filePipe.stdout, stdout=FNULL, shell=True)
+#                        self.assertEqual(result, 0, "Loading of file"+XML_ENTITY+".xml failed.")
+#                        filePipe.stdout.close()
+#                    else:
+#                        with subprocess.Popen(["echo",filedata],stdout=subprocess.PIPE) as filePipe:
+#                            result = subprocess.call("./appdctl.py get -f - ", stdin=filePipe.stdout, stdout=FNULL, shell=True)
+#                            self.assertEqual(result, 0, "Loading of file"+XML_ENTITY+".xml failed.")
+#
+#                #unzip -p tests.zip $XML_ENTITY.xml | $SCRIPTPATH/./appdctl.py  get -f -
+#
+#            if 'VERBOSE' in locals(): print ("Get JSON entities from file")
+#            for JSON_ENTITY in ['actions','actions-legacy','health-rules','policies','policies-legacy','schedules', \
+#                                 'allothertraffic','backends','business-transactions', \
+#                                 'applications','dashboards','healthrule-violations','request-snapshots']:
+#                if 'VERBOSE' in locals(): print ("### Get "+JSON_ENTITY+" ###")
+#                with testzip.open(JSON_ENTITY+".json") as testfile:
+#                    filedata = testfile.read()
+#
+#                    if sys.version_info[0] < 3:
+#                        filePipe = subprocess.Popen(["echo",filedata],stdout=subprocess.PIPE)
+#                        result = subprocess.call("./appdctl.py get -f - ", stdin=filePipe.stdout, stdout=FNULL, shell=True)
+#                        self.assertEqual(result, 0, "Loading of file "+JSON_ENTITY+".xml failed.")
+#                        filePipe = subprocess.Popen(["echo",filedata],stdout=subprocess.PIPE)
+#                        result = subprocess.call("./appdctl.py get -o JSON -f - ", stdin=filePipe.stdout, stdout=FNULL, shell=True)
+#                        self.assertEqual(result, 0, "Loading of file "+JSON_ENTITY+".xml failed.")
+#                        filePipe.stdout.close()
+#                    else:
+#                        with subprocess.Popen(["echo",filedata],stdout=subprocess.PIPE) as filePipe:
+#                            result = subprocess.call("./appdctl.py get -f - ", stdin=filePipe.stdout, stdout=FNULL, shell=True)
+#                            self.assertEqual(result, 0, "Loading of file "+JSON_ENTITY+".xml failed.")
+#                        with subprocess.Popen(["echo",filedata],stdout=subprocess.PIPE) as filePipe:
+#                            result = subprocess.call("./appdctl.py get -o JSON -f - ", stdin=filePipe.stdout, stdout=FNULL, shell=True)
+#                            self.assertEqual(result, 0, "Loading of file "+JSON_ENTITY+".xml failed.")
+#            FNULL.close()
 
 
     def test_entities_basicauth(self):
@@ -230,6 +230,38 @@ class TestSum(unittest.TestCase):
         self.assertEqual(result, 0)
 
         FNULL.close()
+
+#    def test_import_entities(self):
+#        """
+#        Integrity tests for importing XML and JSON files containing entity data
+#        """
+#        if len(self.applicationList) == 0:
+#            if 'VERBOSE' in locals(): print ("Last test didn't work well, can't run test set.")
+#            return
+#
+#        with ZipFile('tests.zip', 'r') as testzip:
+#            testzip.extractall("/tmp/appdctl.test")
+#
+#            FNULL = open(os.devnull, 'w')
+#            if 'VERBOSE' in locals(): print ("Import XML entities from file")
+#            for XML_ENTITY in ['transactiondetection-custom']:
+#                if 'VERBOSE' in locals(): print ("### Import "+XML_ENTITY+" ###")
+#                fileName = "/tmp/appdctl.test/"+XML_ENTITY+".xml"
+#                if os.path.exists(fileName):
+#                    result = subprocess.call("./appdctl.py apply -a sandbox -f "+fileName, stdout=FNULL, shell=True)
+#                    self.assertEqual(result, 0)
+#
+#                #unzip -p tests.zip $XML_ENTITY.xml && $SCRIPTPATH/./appdctl.py apply -f $XML_ENTITY.xml
+#
+#            if 'VERBOSE' in locals(): print ("Import JSON entities from file")
+#            for JSON_ENTITY in ['actions-legacy','policies-legacy']: # 'health-rules','dashboards'
+#                if 'VERBOSE' in locals(): print ("### Import "+JSON_ENTITY+" ###")
+#                fileName = "/tmp/appdctl.test/"+JSON_ENTITY+".json"
+#                if os.path.exists(fileName):
+#                    result = subprocess.call("./appdctl.py apply -a sandbox -f "+fileName, stdout=FNULL, shell=True)
+#                    self.assertEqual(result, 0)
+#
+#            FNULL.close()
 
 
 if __name__ == '__main__':
