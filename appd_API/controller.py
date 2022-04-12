@@ -6,7 +6,7 @@ from .settings import ConfigurationDict
 from .nodes import NodeDict, TierDict
 from .transactiondetection import DetectionruleDict
 from .businesstransactions import BusinessTransactionDict
-from .backends import BackendDict, EntrypointDict
+from .serviceendpoints import BackendDict, EntrypointDict, ServiceEndpointDict
 from .healthrules import HealthRuleDict
 from .policies import PolicyDict
 from .actions import ActionDict
@@ -20,7 +20,8 @@ class Controller:
     users = account = None
     config          = None
     applications = tiers = nodes = None
-    transactiondetection = businesstransactions = backends = entrypoints = None
+    transactiondetection = businesstransactions = None
+    backends = entrypoints = serviceendpoints = None
     healthrules = policies = actions = schedules = None
     events = metrics = errors = snapshots = None
     entityDict =  {}
@@ -38,6 +39,7 @@ class Controller:
         self.businesstransactions = BusinessTransactionDict(self)
         self.backends             = BackendDict(self)
         self.entrypoints          = EntrypointDict(self)
+        self.serviceendpoints     = ServiceEndpointDict(self)
         self.healthrules = HealthRuleDict(self)
         self.policies    = PolicyDict(self)
         self.actions     = ActionDict(self)
@@ -57,6 +59,7 @@ class Controller:
                              'businesstransactions': {'object': self.businesstransactions, 'class': BusinessTransactionDict },
                              'backends':             {'object': self.backends, 'class': BackendDict },
                              'entrypoints':          {'object': self.entrypoints, 'class': EntrypointDict },
+                             'serviceendpoints':     {'object': self.serviceendpoints, 'class': ServiceEndpointDict },
                              'healthrules': {'object': self.healthrules, 'class': HealthRuleDict },
                              'policies':    {'object': self.policies, 'class': PolicyDict },
                              'actions':     {'object': self.actions, 'class': ActionDict },
