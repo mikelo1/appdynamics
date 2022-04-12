@@ -98,13 +98,17 @@ def get_data_entityType(streamdata,verb):
             return None
 
     keywords = controller.RESTfulAPI.get_keywords(verb)
-    if root is None:
+    if root is None and dataJSON is not None:
       # Input data is JSON format
-      dataJSON   = dataJSON[0] if dataJSON is not None and type(dataJSON) is list else dataJSON
+      for i in range(3):
+        if type(dataJSON) is list: dataJSON = dataJSON[0]
+        else: break
       entityList = [ entityType for entityType,keyword in keywords if keyword in dataJSON ]
-    else:
+    elif root is not None:
       # Input data is XML format
       entityList = [ entityType for entityType,keyword in keywords if root.find(keyword) ]
+    else:
+      entityList = []
     return entityList[0] if len(entityList)>0 else None
 
 
