@@ -22,7 +22,8 @@ class Controller:
     applications = tiers = nodes = None
     transactiondetection = businesstransactions = backends = entrypoints = None
     healthrules = policies = actions = schedules = None
-    events = errors = snapshots = None
+    events = metrics = errors = snapshots = None
+    entityDict =  {}
 
     def __init__(self, appD_Config, basicAuth=None):
         self.RESTfulAPI   = RESTfulAPI(appD_Config,basicAuth)
@@ -45,9 +46,40 @@ class Controller:
         self.errors    = ErrorDict(self)
         self.metrics   = MetricDict(self)
         self.snapshots = SnapshotDict(self)
+        self.entityDict =  { 'applications': {'object': self.applications, 'class': ApplicationDict },
+                             'dashboards':   {'object': self.dashboards, 'class': DashboardDict },
+                             'config':       {'object': self.config, 'class': ConfigurationDict },
+                             'users':        {'object': self.users, 'class': RBACDict },
+                             'account':      {'object': self.account, 'class': AccountDict },
+                             'tiers':                {'object': self.tiers, 'class': TierDict },
+                             'nodes':                {'object': self.nodes, 'class': NodeDict },
+                             'detection-rules':      {'object': self.transactiondetection, 'class': DetectionruleDict },
+                             'businesstransactions': {'object': self.businesstransactions, 'class': BusinessTransactionDict },
+                             'backends':             {'object': self.backends, 'class': BackendDict },
+                             'entrypoints':          {'object': self.entrypoints, 'class': EntrypointDict },
+                             'healthrules': {'object': self.healthrules, 'class': HealthRuleDict },
+                             'policies':    {'object': self.policies, 'class': PolicyDict },
+                             'actions':     {'object': self.actions, 'class': ActionDict },
+                             'schedules':   {'object': self.schedules, 'class': ScheduleDict },
+                             'healthrule-violations': {'object': self.events, 'class': EventDict },
+                             'snapshots':             {'object': self.snapshots, 'class': SnapshotDict },
+                             'allothertraffic':       {'object': self.snapshots, 'class': SnapshotDict },
+                             'errors':                {'object': self.errors, 'class': ErrorDict },
+                             'metrics':               {'object': self.metrics, 'class': MetricDict }
+                           }
+
 
     def __str__(self):
-        return "({0},{1})".format(self.applications,self.config)
+        return "({0},{1})".format(self.__class__.__name__,len(self.entityDict))
+
+    ###### FROM HERE PUBLIC FUNCTIONS ######
+
+    def get_entityObject(self,entity_name=None,entity_class=None):
+        if entity_name is not None:
+            return self.entityDict[entity_name]['object']
+        elif entity_class:
+            return [ self.entityDict[entity]['object'] for entity in self.entityDict if self.entityDict[entity]['class'].__name__ == entity_class][0]
+        return None
 
 # Global object that works as Singleton
 #controller = Controller()

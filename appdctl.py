@@ -7,7 +7,6 @@ import time
 from appdConfig import AppD_Configuration, BasicAuth
 from appd_API import Controller
 from optparse import OptionParser, OptionGroup
-import json
 
 def time_to_minutes(string):
   total = 0
@@ -69,17 +68,6 @@ def get_help(COMMAND,SUBCOMMAND=None,output=sys.stdout):
     sys.stderr.write("Drain unavailable nodes for a set of applications.\nUsage: appdctl drain -a <application(s)>\n\n")
   exit()
 
-
-def new_controller():
-    appD_Config = AppD_Configuration()
-    user = appD_Config.get_current_context_user()
-    if user is not None and options.basicAuthFile:
-        bAuth = BasicAuth(basicAuthFile=options.basicAuthFile)
-        password = bAuth.get_password(user)
-        if password is not None:
-            return Controller(appD_Config,{user:password})
-    return Controller(appD_Config)
-
 def get_application_list():
     if not options.applications and not options.allApplications:
         optParser.error("Missing application (use -A for all applications)")
@@ -92,14 +80,33 @@ def get_application_list():
       controller.applications.fetch()
       return controller.applications.get_application_ID_list()
 
-def get_entity_type(data):
-    entityList = [ entity for entity in entityDict if entityDict[entity].verify(streamdata=data) ]
-    if 'DEBUG' in locals():
-      if len(entityList):
-        sys.stderr.write("INFO: Found to be a "+str(entityList)+" file.\n")
-      else:
-        sys.stderr.write("INFO: No matching entity found for data.\n")
-    return entityList[0] if len(entityList) else None
+def get_data_entityType(streamdata,verb):
+    import json
+    import xml.etree.ElementTree as ET
+
+    dataJSON = root = None
+    try:
+        # Try with JSON input data
+        dataJSON = json.loads(streamdata)
+    except (TypeError,ValueError) as error:
+        if 'DEBUG' in locals(): sys.stderr.write("get_data_entityType: "+str(error)+"\n")
+        # Try with XML input data
+        try:
+            root = ET.fromstring(streamdata)
+        except (TypeError,ET.ParseError) as error:
+            if 'DEBUG' in locals(): sys.stderr.write("get_data_entityType: "+str(error)+"\n")
+            return None
+
+    keywords = controller.RESTfulAPI.get_keywords(verb)
+    if root is None:
+      # Input data is JSON format
+      dataJSON   = dataJSON[0] if dataJSON is not None and type(dataJSON) is list else dataJSON
+      entityList = [ entityType for entityType,keyword in keywords if keyword in dataJSON ]
+    else:
+      # Input data is XML format
+      entityList = [ entityType for entityType,keyword in keywords if root.find(keyword) ]
+    return entityList[0] if len(entityList)>0 else None
+
 
 def get_selectors():
     return { selector.split('=')[0]:selector.split('=')[1] for selector in options.selector.split(',') } if options.selector else {}
@@ -144,30 +151,16 @@ optParser.add_option_group(groupQuery)
 
 (options, args) = optParser.parse_args()
 
-controller = new_controller()
-entityDict =  { 'applications': controller.applications,
-                'dashboards': controller.dashboards,
-                'config': controller.config,
-                'users': controller.users,
-                'account': controller.account,
-                'tiers': controller.tiers,
-                'nodes': controller.nodes,
-                'detection-rules': controller.transactiondetection,
-                'businesstransactions': controller.businesstransactions,
-                'backends': controller.backends,
-                'entrypoints': controller.entrypoints,
-                'healthrules': controller.healthrules,
-                'policies': controller.policies,
-                'actions': controller.actions,
-                'schedules': controller.schedules,
-                'healthrule-violations': controller.events,
-                'snapshots': controller.snapshots,
-                'allothertraffic': controller.snapshots,
-                'errors': controller.errors,
-                'metrics': controller.metrics
-              }
 
+# Create controller instance
+appD_Config = AppD_Configuration()
+user = appD_Config.get_current_context_user()
+if user is not None and options.basicAuthFile:
+    bAuth = BasicAuth(basicAuthFile=options.basicAuthFile)
+    password = bAuth.get_password(user)
+controller = Controller(appD_Config,{user:password}) if 'password' in locals() and password is not None else Controller(appD_Config)
 
+# Start interpreting command line parameters
 if len(args) < 1:
     optParser.error("incorrect number of arguments")
     exit()
@@ -243,11 +236,10 @@ elif COMMAND.lower() == "get":
       sys.stderr.write("Don't know what to do with "+options.filename+"\n")
       exit()
 
-    ENTITY = get_entity_type(data)
-    if ENTITY is None:
+    entityObj = controller.get_entityObject(entity_class=get_data_entityType(data,"fetch"))
+    if entityObj is None:
       sys.stderr.write("[Warn] Unknown format for file "+options.filename+" "+data[0:80]+"\n")
       exit(-1)
-    entityObj = entityDict[ENTITY]
     entityObj.load(streamdata=data)
     if options.outFormat and options.outFormat == "JSON":
       entityObj.generate_JSON()
@@ -272,7 +264,7 @@ elif COMMAND.lower() == "get":
     get_help(COMMAND)
 
   elif ENTITY in ['applications','dashboards','config','users', 'account']:
-    entityObj = entityDict[ENTITY]
+    entityObj = controller.get_entityObject(entity_name=ENTITY)
     entityObj.fetch()
     if options.outFormat and options.outFormat == "JSON":
         entityObj.generate_JSON()
@@ -289,7 +281,7 @@ elif COMMAND.lower() == "get":
     index = 0
     sys.stderr.write("get "+ENTITY+" ("+current_context+")... 0%")
     sys.stderr.flush()
-    entityObj = entityDict[ENTITY]
+    entityObj = controller.get_entityObject(entity_name=ENTITY)
     for appID in applicationList:
         index += 1
         percentage = index*100/len(applicationList)
@@ -320,7 +312,7 @@ elif COMMAND.lower() == "get":
     index = 0
     sys.stderr.write("get "+ENTITY+" ("+current_context+")... 0%")
     sys.stderr.flush()
-    entityObj = entityDict[ENTITY]
+    entityObj = controller.get_entityObject(entity_name=ENTITY)
     for appID in applicationList:
         index += 1
         percentage = index*100/len(applicationList)
@@ -328,8 +320,9 @@ elif COMMAND.lower() == "get":
         sys.stderr.flush()
         # AllOtherTraffic snapshots are requested with the _APPDYNAMICS_DEFAULT_TX_ transaction ID
         if ENTITY == "allothertraffic":
-          entityDict['businesstransactions'].fetch(appID=appID)
-          AllOtherTraffic_ID = entityDict['businesstransactions'].get_business_transaction_ID(appID=appID,transactionName="_APPDYNAMICS_DEFAULT_TX_")
+          entityObj = controller.get_entityObject(entity_name='businesstransactions')
+          entityObj.fetch(appID=appID)
+          AllOtherTraffic_ID = entityObj.get_business_transaction_ID(appID=appID,transactionName="_APPDYNAMICS_DEFAULT_TX_")
           if AllOtherTraffic_ID == 0:
             sys.stderr.write("All Other Traffic transaction not found in application "+str(appID)+"\n")
             continue
@@ -369,13 +362,13 @@ elif COMMAND.lower() == "describe":
   if ENTITY == 'help':
     get_help(COMMAND)
   elif ENTITY in ['application','dashboard','config','user']:
-    entityType = ENTITY+"s" if ENTITY != 'config' else ENTITY
-    entityObj  = entityDict[entityType]
+    ENTITY = ENTITY+"s" if ENTITY != 'config' else ENTITY
+    entityObj  = controller.get_entityObject(entity_name=ENTITY)
     data=entityObj.fetch_with_details(entityName=entityName)
     print (data)
   elif ENTITY in ['node','tier','detection-rule','businesstransaction','backend','entrypoint','healthrule','policy','action','schedule']:
-    entityType = ENTITY+"s" if ENTITY != 'policy' else "policies"
-    entityObj  = entityDict[entityType]
+    ENTITY = ENTITY+"s" if ENTITY != 'policy' else "policies"
+    entityObj = controller.get_entityObject(entity_name=ENTITY)
     current_context = AppD_Configuration().get_current_context(output="None")
     applicationList = get_application_list()
     if len(applicationList) == 0:
@@ -427,17 +420,16 @@ elif COMMAND.lower() == "patch":
       sys.stderr.write("Don't know what to do with "+options.filename+"\n")
       exit()
 
-    ENTITY = get_entity_type(data)
-    if ENTITY is None:
+    entityObj = controller.get_entityObject(entity_class=get_data_entityType(data,"fetch"))
+    if entityObj is None:
       sys.stderr.write("[Warn] Unknown format for file "+options.filename+"\n")
       exit()
-    entityObj = entityDict[ENTITY]
     entityObj.patch(patchJSON=options.patchJSON,streamdata=data,selectors=selectors)
 
   elif args[1] in ['applications','dashboards','config','users']:
     ENTITY = args[1]
     sys.stderr.write("patch "+ENTITY+" ("+current_context+")... 0%")
-    entityObj = entityDict[ENTITY]
+    entityObj = controller.get_entityObject(entity_name=ENTITY)
     entityObj.patch(patchJSON=options.patchJSON,selectors=selectors)
 
   elif args[1] in ['nodes','detection-rules','businesstransactions','backends','entrypoints','healthrules','policies','actions','schedules']:
@@ -459,7 +451,7 @@ elif COMMAND.lower() == "patch":
     index = 0
     sys.stderr.write("patch "+ENTITY+" ("+current_context+")... 0%")
     sys.stderr.flush()
-    entityObj = entityDict[ENTITY]
+    entityObj = controller.get_entityObject(entity_name=ENTITY)
     for appID in applicationList:
         index += 1
         percentage = index*100/len(applicationList)
@@ -490,14 +482,14 @@ elif COMMAND.lower() == "apply":
     exit()
 
   data = open(options.filename).read()
-  ENTITY = get_entity_type(data)
-  if ENTITY is None:
+  entityObj = controller.get_entityObject(entity_class=get_data_entityType(data,"fetchByID"))
+  if entityObj is None:
     sys.stderr.write("[Warn] Unknown format for file "+options.filename+"\n")
     exit()
-  entityObj = entityDict[ENTITY]
 
   if ENTITY in ['dashboards']:
-    entityObj = entityDict[ENTITY]
+    entityObj = controller.get_entityObject(entity_name=ENTITY)
+    current_context = AppD_Configuration().get_current_context(output="None")
     sys.stderr.write("\rapply "+options.filename+" ("+current_context+")...\n")
     if not entityObj.create_or_update(filePath=options.filename):
        sys.stderr.write("Failed to create/update "+str(entityObj.info())+"\n")
@@ -540,7 +532,7 @@ elif COMMAND.lower() == "drain":
    sys.stderr.write("\rdrain ("+current_context+"): no application was found.\n")
    exit()
 
-  entityObj = entityDict['nodes']
+  entityObj = controller.get_entityObject(entity_name='nodes')
   entityObj.drain(appID_List=applicationList)
 
 
