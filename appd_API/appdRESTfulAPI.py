@@ -12,62 +12,62 @@ class RESTfulAPI:
     target = {
 
         'ApplicationDict':  {'fetch':    {  'RESTfulPath': '/controller/restui/applicationManagerUiBean/getApplicationsAllTypes',
-                                            'method': requests.get, 'headers': {}, 'params': {}, 'data': '' },
-                             'fetchByID':{  'RESTfulPath': '/controller/rest/applications/{entity_ID}',
-                                            'method': requests.get, 'headers': {}, 'params': {'output': 'JSON'}, 'data': '' }
+                                            'method': requests.get, 'headers': {}, 'params': {}, 'data': '', 'keyword': 'apmApplications' }
                             },
 
         'DashboardDict':    {'fetch':    {  'RESTfulPath': '/controller/restui/dashboards/getAllDashboardsByType/false',
-                                            'method': requests.get, 'headers': {}, 'params': {"output": "JSON"}, 'data': '' },
+                                            'method': requests.get, 'headers': {}, 'params': {"output": "JSON"}, 'data': '', 'keyword': 'widgets' },
                              'fetchByID':{  'RESTfulPath': '/controller/CustomDashboardImportExportServlet?dashboardId={entity_ID}',
-                                            'method': requests.get, 'headers': {}, 'params': {}, 'data': '' },
+                                            'method': requests.get, 'headers': {}, 'params': {}, 'data': '', 'keyword': 'widgetTemplates' },
                              'import':   {  'RESTfulPath': '/controller/CustomDashboardImportExportServlet',
-                                            'method': requests.post, 'headers': {}, 'params': {}, 'data': '' }
+                                            'method': requests.post, 'headers': {}, 'params': {}, 'data': '', 'keyword': 'widgetTemplates' }
                             },
 
         'ConfigurationDict':{'fetch':    {  'RESTfulPath': '/controller/rest/configuration',
-                                            'method': requests.get, 'headers': {}, 'params': {"output": "JSON"}, 'data': '' }
+                                            'method': requests.get, 'headers': {}, 'params': {"output": "JSON"}, 'data': '', 'keyword': 'updateable' }
                             },
 
         'RBACDict':         {'fetch':    {  'RESTfulPath': '/controller/restui/userAdministrationUiService/users',
-                                            'method': requests.get, 'headers': {}, 'params': {"output": "JSON"}, 'data': '' },
+                                            'method': requests.get, 'headers': {}, 'params': {"output": "JSON"}, 'data': '', 'keyword': 'securityProviderType' },
                              'fetchByID':{  'RESTfulPath': '/controller/api/rbac/v1/users/{entity_ID}',
-                                            'method': requests.get, 'headers': {}, 'params': {}, 'data': '' }
+                                            'method': requests.get, 'headers': {}, 'params': {}, 'data': '', 'keyword': 'security_provider_type' }
                             },
 
         'AccountDict':      {'fetch':    {  'RESTfulPath': '/controller/restui/licenseRule/getAllLicenseModuleProperties',
-                                            'method': requests.post, 'headers': {'Content-Type': 'application/json', 'Accept': 'application/json'}, 'params': {}, 'data': '{{"type": "BEFORE_NOW","durationInMinutes": 5}}' }
+                                            'method': requests.post, 'headers': {'Content-Type': 'application/json', 'Accept': 'application/json'}, 'params': {},
+                                            'data': '{{"type": "BEFORE_NOW","durationInMinutes": 5}}', 'keyword': 'usageType' }
                             },
 
         'TierDict':         {'fetch':    {  'RESTfulPath': '/controller/rest/applications/{app_ID}/tiers',
-                                            'method': requests.get, 'headers': {}, 'params': {'output': 'JSON'}, 'data': '' },
+                                            'method': requests.get, 'headers': {}, 'params': {'output': 'JSON'}, 'data': '', 'keyword': 'numberOfNodes' },
                              'fetchByID':{  'RESTfulPath': '/controller/rest/applications/{app_ID}/tiers/{entity_ID}',
-                                            'method': requests.get, 'headers': {}, 'params': {'output': 'JSON'}, 'data': '' }
+                                            'method': requests.get, 'headers': {}, 'params': {'output': 'JSON'}, 'data': '', 'keyword': 'numberOfNodes' }
                             },
 
         'NodeDict':         {'fetch':    {  'RESTfulPath': '/controller/rest/applications/{app_ID}/nodes',
-                                            'method': requests.get, 'headers': {}, 'params': {'output': 'JSON'}, 'data': '' },
+                                            'method': requests.get, 'headers': {}, 'params': {'output': 'JSON'}, 'data': '', 'keyword': 'nodeUniqueLocalId' },
                              'fetchByID':{  'RESTfulPath': '/controller/rest/applications/{app_ID}/nodes/{entity_ID}',
-                                            'method': requests.get, 'headers': {}, 'params': {'output': 'JSON'}, 'data': '' }
+                                            'method': requests.get, 'headers': {}, 'params': {'output': 'JSON'}, 'data': '', 'keyword': 'nodeUniqueLocalId' }
                             },
 
         'DetectionruleDict':{'fetch':    {  'RESTfulPath': '/controller/transactiondetection/{app_ID}/custom',
-                                            'method': requests.get, 'headers': {}, 'params': {'output': 'XML'}, 'data': '' },
+                                            'method': requests.get, 'headers': {}, 'params': {'output': 'XML'}, 'data': '', 'keyword': 'rule-list' },
                              'import':   {  'RESTfulPath': '/controller/transactiondetection/{app_ID}/custom?overwrite=true',
-                                            'method': requests.post, 'headers': {}, 'params': {'output': 'JSON'}, 'data': '' }
+                                            'method': requests.post, 'headers': {}, 'params': {'output': 'JSON'}, 'data': '', 'keyword': 'rule-list' }
                             },
 
         'BusinessTransactionDict':{'fetch':{'RESTfulPath': '/controller/rest/applications/{app_ID}/business-transactions',
-                                            'method': requests.get, 'headers': {}, 'params': {'output': 'JSON'}, 'data': '' }
+                                            'method': requests.get, 'headers': {}, 'params': {'output': 'JSON'}, 'data': '', 'keyword': 'entryPointType' }
                             },
 
         'BackendDict':      {'fetch':    {  'RESTfulPath': '/controller/rest/applications/{app_ID}/backends',
-                                            'method': requests.get, 'headers': {}, 'params': {'output': 'JSON'}, 'data': '' }
+                                            'method': requests.get, 'headers': {}, 'params': {'output': 'JSON'}, 'data': '', 'keyword': 'exitPointType' }
                             },
 
         'EntrypointDict':   {'fetchByID':{  'RESTfulPath': '/controller/restui/serviceEndpoint/getAll',
                                             'method': requests.post, 'headers': {"Content-Type": "application/json","Accept": "application/json"}, 'params': {},
-                                            'data': '{{"agentType": "APP_AGENT","attachedEntity": {{"entityId": {entity_ID},"entityType": "APPLICATION_COMPONENT"}} }}'
+                                            'data': '{{"agentType": "APP_AGENT","attachedEntity": {{"entityId": {entity_ID},"entityType": "APPLICATION_COMPONENT"}} }}',
+                                            'keyword': 'hierarchicalConfigKey'
                                          }
                             },
 
@@ -75,74 +75,75 @@ class RESTfulAPI:
                                             'method': requests.get, 'headers': {},
                                             'params': {"Content-Type": "application/json","resultColumns":
                                                 ["LAST_APP_SERVER_RESTART_TIME", "VM_RUNTIME_VERSION", "MACHINE_AGENT_STATUS", "APP_AGENT_VERSION", "APP_AGENT_STATUS", "HEALTH"] },
-                                            'data': '' },
-                             'fetchList':{  'RESTfulPath': '/controller/alerting/rest/v1/applications/{app_ID}/health-rules',
-                                            'method': requests.get, 'headers': {}, 'params': {'output': 'JSON'}, 'data': '' },
+                                            'data': '', 'keyword': 'affectedEntityDefinitionRule' },
+                             #'fetchList':{  'RESTfulPath': '/controller/alerting/rest/v1/applications/{app_ID}/health-rules',
+                             #               'method': requests.get, 'headers': {}, 'params': {'output': 'JSON'}, 'data': '' },
                              'fetchByID':{  'RESTfulPath': '/controller/alerting/rest/v1/applications/{app_ID}/health-rules/{entity_ID}',
-                                            'method': requests.get, 'headers': {}, 'params': {'output': 'JSON'}, 'data': '' },
+                                            'method': requests.get, 'headers': {}, 'params': {'output': 'JSON'}, 'data': '', 'keyword': 'affects' },
                              'create':   {  'RESTfulPath': '/controller/alerting/rest/v1/applications/{app_ID}/health-rules',
-                                            'method': requests.post, 'headers': {'Content-Type': 'application/json'}, 'params': {}, 'data': '{streamdata}' },
+                                            'method': requests.post, 'headers': {'Content-Type': 'application/json'}, 'params': {}, 'data': '{streamdata}', 'keyword': 'affects' },
                              'update':   {  'RESTfulPath': '/controller/alerting/rest/v1/applications/{app_ID}/health-rules/{entity_ID}',
-                                            'method': requests.put, 'headers': {'Content-Type': 'application/json'}, 'params': {}, 'data': '{streamdata}' },
+                                            'method': requests.put, 'headers': {'Content-Type': 'application/json'}, 'params': {}, 'data': '{streamdata}', 'keyword': 'affects' },
                              'import':   {  'RESTfulPath': '/controller/healthrules/{app_ID}?overwrite=true',
-                                            'method': requests.post, 'headers': {}, 'params': {}, 'data': '' }
+                                            'method': requests.post, 'headers': {}, 'params': {}, 'data': '', 'keyword': 'health-rules' }
                             },
 
         'PolicyDict':       {'fetch':    {  'RESTfulPath': '/controller/policies/{app_ID}',
-                                            'method': requests.get, 'headers': {}, 'params': {'output': 'JSON'}, 'data': '' },
-                             'fetchList':{  'RESTfulPath': '/controller/alerting/rest/v1/applications/{app_ID}/policies',
-                                            'method': requests.get, 'headers': {}, 'params': {'output': 'JSON'}, 'data': '' },
+                                            'method': requests.get, 'headers': {}, 'params': {'output': 'JSON'}, 'data': '', 'keyword': 'reactorType' },
+                             #'fetchList':{  'RESTfulPath': '/controller/alerting/rest/v1/applications/{app_ID}/policies',
+                             #               'method': requests.get, 'headers': {}, 'params': {'output': 'JSON'}, 'data': '' },
                              'fetchByID':{  'RESTfulPath': '/controller/alerting/rest/v1/applications/{app_ID}/policies/{entity_ID}',
-                                            'method': requests.get, 'headers': {}, 'params': {'output': 'JSON'}, 'data': '' },
+                                            'method': requests.get, 'headers': {}, 'params': {'output': 'JSON'}, 'data': '', 'keyword': 'executeActionsInBatch' },
                              'create':   {  'RESTfulPath': '/controller/alerting/rest/v1/applications/{app_ID}/policies',
-                                            'method': requests.post, 'headers': {'Content-Type': 'application/json'}, 'params': {}, 'data': '{streamdata}' },
+                                            'method': requests.post, 'headers': {'Content-Type': 'application/json'}, 'params': {}, 'data': '{streamdata}', 'keyword': 'executeActionsInBatch' },
                              'update':   {  'RESTfulPath': '/controller/alerting/rest/v1/applications/{app_ID}/policies/{entity_ID}',
-                                            'method': requests.put, 'headers': {'Content-Type': 'application/json'}, 'params': {}, 'data': '{streamdata}' },
+                                            'method': requests.put, 'headers': {'Content-Type': 'application/json'}, 'params': {}, 'data': '{streamdata}', 'keyword': 'executeActionsInBatch' },
                              'import':   {  'RESTfulPath': '/controller/policies/{app_ID}?overwrite=true',
-                                            'method': requests.post, 'headers': {}, 'params': {}, 'data': '' }
+                                            'method': requests.post, 'headers': {}, 'params': {}, 'data': '', 'keyword': 'reactorType' }
                             },
 
         'ActionDict':       {'fetch':    {  'RESTfulPath': '/controller/actions/{app_ID}',
-                                            'method': requests.get, 'headers': {}, 'params': {'output': 'JSON'}, 'data': '' },
-                             'fetchList':{  'RESTfulPath': '/controller/alerting/rest/v1/applications/{app_ID}/actions',
-                                            'method': requests.get, 'headers': {}, 'params': {'output': 'JSON'}, 'data': '' },
+                                            'method': requests.get, 'headers': {}, 'params': {'output': 'JSON'}, 'data': '', 'keyword': 'actionType' },
+                             #'fetchList':{  'RESTfulPath': '/controller/alerting/rest/v1/applications/{app_ID}/actions',
+                             #               'method': requests.get, 'headers': {}, 'params': {'output': 'JSON'}, 'data': '', 'keyword': 'actionType' },
                              'fetchByID':{  'RESTfulPath': '/controller/alerting/rest/v1/applications/{app_ID}/actions/{entity_ID}',
-                                            'method': requests.get, 'headers': {}, 'params': {'output': 'JSON'}, 'data': '' },
+                                            'method': requests.get, 'headers': {}, 'params': {'output': 'JSON'}, 'data': '', 'keyword': 'actionType' },
                              'create':   {  'RESTfulPath': '/controller/alerting/rest/v1/applications/{app_ID}/actions',
-                                            'method': requests.post, 'headers': {'Content-Type': 'application/json'}, 'params': {}, 'data': '{streamdata}' },
+                                            'method': requests.post, 'headers': {'Content-Type': 'application/json'}, 'params': {}, 'data': '{streamdata}', 'keyword': 'actionType' },
                              'update':   {  'RESTfulPath': '/controller/alerting/rest/v1/applications/{app_ID}/actions/{entity_ID}',
-                                            'method': requests.put, 'headers': {'Content-Type': 'application/json'}, 'params': {}, 'data': '{streamdata}' },
+                                            'method': requests.put, 'headers': {'Content-Type': 'application/json'}, 'params': {}, 'data': '{streamdata}', 'keyword': 'actionType' },
                              'import':   {  'RESTfulPath': '/controller/actions/{app_ID}?overwrite=true',
-                                            'method': requests.post, 'headers': {}, 'params': {}, 'data': '' }
+                                            'method': requests.post, 'headers': {}, 'params': {}, 'data': '', 'keyword': 'actionType' }
                             },
 
         'ScheduleDict':     {'fetch':    {  'RESTfulPath': '/controller/alerting/rest/v1/applications/{app_ID}/schedules',
-                                            'method': requests.get, 'headers': {}, 'params': {'output': 'JSON'}, 'data': '' },
-                             'fetchList':{  'RESTfulPath': '/controller/alerting/rest/v1/applications/{app_ID}/schedules',
-                                            'method': requests.get, 'headers': {}, 'params': {'output': 'JSON'}, 'data': '' },
+                                            'method': requests.get, 'headers': {}, 'params': {'output': 'JSON'}, 'data': '', 'keyword': 'timezone' },
+                             #'fetchList':{  'RESTfulPath': '/controller/alerting/rest/v1/applications/{app_ID}/schedules',
+                             #               'method': requests.get, 'headers': {}, 'params': {'output': 'JSON'}, 'data': '' },
                              'fetchByID':{  'RESTfulPath': '/controller/alerting/rest/v1/applications/{app_ID}/schedules/{entity_ID}',
-                                            'method': requests.get, 'headers': {}, 'params': {'output': 'JSON'}, 'data': '' },
+                                            'method': requests.get, 'headers': {}, 'params': {'output': 'JSON'}, 'data': '', 'keyword': 'scheduleConfiguration' },
                              'create':   {  'RESTfulPath': '/controller/alerting/rest/v1/applications/{app_ID}/schedules/',
-                                            'method': requests.post, 'headers': {'Content-Type': 'application/json'}, 'params': {}, 'data': '{streamdata}' },
+                                            'method': requests.post, 'headers': {'Content-Type': 'application/json'}, 'params': {}, 'data': '{streamdata}', 'keyword': 'scheduleConfiguration' },
                              'update':   {  'RESTfulPath': '/controller/alerting/rest/v1/applications/{app_ID}/schedules/{entity_ID}',
-                                            'method': requests.put, 'headers': {'Content-Type': 'application/json'}, 'params': {}, 'data': '{streamdata}' }
+                                            'method': requests.put, 'headers': {'Content-Type': 'application/json'}, 'params': {}, 'data': '{streamdata}', 'keyword': 'scheduleConfiguration' }
                             },
 
         'SnapshotDict':     {'fetch':    {  'RESTfulPath': '/controller/rest/applications/{app_ID}/request-snapshots',
-                                            'method': requests.get, 'headers': {}, 'params': {'output': 'JSON'}, 'data': '' }
+                                            'method': requests.get, 'headers': {}, 'params': {'output': 'JSON'}, 'data': '', 'keyword': 'snapshotExitCalls' }
                             },
 
         'EventDict':        {'fetch':    {  'RESTfulPath': '/controller/rest/applications/{app_ID}/problems/healthrule-violations',
-                                            'method': requests.get, 'headers': {}, 'params': {'output': 'JSON'}, 'data': '' }
+                                            'method': requests.get, 'headers': {}, 'params': {'output': 'JSON'}, 'data': '', 'keyword': 'affectedEntityDefinition' }
                             },
 
         'MetricDict':       {'fetch':    {  'RESTfulPath': '/controller/rest/applications/{app_ID}/metric-data',
-                                            'method': requests.get, 'headers': {}, 'params': {'metric-path': '{metric_path}','rollup': True,'output': 'JSON'}, 'data': '' }
+                                            'method': requests.get, 'headers': {}, 'params': {'metric-path': '{metric_path}','rollup': True,'output': 'JSON'}, 'data': '',
+                                            'keyword': 'metricPath' }
                             },
 
-
         'ErrorDict':        {'fetch':    {  'RESTfulPath': '/controller/rest/applications/{app_ID}/metric-data',
-                                            'method': requests.get, 'headers': {}, 'params': {'metric-path': 'Errors|{entity_ID}|*|Errors per Minute','rollup': True,'output': 'JSON'}, 'data': '' }
+                                            'method': requests.get, 'headers': {}, 'params': {'metric-path': 'Errors|{entity_ID}|*|Errors per Minute','rollup': True,'output': 'JSON'},
+                                            'data': '', 'keyword': 'metricPath' }
                             }
     }
     time_range = {  "BEFORE_NOW":   {"time-range-type": "BEFORE_NOW","duration-in-mins": "{duration}"},
@@ -265,6 +266,8 @@ class RESTfulAPI:
             sys.stderr.write("HTTP request successful with status:" + str(response.status_code) + "\n")
         return response.content if response.content else response.status_code
 
+    ###### FROM HERE PUBLIC FUNCTIONS ######
+
     def send_request(self,entityType,verb,**kwargs):
         """
         Send a request to a RESTful Path from a controller. Either provide an username/password or let it get an access token automatically.
@@ -320,7 +323,18 @@ class RESTfulAPI:
             print ("\nRequest RESTful path:",fullPath,"\nparams:",params,"\nheaders:",headers,"\ndata:",data,"\nfiles:",files,"\nmethod:",reqMethod.__name__)
         return self.__do_request(url=fullPath,reqFunction=reqMethod,auth=auth,params=params,headers=headers,data=data,files=files)
 
-       ###### FROM HERE PUBLIC FUNCTIONS ######
+    def get_keyword(self,entityType,verb):
+        try:
+            return self.target[entityType][verb]['keyword']
+        except:
+            return None
+
+    def get_keywords(self,verb):
+        try:
+            return [ (key,value[verb]['keyword']) for key,value in iter(self.target.items()) if verb in value and 'keyword' in value[verb] ]
+        except:
+            return None
+
 
 #    def fetch_applicationsAllTypes(self):
 #        """
