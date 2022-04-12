@@ -60,15 +60,20 @@ class RESTfulAPI:
                                             'method': requests.get, 'headers': {}, 'params': {'output': 'JSON'}, 'data': '', 'keyword': 'entryPointType' }
                             },
 
-        'BackendDict':      {'fetch':    {  'RESTfulPath': '/controller/rest/applications/{app_ID}/backends',
-                                            'method': requests.get, 'headers': {}, 'params': {'output': 'JSON'}, 'data': '', 'keyword': 'exitPointType' }
-                            },
-
         'EntrypointDict':   {'fetchByID':{  'RESTfulPath': '/controller/restui/serviceEndpoint/getAll',
                                             'method': requests.post, 'headers': {"Content-Type": "application/json","Accept": "application/json"}, 'params': {},
                                             'data': '{{"agentType": "APP_AGENT","attachedEntity": {{"entityId": {entity_ID},"entityType": "APPLICATION_COMPONENT"}} }}',
                                             'keyword': 'hierarchicalConfigKey'
                                          }
+                            },
+
+        'ServiceEndpointDict':{'fetchByID':{'RESTfulPath': '/controller/rest/applications/{app_ID}/metrics',
+                                            'method': requests.get, 'headers': {"Content-Type": "application/json","Accept": "application/json"},
+                                            'params': {'metric-path':'Service Endpoints|{entity_ID}','output': 'JSON'}, 'data': '', 'keyword': 'name' }
+                            },
+
+        'BackendDict':      {'fetch':    {  'RESTfulPath': '/controller/rest/applications/{app_ID}/backends',
+                                            'method': requests.get, 'headers': {}, 'params': {'output': 'JSON'}, 'data': '', 'keyword': 'exitPointType' }
                             },
 
         'HealthRuleDict':   {'fetch':    {  'RESTfulPath': '/controller/restui/policy2/policies/{app_ID}',

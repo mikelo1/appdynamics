@@ -271,7 +271,7 @@ elif COMMAND.lower() == "get":
     elif not options.outFormat or options.outFormat == "CSV":
         entityObj.generate_CSV()
 
-  elif ENTITY in ['nodes','tiers','detection-rules','businesstransactions','backends','entrypoints','healthrules','policies','actions','schedules']:
+  elif ENTITY in ['nodes','tiers','detection-rules','businesstransactions','backends','entrypoints','serviceendpoints','healthrules','policies','actions','schedules']:
     current_context = AppD_Configuration().get_current_context(output="None")
     applicationList = get_application_list()
     if len(applicationList) == 0:

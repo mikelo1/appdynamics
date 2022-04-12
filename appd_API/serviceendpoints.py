@@ -60,10 +60,34 @@ class EntrypointDict(AppEntity):
         :param selectors: fetch only entities filtered by specified selectors
         :returns: the number of fetched entities. Zero if no entity was found.
         """
-        self.controller.tiers.fetch(appID=appID)
         count = 0
         for tierID in self.controller.tiers.getTiers_ID_List(appID=appID):
-            #data = self.entityAPIFunctions['fetchByID'](entity_ID=tierID,selectors=selectors)
             data = self.controller.RESTfulAPI.send_request(entityType=self.__class__.__name__,verb="fetchByID",app_ID=appID,entity_ID=tierID,selectors=selectors)
+            count += self.load(streamdata=data,appID=appID)
+        return count
+
+class ServiceEndpointDict(AppEntity):
+
+    def __init__(self,controller):
+        self.entityDict = dict()
+        self.controller = controller
+        self.entityKeywords = ["name"]
+        self.CSVfields = { 'endpoint': self.__str_endpoint }
+
+    def __str_endpoint(self,serviceendpoint):
+        return serviceendpoint['name']
+
+    def fetch(self,appID,selectors=None):
+        """
+        Fetch entities from controller RESTful API.
+        :param appID: the ID number of the application entities to fetch.
+        :param selectors: fetch only entities filtered by specified selectors
+        :returns: the number of fetched entities. Zero if no entity was found.
+        """
+        count = 0
+        for tierID in self.controller.tiers.getTiers_ID_List(appID=appID):
+            tierName = self.controller.tiers.getTierName(appID=appID,tierID=tierID)
+            selectors.update({'metric-path':'Service Endpoints|'+tierName})
+            data = self.controller.RESTfulAPI.send_request( entityType=self.__class__.__name__,verb="fetchByID",app_ID=appID,selectors=selectors)
             count += self.load(streamdata=data,appID=appID)
         return count
