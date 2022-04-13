@@ -7,11 +7,8 @@ from .entities import AppEntity
 class EventDict(AppEntity):
 
     def __init__(self,controller):
-        self.entityDict = dict()
-        self.controller = controller
-        #self.entityAPIFunctions = { 'fetch': self.controller.RESTfulAPI.fetch_healthrule_violations }
-        self.entityKeywords = ["affectedEntityDefinition"]
-        self.CSVfields = {  'PolicyName':  self.__str_event_policy,
+        super(EventDict,self).__init__(controller)
+        self['CSVfields']= {'PolicyName':  self.__str_event_policy,
                             'EntityName':  self.__str_event_entity,
                             'Severity':    self.__str_event_severity,
                             'Status':      self.__str_event_status,
@@ -102,11 +99,8 @@ class EventDict(AppEntity):
 class MetricDict(AppEntity):
 
     def __init__(self,controller):
-        self.entityDict = dict()
-        self.controller = controller
-        #self.entityAPIFunctions = { 'fetch': self.controller.RESTfulAPI.fetch_metric_data }
-        self.entityKeywords = ["metricPath"]
-        self.CSVfields = {  'ErrorCode': self.__str_metric_start_time,
+        super(MetricDict,self).__init__(controller)
+        self['CSVfields']= {'ErrorCode': self.__str_metric_start_time,
                             'Value':     self.__str_metric_value,
                             'Max':       self.__str_metric_max,
                             'Min':       self.__str_metric_min,
@@ -136,7 +130,6 @@ class ErrorDict(MetricDict, object):
 
     def __init__(self,controller):
         super(ErrorDict,self).__init__(controller)
-        #self.entityAPIFunctions = { 'fetch': self.controller.RESTfulAPI.fetch_errors }
 
     def fetch_after_time(self,appID,duration,sinceEpoch,selectors=None):
         """
@@ -146,11 +139,11 @@ class ErrorDict(MetricDict, object):
         :returns: the number of fetched entities. Zero if no entity was found.
         """
         count = 0
-        for tierName in self.controller.tiers.getTiers_Name_List(appID=appID):
+        for tierName in self['controller'].tiers.getTiers_Name_List(appID=appID):
             selectors.update({'metric-path':'Errors|'+tierName+'|*|Errors per Minute'})
             #data = self.entityAPIFunctions['fetch'](app_ID=appID,entity_ID=tierName,time_range_type="AFTER_TIME",
             #                                        **{"duration-in-mins":duration,"start-time":sinceEpoch,"selectors":selectors})
-            data = self.controller.RESTfulAPI.send_request( entityType=self.__class__.__name__,verb="fetch",app_ID=appID,selectors=selectors,
+            data = self['controller'].RESTfulAPI.send_request( entityType=self.__class__.__name__,verb="fetch",app_ID=appID,selectors=selectors,
                                                             **{"time-range-type":"AFTER_TIME","duration-in-mins":duration,"start-time":sinceEpoch})
             count += self.load(streamdata=data,appID=appID)
         return count

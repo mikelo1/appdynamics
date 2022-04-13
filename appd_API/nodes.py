@@ -7,12 +7,8 @@ from .entities import AppEntity
 class NodeDict(AppEntity):
 
     def __init__(self,controller):
-        self.entityDict = dict()
-        self.controller = controller
-        #self.entityAPIFunctions = { 'fetch': self.controller.RESTfulAPI.fetch_nodes,
-        #                            'fetchByID': self.controller.RESTfulAPI.fetch_node_by_ID }
-        self.entityKeywords = ["nodeUniqueLocalId"]
-        self.CSVfields = {  'Node':         self.__str_node_name,
+        super(NodeDict,self).__init__(controller)
+        self['CSVfields']= {'Node':         self.__str_node_name,
                             'Tier':         self.__str_node_tierName,
                             'AgentVersion': self.__str_node_agentVersion,
                             'MachineName':  self.__str_node_machineName,
@@ -42,16 +38,16 @@ class NodeDict(AppEntity):
         :returns: the number of updated nodes. Zero if no node was updated.
         """
         updated = 0
-        if str(app_ID) in self.entityDict:
-            nodeList = [ node['id'] for node in self.entityDict[str(app_ID)] ]
+        if app_ID in self['entities']:
+            nodeList = [ node['id'] for node in self['entities'][appID] ]
             end_time   = datetime.today()-timedelta(minutes=5)
             start_time = end_time-timedelta(minutes=60)
             start_epoch= int(time.mktime(start_time.timetuple())*1000)
             end_epoch  = int(time.mktime(end_time.timetuple())*1000)
-            response = self.controller.RESTfulAPI.fetch_agent_status(nodeList=nodeList,start_epoch=start_epoch,end_epoch=end_epoch)
+            response = self['controller'].RESTfulAPI.fetch_agent_status(nodeList=nodeList,start_epoch=start_epoch,end_epoch=end_epoch)
             if response is not None:
                 nodesHealth = json.loads(response)
-                for node in self.entityDict[str(app_ID)]:
+                for node in self['entities'][appID]:
                     for i in range(0, len(nodeList), 1):
                         if nodesHealth['data'][i]['nodeId'] == node['id']:
                             percentage = nodesHealth['data'][i]['healthMetricStats']['appServerAgentAvailability']['percentage']
@@ -75,17 +71,17 @@ class NodeDict(AppEntity):
         DEBUG=True
         updated = 0
         for appID in appID_List:
-            sys.stderr.write("drain_nodes: [INFO] update nodes status for application "+self.controller.applications.getAppName(appID)+"...\n")
-            if str(appID) not in self.entityDict:
+            sys.stderr.write("drain_nodes: [INFO] update nodes status for application "+self['controller'].applications.getAppName(appID)+"...\n")
+            if self['entities'] is None or appID not in self['entities']:
                 if self.fetch(appID=appID,selectors=selectors) == 0: continue
             self.__update_availability_nodes(appID)
-            unavailNodeList = [ node['id'] for node in self.entityDict[str(appID)] if node['availability'] == 0.0 ]
+            unavailNodeList = [ node['id'] for node in self['entities'][appID] if node['availability'] == 0.0 ]
             for i in range(0,len(unavailNodeList),25):
                 if 'DEBUG' in locals(): sys.stdout.write("drain_nodes: [INFO] Unavailable node list: "+str(unavailNodeList)+"\n")
-                response = self.controller.RESTfulAPI.mark_nodes_as_historical(unavailNodeList[i:i+25])
+                response = self['controller'].RESTfulAPI.mark_nodes_as_historical(unavailNodeList[i:i+25])
             self.fetch(appID=appID,selectors=selectors)
             if 'DEBUG' in locals(): sys.stdout.write("drain_nodes: [INFO] Nodes marked as historical in application "+ \
-                                                    self.controller.applications.getAppName(appID)+": "+str(len(unavailNodeList))+"\n")
+                                                    self['controller'].applications.getAppName(appID)+": "+str(len(unavailNodeList))+"\n")
             updated += len(unavailNodeList)
         return updated
 
@@ -98,8 +94,8 @@ class NodeDict(AppEntity):
         :returns: the name of the specified tier ID.
         """
         if tierID <= 0: return 0
-        if str(app_ID) in self.entityDict:
-            for node in self.entityDict[str(app_ID)]:
+        if app_ID in self.entityDict:
+            for node in self['entities'][appID]:
                 if node['tierId'] == tierID:
                     return node['tierName']
         return ""
@@ -113,8 +109,8 @@ class NodeDict(AppEntity):
         :returns: the name of the specified node ID.
         """
         if nodeID <= 0: return 0
-        if str(app_ID) in self.entityDict:
-            for node in self.entityDict[str(app_ID)]:
+        if app_ID in self['entities']:
+            for node in self['entities'][appID]:
                 if node['id'] == nodeID:
                     return node['name']
         return ""
@@ -123,12 +119,8 @@ class NodeDict(AppEntity):
 class TierDict(AppEntity):
 
     def __init__(self,controller):
-        self.entityDict = dict()
-        self.controller = controller
-        #self.entityAPIFunctions = { 'fetch': self.controller.RESTfulAPI.fetch_tiers,
-        #                            'fetchByID': self.controller.RESTfulAPI.fetch_tier_nodes }
-        self.entityKeywords = ['numberOfNodes','agentType']
-        self.CSVfields = {  'Tier':            self.__str_tier_name,
+        super(TierDict,self).__init__(controller)
+        self['CSVfields']= {'Tier':            self.__str_tier_name,
                             'Type':            self.__str_tier_type,
                             'Number of nodes': self.__str_tier_number_of_nodes }
 
@@ -150,9 +142,9 @@ class TierDict(AppEntity):
         :param selectors: fetch only entities filtered by specified selectors
         :returns: the number of fetched entities. Zero if no entity was found.
         """
-        if self.controller.applications.hasTiers(appID):
+        if self['controller'].applications.hasTiers(appID):
             #data = self.entityAPIFunctions['fetch'](app_ID=appID,selectors=selectors)
-            data = self.controller.RESTfulAPI.send_request(entityType=self.__class__.__name__,verb="fetch",app_ID=appID,selectors=selectors)
+            data = self['controller'].RESTfulAPI.send_request(entityType=self.__class__.__name__,verb="fetch",app_ID=appID,selectors=selectors)
             return self.load(streamdata=data,appID=appID)
         return 0
 
@@ -161,22 +153,20 @@ class TierDict(AppEntity):
         Get a list of tier IDs for an application.
         :returns: a list with all tier IDs for an application. Empty list if no tier was found.
         """
-        if type(appID) is int: appID = str(appID)
-        if appID not in self.entityDict:
+        if self['entities'] is None or appID not in self['entities']:
             if not self.fetch(appID=appID):
                 return []
-        return [ tier['id'] for tier in self.entityDict[appID] ]
+        return [ tier['id'] for tier in self['entities'][appID] ]
 
     def getTiers_Name_List(self,appID):
         """
         Get a list of tier IDs for an application.
         :returns: a list with all tier IDs for an application. Empty list if no tier was found.
         """
-        if type(appID) is int: appID = str(appID)
-        if appID not in self.entityDict:
+        if self['entities'] is None or appID not in self['entities']:
             if not self.fetch(appID=appID):
                 return []
-        return [ tier['name'] for tier in self.entityDict[appID] ]
+        return [ tier['name'] for tier in self['entities'][appID] ]
 
     def getTierName(self,tierID,appID=None):
         """
@@ -185,11 +175,11 @@ class TierDict(AppEntity):
         :param tierID: the ID of the tier
         :returns: the name of the specified tier ID. Empty string if the tier was not found.
         """
-        if appID and appID not in self.entityDict:
+        if appID and ( self['entities'] is None or appID not in self['entities'] ):
             self.fetch(appID=appID)
-        keys = self.entityDict.keys() if not appID else [str(appID)]
+        keys = self['entities'].keys() if not appID else [appID]
         for key in keys:
-            for tier in self.entityDict[key]:
+            for tier in self['entities'][key]:
                 if tier['id'] == tierID:
                     return tier['name']
         return None

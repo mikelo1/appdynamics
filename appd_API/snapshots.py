@@ -7,11 +7,8 @@ from .entities import AppEntity
 class SnapshotDict(AppEntity):
 
     def __init__(self,controller):
-        self.entityDict = dict()
-        self.controller = controller
-        #self.entityAPIFunctions = {'fetch': self.controller.RESTfulAPI.fetch_snapshots}
-        self.entityKeywords = ["snapshotExitCalls"]
-        self.CSVfields = {  'Time':                 self.__str_snapshot_time,
+        super(SnapshotDict,self).__init__(controller)
+        self['CSVfields']= {'Time':                 self.__str_snapshot_time,
                             'UserExperience':       self.__str_snapshot_userExperience,
                             'URL':                  self.__str_snapshot_URL,
                             'Summary':              self.__str_snapshot_summary,
@@ -34,7 +31,7 @@ class SnapshotDict(AppEntity):
         return snapshot['summary'] if 'summary' in snapshot and sys.version_info[0] >= 3 else snapshot['summary'].encode('ASCII', 'ignore') if 'summary' in snapshot else ""
 
     def __str_snapshot_BT(self,snapshot):
-        return self.controller.businesstransactions.get_business_transaction_name(appID=snapshot['applicationId'],transactionID=snapshot['businessTransactionId'])
+        return self['controller'].businesstransactions.get_business_transaction_name(appID=snapshot['applicationId'],transactionID=snapshot['businessTransactionId'])
 
     def __str_snapshot_tier(self,snapshot):
         return snapshot['applicationComponentId']

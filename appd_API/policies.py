@@ -5,12 +5,8 @@ from .entities import AppEntity
 class PolicyDict(AppEntity):
 
     def __init__(self,controller):
-        self.entityDict = dict()
-        self.controller = controller
-        #self.entityAPIFunctions = { 'fetch': self.controller.RESTfulAPI.fetch_policies_legacy,
-        #                            'fetchByID': self.controller.RESTfulAPI.fetch_policy_by_ID }
-        self.entityKeywords = ["actions","reactorType"]
-        self.CSVfields = {  'PolicyName': self.__str_policy_name,
+        super(PolicyDict,self).__init__(controller)
+        self['CSVfields']= {'PolicyName': self.__str_policy_name,
                             'Events':     self.__str_policy_healthrules,
                             'Entities':   self.__str_policy_entities,
                             'Actions':    self.__str_policy_actions }
@@ -19,12 +15,12 @@ class PolicyDict(AppEntity):
         policies1=json.loads('[{"id":1854,"name":"POLICY_SANDBOX","enabled":true,"executeActionsInBatch":true,"frequency":null,"actions":[{"actionName":"gogs@acme.com","actionType":"EMAIL","notes":""}],"events":{"healthRuleEvents":null,"otherEvents":[],"anomalyEvents":["ANOMALY_OPEN_CRITICAL"],"customEvents":[]},"selectedEntities":{"selectedEntityType":"ANY_ENTITY"}]')
         policies2=json.loads('[{"id":1855,"name":"POLICY_SANDBOX","enabled":true,"executeActionsInBatch":true,"frequency":null,"actions":[{"actionName":"gogs@acme.com","actionType":"EMAIL","notes":""}],"events":{"healthRuleEvents":null,"otherEvents":[],"anomalyEvents":["ANOMALY_OPEN_CRITICAL"],"customEvents":[]},"selectedEntities":{"selectedEntityType":"ANY_ENTITY"}]')
         #policies3=json.loads('[{"id":1856,"name":"POLICY_SANDBOX","enabled":true,"executeActionsInBatch":true,"frequency":null,"actions":[{"actionName":"gogs@acme.com","actionType":"EMAIL","notes":""}],"events":{"healthRuleEvents":null,"otherEvents":[],"anomalyEvents":["ANOMALY_OPEN_CRITICAL"],"customEvents":[]},"selectedEntities":{"selectedEntityType":"ANY_ENTITY"}]')
-        entityDict.update({str(app_ID):policies1})
-        entityDict.update({str(app_ID+1):policies2})
-        #entityDict.update({str(app_ID+1):policies3})
-        print ("Number of entries: " + str(len(entityDict)) )
-        if str(app_ID) in entityDict:
-            print (entityDict[str(app_ID)])
+        entityDict.update({app_ID:policies1})
+        entityDict.update({app_ID+1:policies2})
+        #entityDict.update({app_ID+1:policies3})
+        print ("Number of entries: " + len(self['entities']) )
+        if app_ID in self['entities']:
+            print (self['entities'][app_ID])
 
     def __str_policy_name(self,policy):
         return policy['name'] if sys.version_info[0] >= 3 else policy['name'].encode('ASCII', 'ignore')
@@ -131,8 +127,8 @@ class PolicyDict(AppEntity):
 
     def get_policies_matching_action(self,app_ID,name):
         MatchList = []
-        if str(app_ID) in self.entityDict:
-            for policy in self.entityDict[str(app_ID)]:
+        if app_ID in self['entities']:
+            for policy in self['entities'][app_ID]:
                 for policy_action in policy['actions']:
                     if policy_action['actionName'] == name:
                         MatchList.append(policy.name)

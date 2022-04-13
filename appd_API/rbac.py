@@ -5,15 +5,11 @@ from .entities import ControllerEntity
 class RBACDict(ControllerEntity):
 
     def __init__(self,controller):
-        self.entityDict = dict()
-        self.controller = controller
-        #self.entityAPIFunctions = { 'fetch': self.controller.RESTfulAPI.fetch_users_extended,
-        #                            'fetchByID': self.controller.RESTfulAPI.fetch_user_by_ID }
-        self.entityKeywords = ["providerUniqueName"]
-        self.CSVfields = {  'Name':   self.__str_user_name,
-                            'Email':  self.__str_user_email,
-                            'Roles':  self.__str_user_roles,
-                            'Groups': self.__str_user_groups }
+        super(RBACDict,self).__init__(controller)
+        self['CSVfields'] = {'Name':   self.__str_user_name,
+                              'Email':  self.__str_user_email,
+                              'Roles':  self.__str_user_roles,
+                              'Groups': self.__str_user_groups }
 
 
     def __str_user_name(self,user):
@@ -35,13 +31,10 @@ class RBACDict(ControllerEntity):
 class AccountDict(ControllerEntity):
 
     def __init__(self,controller):
-        self.entityDict = dict()
-        self.controller = controller
-        #self.entityAPIFunctions = { 'fetch': self.controller.RESTfulAPI.get_account_usage_summary }
-        self.entityKeywords = ["usageType"]#["machine-agent","dot-net","nodejs","sim-machine-agent","iot","netviz","synthetic","database","java","mobile-rum","browser-rum","apm"]
-        self.CSVfields = {  'Provisioned_Licenses':  self.__str_account_provisioned,
-                            'Peak_Usage':  self.__str_account_usage,
-                            'expirationDate': self.__str_account_expiration }
+        super(AccountDict,self).__init__(controller)
+        self['CSVfields'] = {'Provisioned_Licenses':  self.__str_account_provisioned,
+                             'Peak_Usage':  self.__str_account_usage,
+                             'expirationDate': self.__str_account_expiration }
 
     def __str_account_provisioned(self,account):
         return account['numOfProvisionedLicense']
@@ -74,15 +67,15 @@ class AccountDict(ControllerEntity):
             csvfile = sys.stdout
 
         fieldnames = ['type']
-        fieldnames.extend([ name for name in self.CSVfields ])
+        fieldnames.extend([ name for name in self['CSVfields'] ])
         filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
 
-        for licenseType in self.entityDict:
+        for licenseType in self['entities']:
             # Check if data belongs to a recognized application type
-            if type(self.entityDict[licenseType]) is dict and self.entityDict[licenseType]['isLicensed'] is not None:
-                licenseList = [self.entityDict[licenseType]]
-            elif type(self.entityDict[licenseType]) is list:
-                licenseList = self.entityDict[licenseType]
+            if type(self['entities'][licenseType]) is dict and self['entities'][licenseType]['isLicensed'] is not None:
+                licenseList = [self['entities'][licenseType]]
+            elif type(self['entities'][licenseType]) is list:
+                licenseList = self['entities'][licenseType]
             else: continue
 
             if 'header_is_printed' not in locals():
@@ -91,7 +84,7 @@ class AccountDict(ControllerEntity):
 
             for license in licenseList:
                 row = {"type":licenseType}
-                row.update({ name: self.CSVfields[name](license) for name in self.CSVfields })
+                row.update({ name: self['CSVfields'][name](license) for name in self['CSVfields'] })
                 try:
                     filewriter.writerow(row)
                 except (TypeError,ValueError) as error:

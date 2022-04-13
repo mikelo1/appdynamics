@@ -5,13 +5,10 @@ from .entities import AppEntity
 class BusinessTransactionDict(AppEntity):
 
     def __init__(self,controller):
-        self.entityDict = dict()
-        self.controller = controller
-        #self.entityAPIFunctions = { 'fetch': self.controller.RESTfulAPI.fetch_business_transactions }
-        self.entityKeywords = ['internalName','entryPointType']
-        self.CSVfields = {  'name':           self.__str_businesstransaction_name,
-                            'entryPointType': self.__str_businesstransaction_entryPointType,
-                            'tierName':       self.__str_businesstransaction_tierName }
+        super(BusinessTransactionDict,self).__init__(controller)
+        self['CSVfields'] = {   'name':           self.__str_businesstransaction_name,
+                                'entryPointType': self.__str_businesstransaction_entryPointType,
+                                'tierName':       self.__str_businesstransaction_tierName }
 
     def __str_businesstransaction_name(self,BT):
         return BT['name'] if sys.version_info[0] >= 3 else BT['name'].encode('ASCII', 'ignore')
@@ -33,9 +30,8 @@ class BusinessTransactionDict(AppEntity):
         :param transactionName: the name of the business transaction
         :returns: the ID of the specified business transaction name. Zero if no business transaction was found.
         """
-        if appID < 0: return 0
-        if str(appID) in self.entityDict:
-            for transaction in self.entityDict[str(appID)]:
+        if appID > 0 and self['entities'] is not None and appID in self['entities']:
+            for transaction in self['entities'][appID]:
                 if transaction['name'] == transactionName:
                     return transaction['id']
         return 0
@@ -48,10 +44,10 @@ class BusinessTransactionDict(AppEntity):
         :returns: the name of the specified business transaction ID. Empty string if no business transaction was found.
         """
         if appID <= 0 or transactionID <= 0: return ""
-        if str(appID) not in self.entityDict:
+        if self['entities'] is None or appID not in self['entities']:
             if not self.fetch(appID=appID):
                 return ""
-        for transaction in self.entityDict[str(appID)]:
+        for transaction in self['entities'][appID]:
             if transaction['id'] == transactionID:
                 return transaction['name']
         return ""
@@ -63,7 +59,6 @@ class BusinessTransactionDict(AppEntity):
         :param appID: the ID of the application
         :returns: the list of business application names of the specified application ID. None if no business transaction was found.
         """
-        if appID < 0: return None
-        if str(appID) in self.entityDict:
-            return [transaction['name'] for transaction in custom_transactionDict[str(appID)]]
+        if appID > 0 and self['entities'] is not None and appID in self['entities']:
+            return [transaction['name'] for transaction in self['entities'][appID] ]
         return None

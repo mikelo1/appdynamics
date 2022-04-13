@@ -6,15 +6,12 @@ from .entities import ControllerEntity
 class ConfigurationDict(ControllerEntity):
 
     def __init__(self,controller):
-        self.entityDict = dict()
-        self.controller = controller
-        #self.entityAPIFunctions = { 'fetch': self.controller.RESTfulAPI.fetch_configuration }
-        self.entityKeywords = ['updateable']
-        self.CSVfields = {  'Name':        self.__str_setting_name,
-                            'Value':       self.__str_setting_value,
-                            'Scope':       self.__str_setting_scope,
-                            'Updateable':  self.__str_setting_updateable,
-                            'Description': self.__str_setting_description }
+        super(ConfigurationDict,self).__init__(controller)
+        self['CSVfields'] = {'Name':        self.__str_setting_name,
+                             'Value':       self.__str_setting_value,
+                             'Scope':       self.__str_setting_scope,
+                             'Updateable':  self.__str_setting_updateable,
+                             'Description': self.__str_setting_description }
 
 
     def __str_setting_name(self,setting):

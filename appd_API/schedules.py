@@ -5,14 +5,8 @@ from .entities import AppEntity
 class ScheduleDict(AppEntity):
 
     def __init__(self,controller):
-        self.entityDict = dict()
-        self.controller = controller
-        #self.entityAPIFunctions = { 'fetch': self.controller.RESTfulAPI.fetch_schedules,
-        #                            'fetchByID': self.controller.RESTfulAPI.fetch_schedule_by_ID,
-        #                            'create': self.controller.RESTfulAPI.create_schedule,
-        #                            'update': self.controller.RESTfulAPI.update_schedule }
-        self.entityKeywords = ["timezone","scheduleConfiguration"]
-        self.CSVfields = {  'Name':        self.__str_schedule_name,
+        super(ScheduleDict,self).__init__(controller)
+        self['CSVfields']= {'Name':        self.__str_schedule_name,
                             'Description': self.__str_schedule_description,
                             'Timezone':    self.__str_schedule_timezone,
                             'Frequency':   self.__str_schedule_frequency,
@@ -24,12 +18,12 @@ class ScheduleDict(AppEntity):
         schedules1=json.loads('[{"timezone":"Europe/Brussels","description":"This schedule is active Monday through Friday, during business hours","id":30201,"scheduleConfiguration":{"scheduleFrequency":"WEEKLY","endTime":"17:00","days":["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY"],"startTime":"08:00"},"name":"Weekdays:8am-5pm,Mon-Fri"}]')
         schedules2=json.loads('[{"timezone":"Europe/Brussels","description":"This schedule is active Monday through Friday, during business hours","id":30201,"scheduleConfiguration":{"scheduleFrequency":"WEEKLY","endTime":"17:00","days":["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY"],"startTime":"08:00"},"name":"Weekdays:8am-5pm,Mon-Fri"}]')
         # Add loaded schedules to the schedule dictionary
-        entityDict.update({str(app_ID):schedules1})
-        entityDict.update({str(app_ID+1):schedules2})
+        entityDict.update({app_ID:schedules1})
+        entityDict.update({app_ID+1:schedules2})
         if 'DEBUG' in locals():
-            print ("Number of entries: " + str(len(entityDict)) )
-            if str(app_ID) in entityDict:
-                print (entityDict[str(app_ID)])
+            print ("Number of entries: " + str(len(self['entities'])) )
+            if str(app_ID) in self['entities']:
+                print (self['entities'][app_ID])
 
 
     def __str_schedule_name(self,schedule):

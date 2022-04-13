@@ -7,12 +7,13 @@ from .entities import AppEntity
 class DetectionruleDict(AppEntity):
 
     def __init__(self,controller):
-        self.entityDict = dict()
-        self.controller = controller
-        #self.entityAPIFunctions = { 'fetch': self.controller.RESTfulAPI.fetch_transactiondetection,
-        #                            'import': self.controller.RESTfulAPI.import_transactiondetection }
-        self.entityKeywords = ["mds-data","rule-list"]
+        super(DetectionruleDict,self).__init__(controller)
+        self['CSVfields']= {'Name':          self.__str_transactiondetection_name,
+                            'MatchRuleList': self.__str_transactiondetection_matchrules,
+                            'HttpSplit':     self.__str_transactiondetection_actions }
 
+    def __str_transactiondetection_name(self,detectrule):
+        return detectrule.attrib['rule-name'] if sys.version_info[0] >= 3 else detectrule.attrib['rule-name'].encode('ASCII', 'ignore')
 
     def __str_transactiondetection_matchrules(self,txMatchRuleData):
         """
@@ -145,16 +146,19 @@ class DetectionruleDict(AppEntity):
         try:
             root = ET.fromstring(streamdata)
         except TypeError as error:
-            print ("load_transaction_detection: "+str(error))
+            sys.stderr.write("load_transaction_detection: "+str(error)+"\n")
             return 0
         # Add loaded detection rules to the transaction detection rules dictionary
-        if str(appID) in self.entityDict:
+        if self['entities'] is None:
+            # Set loaded detection rules to the detectrules dictionary
+            self['entities'] = {appID:root}
+        elif appID not in self['entities']:
+            # Add loaded detection rules to the detectrules dictionary
+            self['entities'].update({appID:root})
+        else:
             # Merge new and existing detection rules
             for new_rule in root.find("rule-list"):
-                self.entityDict[str(appID)].find("rule-list").append(new_rule)
-        else:
-            # Add loaded detection rules to the detectrules dictionary
-            self.entityDict.update({str(appID):root})
+                self['entities'][appID].find("rule-list").append(new_rule)
         return len(root.find("rule-list").getchildren())
 
     def generate_CSV(self,appID_List=None,fileName=None):
@@ -177,11 +181,11 @@ class DetectionruleDict(AppEntity):
         fieldnames = ['Name', 'Application', 'MatchRuleList', 'HttpSplit']
         filewriter = csv.DictWriter(csvfile, fieldnames=fieldnames, delimiter=',', quotechar='"')
 
-        for appID in self.entityDict:
-            if appID_List is not None and type(appID_List) is list and int(appID) not in appID_List:
-                if 'DEBUG' in locals(): print ("Application "+appID +" is not loaded in dictionary.")
+        for appID in self['entities']:
+            if appID_List is not None and type(appID_List) is list and appID not in appID_List:
+                if 'DEBUG' in locals(): print ("Application ",appID," is not loaded in dictionary.")
                 continue       
-            detectionRules = self.entityDict[appID]
+            detectionRules = self['entities'][appID]
 
             if 'header_is_printed' not in locals():
                 filewriter.writeheader()
@@ -210,7 +214,7 @@ class DetectionruleDict(AppEntity):
 
                 try:
                     filewriter.writerow({'Name': ruleName,
-                                         'Application': self.controller.applications.getAppName(appID),
+                                         'Application': self['controller'].applications.getAppName(appID),
                                          'MatchRuleList': matchRuleList,
                                          'HttpSplit': httpSplit})
                 except ValueError as valError:
@@ -239,10 +243,9 @@ class DetectionruleDict(AppEntity):
         """
         pass 
         TD_List = []
-        if len(detectionruleList) > 0:
-            for detectionrule in detectionruleList:
-                #### TO DO: Automatic discovery rules
-                pass
+        for detectionrule in self['entities'][appID]:
+            #### TO DO: Automatic discovery rules
+            pass
         else:
             return None
 

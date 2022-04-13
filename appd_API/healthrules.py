@@ -6,14 +6,8 @@ from .entities import AppEntity
 class HealthRuleDict(AppEntity):
 
     def __init__(self,controller):
-        self.entityDict = dict()
-        self.controller = controller
-        #self.entityAPIFunctions = { 'fetch': self.controller.RESTfulAPI.fetch_health_rules_JSON,
-        #                            'fetchByID': self.controller.RESTfulAPI.fetch_health_rule_by_ID,
-        #                            'create': self.controller.RESTfulAPI.create_health_rule,
-        #                            'update': self.controller.RESTfulAPI.update_health_rule }
-        self.entityKeywords = ["affectedEntityType","affects","affectedEntityDefinitionRule","health-rules"]
-        self.CSVfields = {  'HealthRule':         self.__str_healthrule_name,
+        super(HealthRuleDict,self).__init__(controller)
+        self['CSVfields']= {'HealthRule':         self.__str_healthrule_name,
                             'Duration':           self.__str_healthrule_duration,
                             'Wait_Time':          self.__str_healthrule_waitTime,
                             'Schedule':           self.__str_healthrule_schedule,
