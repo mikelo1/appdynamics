@@ -35,9 +35,9 @@ def get_help(COMMAND,SUBCOMMAND=None,output=sys.stdout):
     optParser.print_help()
   elif COMMAND=="get" and SUBCOMMAND is None:
     sys.stderr.write("Usage: appdctl get [policies|actions|schedules|healthrules|\n" + \
-                     "                    detection-rules|businesstransactions|backends|entrypoints|\n" + \
+                     "                    detection-rules|businesstransactions|backends|entrypoints|serviceendpoints|\n" + \
                      "                    healthrule-violations|errors|snapshots|allothertraffic|\n" + \
-                     "                    applications|tiers|nodes|dashboards|config|users] [options]\n\n")
+                     "                    applications|tiers|nodes|dashboards|config|users|account] [options]\n\n")
   elif COMMAND=="describe" and SUBCOMMAND is None:
     sys.stderr.write("Usage: appdctl describe [policy|action|schedule|healthrule|\n" + \
                      "                    detection-rule|businesstransaction|backend|entrypoint|\n" + \
