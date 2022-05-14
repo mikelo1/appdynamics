@@ -163,7 +163,7 @@ class HealthRuleDict(AppEntity):
         elif aggregationType and condition['type']=="POLICY_LEAF_CONDITION":
             # if this is a "Metric Expression" condition, return the given expression
             if condition['conditionExpression']:
-                return condition['conditionExpression']
+                return condition['conditionExpression'] + " " + condition['operator'].lower() + " " + str(condition['value'])
             # if this is a "Single Metric" condition, construct the expression with the metric name, operator and value
             elif condition['metricExpression']['type'] == "LEAF_METRIC_EXPRESSION":
                 return condition['metricExpression']['metricDefinition']['logicalMetricName'].lower() + " " + \
