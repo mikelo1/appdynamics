@@ -9,8 +9,9 @@ class RBACDict(ControllerEntity):
         self['CSVfields'] = {'Name':   self.__str_user_name,
                               'Email':  self.__str_user_email,
                               'Roles':  self.__str_user_roles,
-                              'Groups': self.__str_user_groups }
-
+                              'Groups': self.__str_user_groups,
+                              'createdOn': self.__str_user_createdOn,
+                              'modifiedOn': self.__str_user_modifiedOn }
 
     def __str_user_name(self,user):
         return user['name']
@@ -23,6 +24,14 @@ class RBACDict(ControllerEntity):
 
     def __str_user_groups(self,user):
         return json.dumps(user['groups']) if 'groups' in user else None
+
+    def __str_user_createdOn(self,user):
+        from datetime import datetime, timedelta
+        return datetime.fromtimestamp(float(user['createdOn'])/1000).strftime('%Y-%m-%d %H:%M:%S')
+
+    def __str_user_modifiedOn(self,user):
+        from datetime import datetime, timedelta
+        return datetime.fromtimestamp(float(user['modifiedOn'])/1000).strftime('%Y-%m-%d %H:%M:%S')
 
 
     ###### FROM HERE PUBLIC FUNCTIONS ######
