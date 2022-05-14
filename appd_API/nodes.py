@@ -30,15 +30,15 @@ class NodeDict(AppEntity):
     def __str_node_machineOSType(self,node):
         return node['machineOSType']
 
-    def __update_availability_nodes(self,app_ID):
+    def __update_availability_nodes(self,appID):
         """
         Update nodes availability with the last hour availability percentage
         https://community.appdynamics.com/t5/Controller-SaaS-On-Premise/Export-app-and-machine-agent-status-by-Rest-Api/m-p/38378#M1983
-        :param app_ID: the application ID number where to look for node availability
+        :param appID: the application ID number where to look for node availability
         :returns: the number of updated nodes. Zero if no node was updated.
         """
         updated = 0
-        if app_ID in self['entities']:
+        if appID in self['entities']:
             nodeList = [ node['id'] for node in self['entities'][appID] ]
             end_time   = datetime.today()-timedelta(minutes=5)
             start_time = end_time-timedelta(minutes=60)
@@ -52,7 +52,7 @@ class NodeDict(AppEntity):
                         if nodesHealth['data'][i]['nodeId'] == node['id']:
                             percentage = nodesHealth['data'][i]['healthMetricStats']['appServerAgentAvailability']['percentage']
                             node.update({"availability": percentage})
-                            #self.entityDict[str(app_ID)] = node
+                            #self.entityDict[str(appID)] = node
                             updated = updated +1
                             continue
         return updated
