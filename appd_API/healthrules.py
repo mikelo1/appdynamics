@@ -13,7 +13,8 @@ class HealthRuleDict(AppEntity):
                             'Schedule':           self.__str_healthrule_schedule,
                             'Enabled':            self.__str_healthrule_enabled,
                             'Affects':            self.__str_healthrule_affects,
-                            'Critical_Condition': self.__str_healthrule_critical_conditions }
+                            'Critical_Condition': self.__str_healthrule_critical_conditions,
+                            'Warning_Condition':  self.__str_healthrule_warning_conditions }
 
 
     def __str_healthrule_name(self,healthrule):
@@ -130,47 +131,101 @@ class HealthRuleDict(AppEntity):
             else:
                 return healthrule['type'] + " | " + aemcType
 
+
+    def __str_condition_expression(self,condition,expression=None,aggregationType=None):
+        """
+        toString private method, extracts custom metric expression from health rule condition
+        :param condition: JSON data containing a health rule condition
+        :param expression: (optional) condition expresion with shortnames to be replaced
+        :param AggregationType: (optional) operator (AND|OR) to be used in the condition expression
+        :returns: string with a space separated list of custom metric expressions
+        """
+        # In custom conditions the expression is given
+        # if this is a leaf condition, replace shortNames by metric name
+        if expression and condition['type'] == "POLICY_LEAF_CONDITION":
+            if condition['metricExpression']['type'] == "LEAF_METRIC_EXPRESSION":
+                return expression.replace( condition['shortName'],
+                                           condition['metricExpression']['metricDefinition']['logicalMetricName'].lower() + " " + \
+                                           condition['operator'].lower() + " " + \
+                                           str(condition['value']) )
+            else:
+                ### TO DO: add multiple expression support
+                if 'DEBUG' in locals(): sys.stderr.write("[Warn]: Multiple expressions not yet implemented.")
+                return ""
+        # In custom conditions the expression is given
+        # if this is a branch condition, call recursively until leaf condition
+        elif expression: # and condition['type']="POLICY_BOOLEAN_CONDITION":
+            expression = self.__str_condition_expression(condition['condition1'],expression)
+            expression = self.__str_condition_expression(condition['condition2'],expression)
+            return expression
+        # In the rest of conditions (ALL|ANY|CUSTOM|null), no expression is given, need to create it using the aggregationType
+        # if this is a leaf condition return condition expression
+        elif aggregationType and condition['type']=="POLICY_LEAF_CONDITION":
+            # if this is a "Metric Expression" condition, return the given expression
+            if condition['conditionExpression']:
+                return condition['conditionExpression']
+            # if this is a "Single Metric" condition, construct the expression with the metric name, operator and value
+            elif condition['metricExpression']['type'] == "LEAF_METRIC_EXPRESSION":
+                return condition['metricExpression']['metricDefinition']['logicalMetricName'].lower() + " " + \
+                       condition['operator'].lower() + " " + str(condition['value']) + " " + str(condition['valueUnitType'])
+            else:
+                ### TO DO: add multiple expression support
+                if 'DEBUG' in locals(): sys.stderr.write("[Warn]: Multiple expressions not yet implemented.")
+                return ""
+        # In the rest of conditions (ALL|ANY|CUSTOM|null), no expression is given, need to create it using the aggregationType
+        # if this is a branch condition, call recursively until leaf condition
+        elif aggregationType: # and condition['type']="POLICY_BOOLEAN_CONDITION":
+            return self.__str_condition_expression(condition['condition1'],aggregationType=aggregationType) + " " + aggregationType + " " + \
+                   self.__str_condition_expression(condition['condition2'],aggregationType=aggregationType)
+        else: # Unexpected situation, return empty string
+            if 'DEBUG' in locals(): sys.stderr.write("Unrecognized condition type for healthrule.")
+            return ""
+
     def __str_healthrule_critical_conditions(self,healthrule):
         """
         toString private method, extracts critical conditions from health rule
         :param healthrule: JSON data containing a health rule
         :returns: string with a comma separated list of critical conditions
         """
-        def str_custom_condition_expression(condition,expression):
-            # In custom conditions the expression is given, only need to replace shortNames by metric name
-            if 'metricExpression' in condition:
-                if 'expression1' in condition['metricExpression']:
-                    ### TO DO: add multiple expression support
-                    return ""
-                return expression.replace( condition['shortName'],
-                                           condition['metricExpression']['metricDefinition']['logicalMetricName'].lower() + " " + \
-                                           condition['operator'].lower() + " " + \
-                                           str(condition['value']) )
-            else:
-                return str_custom_condition_expression(condition['condition1'],
-                                                str_custom_condition_expression(condition['condition2'],expression) )
-        def str_condition_expression(condition,operator):
-            # In the rest of conditions, no expression is given, need to create it from scratch
-            if 'metricExpression' in condition and 'metricDefinition' in condition['metricExpression']:
-                metricExp = condition['metricExpression']['metricDefinition']['logicalMetricName'].lower() + " " + \
-                            condition['operator'].lower() + " " + str(condition['value'])
-                return metricExp
-            elif 'metricExpression' in condition and condition['conditionExpression'] is not None:
-                return condition['conditionExpression']
-            else:
-                return str_condition_expression(condition['condition1'],operator) + " " + operator + " " + \
-                       str_condition_expression(condition['condition2'],operator)
-
-        if 'critical' not in healthrule and 'evalCriterias' not in healthrule:
-            if 'DEBUG' in locals(): sys.stderr.write("Unrecognized evaluation criteria for healthrule "+healthrule['name'])
-        elif healthrule['critical'] is not None: ## New JSON format
+        if 'critical' in healthrule and healthrule['critical'] is not None:
+            condition = healthrule['critical']['condition']
             if healthrule['critical']['conditionAggregationType'] == "CUSTOM":
                 conditionExpression = healthrule['critical']['conditionExpression'].replace("AND","and").replace("OR","or")
-                return str_custom_condition_expression(healthrule['critical']['condition'],conditionExpression)
-            else:
+                return self.__str_condition_expression(condition=condition,expression=conditionExpression)
+            else: # conditionAggregationType is "ANY", "ALL" or null
                 operator = "OR" if healthrule['critical']['conditionAggregationType'] == "ANY" else "AND"
-                return str_condition_expression(healthrule['critical']['condition'],operator)
-        return ""
+                return self.__str_condition_expression(condition=condition,aggregationType=operator)
+        elif 'critical' in healthrule: # and healthrule['critical'] is None:
+            return ""
+        elif 'evalCriterias' in healthrule:
+            sys.stderr.write("Format not supported.")
+            return ""
+        else:
+            sys.stderr.write("Unrecognized evaluation criteria for healthrule "+healthrule['name'])
+            return ""
+
+    def __str_healthrule_warning_conditions(self,healthrule):
+        """
+        toString private method, extracts warning conditions from health rule
+        :param healthrule: JSON data containing a health rule
+        :returns: string with a comma separated list of warning conditions
+        """
+        if 'warning' in healthrule and healthrule['warning'] is not None:
+            condition = healthrule['warning']['condition']
+            if healthrule['warning']['conditionAggregationType'] == "CUSTOM":
+                conditionExpression = healthrule['warning']['conditionExpression'].replace("AND","and").replace("OR","or")
+                return self.__str_condition_expression(condition=condition,expression=conditionExpression)
+            else: # conditionAggregationType is "ANY", "ALL" or null
+                operator = "OR" if healthrule['warning']['conditionAggregationType'] == "ANY" else "AND"
+                return self.__str_condition_expression(condition=condition,aggregationType=operator)
+        elif 'warning' in healthrule: # and healthrule['warning'] is None:
+            return ""
+        elif 'evalCriterias' in healthrule:
+            sys.stderr.write("Format not supported.")
+            return ""
+        else:
+            sys.stderr.write("Unrecognized evaluation criteria for healthrule "+healthrule['name'])
+            return ""
 
 
     ###### FROM HERE PUBLIC METHODS ######
