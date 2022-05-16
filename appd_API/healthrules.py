@@ -131,10 +131,30 @@ class HealthRuleDict(AppEntity):
             else:
                 return healthrule['type'] + " | " + aemcType
 
+    def __str_metric_expression(self,metricExpression):
+        """
+        toString private method, extracts metric expression from health rule condition metric expression
+        :param metricExpression: JSON data containing a health rule condition metric expression
+        :returns: string with a metric expression
+        """
+        if metricExpression['type'] == "LEAF_METRIC_EXPRESSION":
+            return metricExpression['metricDefinition']['logicalMetricName'].lower()
+        else: #metricExpression['type'] == "BOOLEAN_METRIC_EXPRESSION"
+            return __str_metric_expression(metricExpression['expression1']) + " " + metricExpression['operator']['type'] + " " + \
+                   __str_metric_expression(metricExpression['expression2'])
+
+    def __format_condition_expression(self,expression):
+        """
+        wrap in curly brackets all the shortName variables in a condition expression
+        :param expression: condition expresion with shortNames to be replaced
+        :returns: string with a condition expression with shortNames wrapped in curly brackets
+        """
+        from re import sub
+        return sub (r'(^|[^A-Z])([A-Z])($|[^A-Z])',r'\1{\2}\3',expression)
 
     def __str_condition_expression(self,condition,expression=None,aggregationType=None):
         """
-        toString private method, extracts custom metric expression from health rule condition
+        toString private method, extracts condition expression from health rule condition
         :param condition: JSON data containing a health rule condition
         :param expression: (optional) condition expresion with shortnames to be replaced
         :param AggregationType: (optional) operator (AND|OR) to be used in the condition expression
@@ -143,15 +163,9 @@ class HealthRuleDict(AppEntity):
         # In custom conditions the expression is given
         # if this is a leaf condition, replace shortNames by metric name
         if expression and condition['type'] == "POLICY_LEAF_CONDITION":
-            if condition['metricExpression']['type'] == "LEAF_METRIC_EXPRESSION":
-                return expression.replace( condition['shortName'],
-                                           condition['metricExpression']['metricDefinition']['logicalMetricName'].lower() + " " + \
-                                           condition['operator'].lower() + " " + \
-                                           str(condition['value']) )
-            else:
-                ### TO DO: add multiple expression support
-                if 'DEBUG' in locals(): sys.stderr.write("[Warn]: Multiple expressions not yet implemented.")
-                return ""
+            metricExp    = self.__str_metric_expression(condition['metricExpression']) if not condition['conditionExpression'] else condition['conditionExpression']
+            conditionExp = metricExp + " " + condition['operator'].lower() + " " + str(condition['value']) + " " + condition['valueUnitType']
+            return expression.replace( "{"+condition['shortName']+"}", conditionExp)
         # In custom conditions the expression is given
         # if this is a branch condition, call recursively until leaf condition
         elif expression: # and condition['type']="POLICY_BOOLEAN_CONDITION":
@@ -161,17 +175,9 @@ class HealthRuleDict(AppEntity):
         # In the rest of conditions (ALL|ANY|CUSTOM|null), no expression is given, need to create it using the aggregationType
         # if this is a leaf condition return condition expression
         elif aggregationType and condition['type']=="POLICY_LEAF_CONDITION":
-            # if this is a "Metric Expression" condition, return the given expression
-            if condition['conditionExpression']:
-                return condition['conditionExpression'] + " " + condition['operator'].lower() + " " + str(condition['value'])
-            # if this is a "Single Metric" condition, construct the expression with the metric name, operator and value
-            elif condition['metricExpression']['type'] == "LEAF_METRIC_EXPRESSION":
-                return condition['metricExpression']['metricDefinition']['logicalMetricName'].lower() + " " + \
-                       condition['operator'].lower() + " " + str(condition['value']) + " " + str(condition['valueUnitType'])
-            else:
-                ### TO DO: add multiple expression support
-                if 'DEBUG' in locals(): sys.stderr.write("[Warn]: Multiple expressions not yet implemented.")
-                return ""
+            metricExp    = self.__str_metric_expression(condition['metricExpression']) if not condition['conditionExpression'] else condition['conditionExpression']
+            conditionExp = metricExp + " " + condition['operator'].lower() + " " + str(condition['value']) + " " + condition['valueUnitType']
+            return conditionExp
         # In the rest of conditions (ALL|ANY|CUSTOM|null), no expression is given, need to create it using the aggregationType
         # if this is a branch condition, call recursively until leaf condition
         elif aggregationType: # and condition['type']="POLICY_BOOLEAN_CONDITION":
@@ -190,7 +196,7 @@ class HealthRuleDict(AppEntity):
         if 'critical' in healthrule and healthrule['critical'] is not None:
             condition = healthrule['critical']['condition']
             if healthrule['critical']['conditionAggregationType'] == "CUSTOM":
-                conditionExpression = healthrule['critical']['conditionExpression'].replace("AND","and").replace("OR","or")
+                conditionExpression = self.__format_condition_expression(healthrule['critical']['conditionExpression'])
                 return self.__str_condition_expression(condition=condition,expression=conditionExpression)
             else: # conditionAggregationType is "ANY", "ALL" or null
                 operator = "OR" if healthrule['critical']['conditionAggregationType'] == "ANY" else "AND"
@@ -213,7 +219,7 @@ class HealthRuleDict(AppEntity):
         if 'warning' in healthrule and healthrule['warning'] is not None:
             condition = healthrule['warning']['condition']
             if healthrule['warning']['conditionAggregationType'] == "CUSTOM":
-                conditionExpression = healthrule['warning']['conditionExpression'].replace("AND","and").replace("OR","or")
+                conditionExpression = self.__format_condition_expression(healthrule['warning']['conditionExpression'])
                 return self.__str_condition_expression(condition=condition,expression=conditionExpression)
             else: # conditionAggregationType is "ANY", "ALL" or null
                 operator = "OR" if healthrule['warning']['conditionAggregationType'] == "ANY" else "AND"
@@ -580,10 +586,10 @@ class HealthRuleXMLDict(AppEntity):
         return healthrule['name'] if sys.version_info[0] >= 3 else healthrule['name'].encode('ASCII', 'ignore')
 
     def __str_healthrule_duration(self,healthrule):
-        return healthrule['useDataFromLastNMinutes'] if 'useDataFromLastNMinutes' in healthrule else "",
+        return healthrule['useDataFromLastNMinutes'] if 'useDataFromLastNMinutes' in healthrule else ""
 
     def __str_healthrule_waitTime(self,healthrule):
-        return healthrule['useDataFromLastNMinutes'] if 'useDataFromLastNMinutes' in healthrule else "",
+        return healthrule['useDataFromLastNMinutes'] if 'useDataFromLastNMinutes' in healthrule else ""
 
     def __str_healthrule_schedule(self,healthrule):
         return healthrule['scheduleName'] if 'scheduleName' in healthrule else ""
