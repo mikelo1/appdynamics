@@ -80,7 +80,7 @@ def get_application_list():
       controller.applications.fetch()
       return controller.applications.get_application_ID_list()
 
-def get_data_entityType(streamdata,verb):
+def get_data_entityClassName(streamdata,verb):
     import json
     import xml.etree.ElementTree as ET
 
@@ -89,12 +89,12 @@ def get_data_entityType(streamdata,verb):
         # Try with JSON input data
         dataJSON = json.loads(streamdata)
     except (TypeError,ValueError) as error:
-        if 'DEBUG' in locals(): sys.stderr.write("get_data_entityType: "+str(error)+"\n")
+        if 'DEBUG' in locals(): sys.stderr.write("get_data_entityClassName: Failed to load as JSON. "+str(error)+"\n")
         # Try with XML input data
         try:
             root = ET.fromstring(streamdata)
         except (TypeError,ET.ParseError) as error:
-            if 'DEBUG' in locals(): sys.stderr.write("get_data_entityType: "+str(error)+"\n")
+            if 'DEBUG' in locals(): sys.stderr.write("get_data_entityClassName: Failed to load as XML. "+str(error)+"\n")
             return None
 
     keywords = controller.RESTfulAPI.get_keywords(verb)
@@ -103,10 +103,10 @@ def get_data_entityType(streamdata,verb):
       for i in range(3):
         if type(dataJSON) is list: dataJSON = dataJSON[0]
         else: break
-      entityList = [ entityType for entityType,keyword in keywords if keyword in dataJSON ]
+      entityList = [ entityClassName for entityClassName,keyword in keywords if keyword in dataJSON ]
     elif root is not None:
       # Input data is XML format
-      entityList = [ entityType for entityType,keyword in keywords if root.find(keyword) ]
+      entityList = [ entityClassName for entityClassName,keyword in keywords if root.find(keyword) ]
     else:
       entityList = []
     return entityList[0] if len(entityList)>0 else None
@@ -240,7 +240,7 @@ elif COMMAND.lower() == "get":
       sys.stderr.write("Don't know what to do with "+options.filename+"\n")
       exit()
 
-    entityObj = controller.get_entityObject(entity_class=get_data_entityType(data,"fetch"))
+    entityObj = controller.get_entityObject(entity_class=get_data_entityClassName(data,"fetch"))
     if entityObj is None:
       sys.stderr.write("[Warn] Unknown format for file "+options.filename+" "+data[0:80]+"\n")
       exit(-1)
@@ -424,7 +424,7 @@ elif COMMAND.lower() == "patch":
       sys.stderr.write("Don't know what to do with "+options.filename+"\n")
       exit()
 
-    entityObj = controller.get_entityObject(entity_class=get_data_entityType(data,"fetch"))
+    entityObj = controller.get_entityObject(entity_class=get_data_entityClassName(data,"fetch"))
     if entityObj is None:
       sys.stderr.write("[Warn] Unknown format for file "+options.filename+"\n")
       exit()
@@ -516,7 +516,7 @@ elif COMMAND.lower() == "apply":
   elif ENTITY in ['applications','config','users','nodes','businesstransactions','backends','entrypoints','healthrule-violations','snapshots','allothertraffic', 'errors']:
     sys.stderr.write("incorrect data input: "+ENTITY+" cannot be modified.")
   else:
-    sys.stderr.write("ERROR: cannot recognize source file entity.")
+    sys.stderr.write("ERROR: cannot recognize source file entity "+str(ENTITY)+"\n")
 
 #######################################
 ############ DRAIN COMMAND ############
