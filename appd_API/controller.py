@@ -78,10 +78,17 @@ class Controller:
     ###### FROM HERE PUBLIC FUNCTIONS ######
 
     def get_entityObject(self,entity_name=None,entity_class=None):
-        if entity_name is not None:
+        if entity_name:
             return self.entityDict[entity_name]['object']
         elif entity_class:
             return [ self.entityDict[entity]['object'] for entity in self.entityDict if self.entityDict[entity]['class'].__name__ == entity_class][0]
+        return None
+
+    def get_entityName(self,entity_object=None,entity_class=None):
+        if entity_object:
+            return [ entity for entity in self.entityDict if self.entityDict[entity]['object'].__name__ == entity_object][0]
+        elif entity_class:
+            return [ entity for entity in self.entityDict if self.entityDict[entity]['class'].__name__ == entity_class][0]
         return None
 
 # Global object that works as Singleton

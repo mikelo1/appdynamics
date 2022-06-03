@@ -486,8 +486,9 @@ elif COMMAND.lower() == "apply":
     exit()
 
   data = open(options.filename).read()
-  entityObj = controller.get_entityObject(entity_class=get_data_entityType(data,"fetchByID"))
-  if entityObj is None:
+  ENTITY = controller.get_entityName(entity_class=get_data_entityClassName(data,"import"))
+
+  if ENTITY is None:
     sys.stderr.write("[Warn] Unknown format for file "+options.filename+"\n")
     exit()
 
@@ -498,6 +499,7 @@ elif COMMAND.lower() == "apply":
     if not entityObj.create_or_update(filePath=options.filename):
        sys.stderr.write("Failed to create/update "+str(entityObj.info())+"\n")
   elif ENTITY in ['detection-rules','healthrules','policies','actions','schedules']:
+    entityObj = controller.get_entityObject(entity_name=ENTITY)
     current_context = AppD_Configuration().get_current_context(output="None")
     applicationList = get_application_list()
     if len(applicationList) == 0:
