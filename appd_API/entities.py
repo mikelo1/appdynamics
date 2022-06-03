@@ -23,7 +23,7 @@ class AppEntity(dict):
         :param selectors: fetch only entities filtered by specified selectors
         :returns: the number of fetched entities. Zero if no entity was found.
         """
-        data = self['controller'].RESTfulAPI.send_request(entityType=self.__class__.__name__,verb="fetch",app_ID=appID,selectors=selectors)
+        data = self['controller'].RESTfulAPI.send_request(entityClassName=self.__class__.__name__,verb="fetch",app_ID=appID,selectors=selectors)
         return self.load(streamdata=data,appID=appID)
 
     def fetch_with_details(self,appID,entityName,selectors=None):
@@ -40,7 +40,7 @@ class AppEntity(dict):
             if entity['name'] == entityName:
                 entity_ID = entity['id'] if 'id' in entity else entity['name']
                 try:
-                    data = self['controller'].RESTfulAPI.send_request(entityType=self.__class__.__name__,verb="fetchByID",app_ID=appID,entity_ID=entity_ID,selectors=selectors)
+                    data = self['controller'].RESTfulAPI.send_request(entityClassName=self.__class__.__name__,verb="fetchByID",app_ID=appID,entity_ID=entity_ID,selectors=selectors)
                 except KeyError:
                     sys.stderr.write("fetch_with_details("+str(self.__class__.__name__)+"): fetchByID API endpoint does not exist.\n")
                     return None
@@ -60,7 +60,7 @@ class AppEntity(dict):
         :param selectors: fetch only entities filtered by specified selectors
         :returns: the number of fetched entities. Zero if no entity was found.
         """
-        data = self['controller'].RESTfulAPI.send_request( entityType=self.__class__.__name__,verb="fetch",app_ID=appID,selectors=selectors,
+        data = self['controller'].RESTfulAPI.send_request( entityClassName=self.__class__.__name__,verb="fetch",app_ID=appID,selectors=selectors,
                                                         **{"time-range-type":"AFTER_TIME","duration-in-mins":duration,"start-time":sinceEpoch})
         return self.load(streamdata=data,appID=appID)
 
@@ -77,7 +77,7 @@ class AppEntity(dict):
         index = 0
         for entity in self['entities'][appID]:
             entity_ID = entity['id'] if 'id' in entity else entity['name']
-            streamdata = self['controller'].RESTfulAPI.send_request(entityType=self.__class__.__name__,verb="fetchByID",app_ID=appID,entity_ID=entity_ID,selectors=selectors)
+            streamdata = self['controller'].RESTfulAPI.send_request(entityClassName=self.__class__.__name__,verb="fetchByID",app_ID=appID,entity_ID=entity_ID,selectors=selectors)
             if streamdata is None:
                 sys.stderr.write("fetch_all_entities_with_details("+str(appID)+"): Failed to retrieve entity "+entity['name']+".\n")
                 continue
@@ -135,15 +135,15 @@ class AppEntity(dict):
                 return False
 
         if type(JSONdata) is dict and 'id' in JSONdata: # Data file in New format
-            response = self['controller'].RESTfulAPI.send_request(entityType=self.__class__.__name__,verb="create",app_ID=appID,streamdata=streamdata)
+            response = self['controller'].RESTfulAPI.send_request(entityClassName=self.__class__.__name__,verb="create",app_ID=appID,streamdata=streamdata)
             if response == "409": # Entity already exists, try with update
                 for entity in self['entities'][appID]:
                     if entity['name'] == JSONdata['name']:
-                        response = self['controller'].RESTfulAPI.send_request(entityType=self.__class__.__name__,verb="update",app_ID=appID,entity_ID=entity['id'],streamdata=streamdata)
+                        response = self['controller'].RESTfulAPI.send_request(entityClassName=self.__class__.__name__,verb="update",app_ID=appID,entity_ID=entity['id'],streamdata=streamdata)
                         break
             return response < 400
         elif (type(JSONdata) is list and 'id' not in JSONdata[0]) or 'root' in locals(): # Data file in Old format
-                response = self['controller'].RESTfulAPI.send_request(entityType=self.__class__.__name__,verb="import",app_ID=appID,filePath=filePath)
+                response = self['controller'].RESTfulAPI.send_request(entityClassName=self.__class__.__name__,verb="import",app_ID=appID,filePath=filePath)
                 return response < 400
         else:
             return False
@@ -198,7 +198,7 @@ class AppEntity(dict):
                 if not streamdata:
                     # Update controller data
                     #if self.entityAPIFunctions['update'](app_ID=appID,entity_ID=entity['id'],dataJSON=entity) == True:
-                    if self['controller'].RESTfulAPI.send_request(entityType=self.__class__.__name__,verb="update",app_ID=appID,entity_ID=entity['id'],streamdata=entity) == True:
+                    if self['controller'].RESTfulAPI.send_request(entityClassName=self.__class__.__name__,verb="update",app_ID=appID,entity_ID=entity['id'],streamdata=entity) == True:
                         count = count + 1
                 else:
                     # Print updated data
@@ -291,7 +291,7 @@ class ControllerEntity(dict):
         :param selectors: fetch only entities filtered by specified selectors
         :returns: the number of fetched entities. Zero if no entity was found.
         """
-        data = self['controller'].RESTfulAPI.send_request(entityType=self.__class__.__name__,verb="fetch",selectors=selectors)
+        data = self['controller'].RESTfulAPI.send_request(entityClassName=self.__class__.__name__,verb="fetch",selectors=selectors)
         return self.load(streamdata=data)
 
     def fetch_with_details(self,entityName,selectors=None):
@@ -307,7 +307,7 @@ class ControllerEntity(dict):
             if entity['name'] == entityName:
                 entity_ID = entity['id'] if 'id' in entity else entity['name']
                 try:
-                    data = self['controller'].RESTfulAPI.send_request(entityType=self.__class__.__name__,verb="fetchByID",entity_ID=entity_ID,selectors=selectors)
+                    data = self['controller'].RESTfulAPI.send_request(entityClassName=self.__class__.__name__,verb="fetchByID",entity_ID=entity_ID,selectors=selectors)
                 except KeyError:
                     sys.stderr.write("fetch_with_details("+str(self.__class__.__name__)+"): fetchByID API endpoint does not exist.\n")
                     return None
@@ -329,7 +329,7 @@ class ControllerEntity(dict):
         index = 0
         for entity in self['entities']:
             entity_ID = entity['id'] if 'id' in entity else entity['name']
-            streamdata = self['controller'].RESTfulAPI.send_request(entityType=self.__class__.__name__,verb="fetchByID",entity_ID=entity_ID,selectors=selectors)
+            streamdata = self['controller'].RESTfulAPI.send_request(entityClassName=self.__class__.__name__,verb="fetchByID",entity_ID=entity_ID,selectors=selectors)
             if streamdata is None:
                 sys.stderr.write("fetch_all_entities_with_details("+str(self.__class__.__name__)+"): Failed to retrieve entity "+entity['name']+".\n")
                 continue
@@ -376,15 +376,15 @@ class ControllerEntity(dict):
                 return False
 
         if type(JSONdata) is dict and 'id' in JSONdata: # Data file in New format
-            response = self['controller'].RESTfulAPI.send_request(entityType=self.__class__.__name__,verb="create",streamdata=streamdata)
+            response = self['controller'].RESTfulAPI.send_request(entityClassName=self.__class__.__name__,verb="create",streamdata=streamdata)
             if response == "409": # Entity already exists, try with update
                 for entity in self['entities']:
                     if entity['name'] == JSONdata['name']:
-                        response = self['controller'].RESTfulAPI.send_request(entityType=self.__class__.__name__,verb="update",entity_ID=entity['id'],streamdata=streamdata)
+                        response = self['controller'].RESTfulAPI.send_request(entityClassName=self.__class__.__name__,verb="update",entity_ID=entity['id'],streamdata=streamdata)
                         break
             return response < 400
         elif (type(JSONdata) is list and 'id' not in JSONdata[0]) or 'root' in locals(): # Data file in Old format
-                response = self['controller'].RESTfulAPI.send_request(entityType=self.__class__.__name__,verb="import",filePath=filePath)
+                response = self['controller'].RESTfulAPI.send_request(entityClassName=self.__class__.__name__,verb="import",filePath=filePath)
                 return response < 400
         else:
             return False

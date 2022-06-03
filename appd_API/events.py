@@ -143,7 +143,7 @@ class ErrorDict(MetricDict, object):
             selectors.update({'metric-path':'Errors|'+tierName+'|*|Errors per Minute'})
             #data = self.entityAPIFunctions['fetch'](app_ID=appID,entity_ID=tierName,time_range_type="AFTER_TIME",
             #                                        **{"duration-in-mins":duration,"start-time":sinceEpoch,"selectors":selectors})
-            data = self['controller'].RESTfulAPI.send_request( entityType=self.__class__.__name__,verb="fetch",app_ID=appID,selectors=selectors,
+            data = self['controller'].RESTfulAPI.send_request( entityClassName=self.__class__.__name__,verb="fetch",app_ID=appID,selectors=selectors,
                                                             **{"time-range-type":"AFTER_TIME","duration-in-mins":duration,"start-time":sinceEpoch})
             count += self.load(streamdata=data,appID=appID)
         return count

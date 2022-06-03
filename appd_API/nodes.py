@@ -144,7 +144,7 @@ class TierDict(AppEntity):
         """
         if self['controller'].applications.hasTiers(appID):
             #data = self.entityAPIFunctions['fetch'](app_ID=appID,selectors=selectors)
-            data = self['controller'].RESTfulAPI.send_request(entityType=self.__class__.__name__,verb="fetch",app_ID=appID,selectors=selectors)
+            data = self['controller'].RESTfulAPI.send_request(entityClassName=self.__class__.__name__,verb="fetch",app_ID=appID,selectors=selectors)
             return self.load(streamdata=data,appID=appID)
         return 0
 

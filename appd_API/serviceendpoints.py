@@ -55,7 +55,7 @@ class EntrypointDict(AppEntity):
         """
         count = 0
         for tierID in self['controller'].tiers.getTiers_ID_List(appID=appID):
-            data = self['controller'].RESTfulAPI.send_request(entityType=self.__class__.__name__,verb="fetchByID",app_ID=appID,entity_ID=tierID,selectors=selectors)
+            data = self['controller'].RESTfulAPI.send_request(entityClassName=self.__class__.__name__,verb="fetchByID",app_ID=appID,entity_ID=tierID,selectors=selectors)
             count += self.load(streamdata=data,appID=appID)
         return count
 
@@ -78,6 +78,6 @@ class ServiceEndpointDict(AppEntity):
         count = 0
         for tierName in self['controller'].tiers.getTiers_Name_List(appID=appID):
             selectors.update({'metric-path':'Service Endpoints|'+tierName})
-            data = self['controller'].RESTfulAPI.send_request( entityType=self.__class__.__name__,verb="fetchByID",app_ID=appID,selectors=selectors)
+            data = self['controller'].RESTfulAPI.send_request(entityClassName=self.__class__.__name__,verb="fetchByID",app_ID=appID,selectors=selectors)
             count += self.load(streamdata=data,appID=appID)
         return count
