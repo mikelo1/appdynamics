@@ -273,10 +273,10 @@ class RESTfulAPI:
 
     ###### FROM HERE PUBLIC FUNCTIONS ######
 
-    def send_request(self,entityType,verb,**kwargs):
+    def send_request(self,entityClassName,verb,**kwargs):
         """
         Send a request to a RESTful Path from a controller. Either provide an username/password or let it get an access token automatically.
-        :param entityType: Type of entity to be sent a request
+        :param entityClassName: Type of entity to be sent a request
         :param verb: Method to use in the request
         :param app_ID: (optional) the ID number of the application entities to do the request.
         :param entity_ID: (optional) the ID number of the entity to do the request
@@ -299,9 +299,9 @@ class RESTfulAPI:
         streamdata   = json.dumps(kwargs['streamdata']) if 'streamdata' in kwargs and type(kwargs['streamdata']) is dict else kwargs['streamdata'] if 'streamdata' in kwargs else ""
 
         # Variable substitution in URL segments, request data and params
-        urlSegments  = self.target[entityType][verb]['RESTfulPath'].format(app_ID=app_ID,entity_ID=entity_ID,streamdata=streamdata)
-        data         = self.target[entityType][verb]['data'].format(app_ID=app_ID,entity_ID=entity_ID,streamdata=streamdata)
-        params       = self.target[entityType][verb]['params']
+        urlSegments  = self.target[entityClassName][verb]['RESTfulPath'].format(app_ID=app_ID,entity_ID=entity_ID,streamdata=streamdata)
+        data         = self.target[entityClassName][verb]['data'].format(app_ID=app_ID,entity_ID=entity_ID,streamdata=streamdata)
+        params       = self.target[entityClassName][verb]['params']
         if 'time-range-type' in kwargs:
             time_range = self.time_range[kwargs['time-range-type']]
             for i in time_range: time_range[i] = kwargs[i] if i in kwargs else ""
@@ -313,28 +313,33 @@ class RESTfulAPI:
         if 'serverURL' in kwargs and 'userName' in kwargs and 'password' in kwargs:
             serverURL = kwargs['serverURL']
             auth      = (kwargs['userName'], kwargs['password'])
-            headers   = self.target[entityType][verb]['headers']
+            headers   = self.target[entityClassName][verb]['headers']
         else:
             serverURL = self.appD_Config.get_current_context_serverURL()
             token     = self.__get_access_token()
             if token is None: return None
             auth      = None
             headers   = {"Authorization": "Bearer "+token}
-            headers.update(self.target[entityType][verb]['headers'])
+            headers.update(self.target[entityClassName][verb]['headers'])
         fullPath  = serverURL + ''.join( urlSegments )
         files     = {'files': open(kwargs['filePath'],'rb')} if 'filePath' in kwargs else None
-        reqMethod = self.target[entityType][verb]['method']
+        reqMethod = self.target[entityClassName][verb]['method']
         if 'DEBUG' in locals():
             print ("\nRequest RESTful path:",fullPath,"\nparams:",params,"\nheaders:",headers,"\ndata:",data,"\nfiles:",files,"\nmethod:",reqMethod.__name__)
         return self.__do_request(url=fullPath,reqFunction=reqMethod,auth=auth,params=params,headers=headers,data=data,files=files)
 
-    def get_keyword(self,entityType,verb):
+    def get_keyword(self,entityClassName,verb):
         try:
-            return self.target[entityType][verb]['keyword']
+            return self.target[entityClassName][verb]['keyword']
         except:
             return None
 
     def get_keywords(self,verb):
+        """
+        Get a list of keywords for all entity class and one specific operation
+        :param verb: the name of the operation. Valid operations are: fetch,fetchByID,create,update,import
+        :returns: a list of (class,keyword) tuples. None if no keyword was found.
+        """
         try:
             return [ (key,value[verb]['keyword']) for key,value in iter(self.target.items()) if verb in value and 'keyword' in value[verb] ]
         except:
