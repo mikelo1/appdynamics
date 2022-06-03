@@ -45,6 +45,11 @@ Note: The password needs to be encoded in base64
 <password2>,<my_APIClient_username2>@<my_account_name2>,<hostname>:<port>
 
 
+# Testing modules
+docker build -t appdctl-python2 .
+docker run --rm appdctl-python2
+
+
 # Help
 
 Basic Commands (Intermediate):
@@ -89,8 +94,21 @@ Advanced Commands:
    $ appdctl.py get snapshots -a myApp1 -l user-experience=ERROR,business-transaction-ids=12345 --since=1d -o JSON
  * Get last 1 day snapshots for specific application, where error ID is 500
    $ appdctl.py get snapshots -a myApp1 -l error-ids=500 --since=1d -o JSON
+ * Get Heap memory current usage for specific application
+   $ appdctl.py get metrics "Application Infrastructure Performance|\*|JVM|Memory|Heap|Current Usage (MB)" -a FullOnline --since=1h
+
  * Update timezone for all schedules of a specific application
    $ appdctl.py patch schedules -a myApp1 -p '{"timezone":"Europe\/Belgrade"}'
 
  * Update specific healthrule within a specific application
-   $ appdctl.py patch healthrules -a myApp1 -l entitynames=HR_MSA_AVAIL_24x7_10Min -p '{"evalCriterias":{"criticalCriteria":{"evalMatchingCriteria":{"matchType":"PERCENTAGE_NODES","value":100}}}}'
+   $ appdctl.py patch healthrules -a myApp1 -l entityname=HR_MSA_AVAIL_24x7_10Min -p '{"name":"HR_MSA_AVAIL_24x7_5Min"}'
+
+ * Update specific entity using a file:
+   $ appdctl.py apply -f myfile.json -a myApp1
+
+# Data types
+
+| method | dash | app | config | users | account |
+|--------|------|-----|--------|-------|---------|
+|  get   | [{}] | {}  |  [{}]  | [{}]  |   {}    |
+|describe|  {}  |None |  None  |  {}   |  None   |
