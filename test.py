@@ -4,7 +4,7 @@ import os.path
 import sys
 import subprocess
 from zipfile import ZipFile
-from appdConfig import Contexts, BasicAuth
+from contexts import Contexts, BasicAuth
 from appd_API import Controller
 
 class TestSum(unittest.TestCase):
