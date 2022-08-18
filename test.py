@@ -4,7 +4,7 @@ import os.path
 import sys
 import subprocess
 from zipfile import ZipFile
-from appdConfig import AppD_Configuration, BasicAuth
+from appdConfig import Contexts, BasicAuth
 from appd_API import Controller
 
 class TestSum(unittest.TestCase):
@@ -140,13 +140,13 @@ class TestSum(unittest.TestCase):
         result = subprocess.call("./appdctl.py get users --basic-auth-file=basicauth.csv ", stdout=FNULL, shell=True)
         self.assertEqual(result, 0)
 
-        appD_Config = AppD_Configuration()
-        user = appD_Config.get_current_context_user()
+        appD_Contexts = Contexts("appdconfig.yaml")
+        user = appD_Contexts.get_current_context_user()
         self.assertIsNotNone(user)
         bAuth = BasicAuth(basicAuthFile="basicauth.csv")
         password = bAuth.get_password(user)
         self.assertIsNotNone(password)
-        controller = Controller(appD_Config,{user:password})
+        controller = Controller(appD_Contexts,{user:password})
         controller.applications.fetch()
         self.applicationList.extend ( controller.applications.get_application_Name_list(application_type="apmApplications") )
         self.assertNotEqual(len(self.applicationList), 0)
