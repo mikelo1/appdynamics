@@ -101,7 +101,7 @@ Advanced Commands:
    $ appdctl.py patch schedules -a myApp1 -p '{"timezone":"Europe\/Belgrade"}'
 
  * Update specific healthrule within a specific application
-   $ appdctl.py patch healthrules -a myApp1 -l entityname=HR_MSA_AVAIL_24x7_10Min -p '{"name":"HR_MSA_AVAIL_24x7_5Min"}'
+   $ appdctl.py patch healthrules -a myApp1 -l entityname='HR_MSA_AVAIL_24x7_10Min' -p '{"name":"HR_MSA_AVAIL_24x7_5Min"}'
 
  * Update specific entity using a file:
    $ appdctl.py apply -f myfile.json -a myApp1
