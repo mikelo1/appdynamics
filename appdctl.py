@@ -4,7 +4,7 @@ import os.path
 import re
 from datetime import datetime, timedelta
 import time
-from appdConfig import AppD_Configuration, BasicAuth
+from contexts import Contexts, BasicAuth
 from appd_API import Controller
 from optparse import OptionParser, OptionGroup
 
@@ -157,12 +157,12 @@ optParser.add_option_group(groupQuery)
 
 
 # Create controller instance
-appD_Config = AppD_Configuration()
-user = appD_Config.get_current_context_user()
+appD_Contexts = Contexts("appdconfig.yaml")
+user = appD_Contexts.get_current_context_user()
 if user is not None and options.basicAuthFile:
     bAuth = BasicAuth(basicAuthFile=options.basicAuthFile)
     password = bAuth.get_password(user)
-controller = Controller(appD_Config,{user:password}) if 'password' in locals() and password is not None else Controller(appD_Config)
+controller = Controller(appD_Contexts,{user:password}) if 'password' in locals() and password is not None else Controller(appD_Contexts)
 
 # Start interpreting command line parameters
 if len(args) < 1:
@@ -188,21 +188,19 @@ elif COMMAND.lower() == "config":
   if SUBCOMMAND == "help":
     get_help(COMMAND)
   elif SUBCOMMAND in ['view','get-contexts','current-context']:
-    appD_Config = AppD_Configuration()
-    functions = { 'view':appD_Config.view,
-                  'get-contexts':appD_Config.get_contexts,
-                  'current-context':appD_Config.get_current_context
+    functions = { 'view':appD_Contexts.view,
+                  'get-contexts':appD_Contexts.get_contexts,
+                  'current-context':appD_Contexts.get_current_context
                 }
     functions[SUBCOMMAND]()
   elif SUBCOMMAND in ['use-context','delete-context','set-credentials','get-credentials']:
     if len(args) < 3:
       optParser.error("incorrect number of arguments")
       exit()
-    appD_Config = AppD_Configuration()
-    functions = { 'use-context':appD_Config.select_context,
-                  'delete-context':appD_Config.delete_context,
-                  'set-credentials':appD_Config.set_credentials,
-                  'get-credentials':appD_Config.get_credentials
+    functions = { 'use-context':appD_Contexts.select_context,
+                  'delete-context':appD_Contexts.delete_context,
+                  'set-credentials':appD_Contexts.set_credentials,
+                  'get-credentials':appD_Contexts.get_credentials
                 }
     functions[SUBCOMMAND](args[2])
   elif SUBCOMMAND == 'set-context':
@@ -212,13 +210,12 @@ elif COMMAND.lower() == "config":
     if not options.controllerURL or not options.apiClient:
       optParser.error("missing controller URL or API username.")
       exit()
-    AppD_Configuration().create_context(contextname=args[2],serverURL=options.controllerURL,API_Client=options.apiClient)
+    appD_Contexts.create_context(contextname=args[2],serverURL=options.controllerURL,API_Client=options.apiClient)
   elif SUBCOMMAND == 'rename-context':
     if len(args) < 4:
       optParser.error("incorrect number of arguments")
       exit()
-    appD_Config = AppD_Configuration()
-    appD_Config.rename_context(args[2],args[3])    
+    appD_Contexts.rename_context(args[2],args[3])
   elif SUBCOMMAND == 'unset':
     sys.stderr.write("Subcommand " + SUBCOMMAND + " not implemented yet.\n")
   else:
@@ -257,7 +254,7 @@ elif COMMAND.lower() == "get":
 
   ENTITY = args[1]
 
-  if AppD_Configuration().get_current_context(output="None") is None:
+  if appD_Contexts.get_current_context(output="None") is None:
     sys.stderr.write("No context is selected.\n")
     exit()
 
@@ -276,7 +273,7 @@ elif COMMAND.lower() == "get":
         entityObj.generate_CSV()
 
   elif ENTITY in ['nodes','tiers','detection-rules','businesstransactions','backends','entrypoints','serviceendpoints','healthrules','policies','actions','schedules']:
-    current_context = AppD_Configuration().get_current_context(output="None")
+    current_context = appD_Contexts.get_current_context(output="None")
     applicationList = get_application_list()
     if len(applicationList) == 0:
       sys.stderr.write("\rget "+ENTITY+" ("+current_context+"): no application was found.\n")
@@ -308,7 +305,7 @@ elif COMMAND.lower() == "get":
     if minutes == 0:
       optParser.error("Specified duration not correctly formatted. (use --since=<days>d<hours>h<minutes>m format)")
       exit()
-    current_context = AppD_Configuration().get_current_context(output="None")
+    current_context = appD_Contexts.get_current_context(output="None")
     applicationList = get_application_list()
     if len(applicationList) == 0:
      sys.stderr.write("\rget "+ENTITY+" ("+current_context+"): no application was found.\n")
@@ -359,7 +356,7 @@ elif COMMAND.lower() == "describe":
   ENTITY = args[1]
   entityName = args[2]
 
-  if AppD_Configuration().get_current_context(output="None") is None:
+  if appD_Contexts.get_current_context(output="None") is None:
     sys.stderr.write("No context is selected.\n")
     exit()
 
@@ -373,7 +370,7 @@ elif COMMAND.lower() == "describe":
   elif ENTITY in ['node','tier','detection-rule','businesstransaction','backend','entrypoint','healthrule','policy','action','schedule']:
     ENTITY = ENTITY+"s" if ENTITY != 'policy' else "policies"
     entityObj = controller.get_entityObject(entity_name=ENTITY)
-    current_context = AppD_Configuration().get_current_context(output="None")
+    current_context = appD_Contexts.get_current_context(output="None")
     applicationList = get_application_list()
     if len(applicationList) == 0:
       sys.stderr.write("\rget "+ENTITY+" ("+current_context+"): no application was found.\n")
@@ -438,7 +435,7 @@ elif COMMAND.lower() == "patch":
 
   elif args[1] in ['nodes','detection-rules','businesstransactions','backends','entrypoints','healthrules','policies','actions','schedules']:
     ENTITY = args[1]
-    current_context = AppD_Configuration().get_current_context(output="None")
+    current_context = appD_Contexts.get_current_context(output="None")
     applicationList = get_application_list()
     if len(applicationList) == 0:
      sys.stderr.write("\rpatch "+ENTITY+" ("+current_context+"): no application was found.\n")
@@ -494,13 +491,13 @@ elif COMMAND.lower() == "apply":
 
   if ENTITY in ['dashboards']:
     entityObj = controller.get_entityObject(entity_name=ENTITY)
-    current_context = AppD_Configuration().get_current_context(output="None")
+    current_context = appD_Contexts.get_current_context(output="None")
     sys.stderr.write("\rapply "+options.filename+" ("+current_context+")...\n")
     if not entityObj.create_or_update(filePath=options.filename):
        sys.stderr.write("Failed to create/update "+str(entityObj.info())+"\n")
   elif ENTITY in ['detection-rules','healthrules','policies','actions','schedules']:
     entityObj = controller.get_entityObject(entity_name=ENTITY)
-    current_context = AppD_Configuration().get_current_context(output="None")
+    current_context = appD_Contexts.get_current_context(output="None")
     applicationList = get_application_list()
     if len(applicationList) == 0:
      sys.stderr.write("\rapply ("+current_context+"): no application was found.\n")
@@ -532,7 +529,7 @@ elif COMMAND.lower() == "drain":
     get_help(COMMAND)
     exit()
 
-  current_context = AppD_Configuration().get_current_context(output="None")
+  current_context = appD_Contexts.get_current_context(output="None")
   applicationList = get_application_list()
   if len(applicationList) == 0:
    sys.stderr.write("\rdrain ("+current_context+"): no application was found.\n")

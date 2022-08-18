@@ -8,7 +8,7 @@ import time
 
 class RESTfulAPI:
     basicAuth   = dict()
-    appD_Config = None
+    appD_Contexts = None
     target = {
 
         'ApplicationDict':  {'fetch':    {  'RESTfulPath': '/controller/restui/applicationManagerUiBean/getApplicationsAllTypes',
@@ -157,10 +157,10 @@ class RESTfulAPI:
                     "BETWEEN_TIMES":{"time-range-type": "BETWEEN_TIMES","start-time": "{startEpoch}","end-time": "{endEpoch}"}
                  }
 
-    def __init__(self,appD_Config,basicAuth=None):
+    def __init__(self,appD_Contexts,basicAuth=None):
         #self._session   = None
         self.basicAuth   = basicAuth
-        self.appD_Config = appD_Config
+        self.appD_Contexts = appD_Contexts
 
     ### TO DO: Implement sessions
 #    def _get_session(self):
@@ -203,32 +203,32 @@ class RESTfulAPI:
         :param contextName: name of context
         :returns: the access token string. Null if there was a problem getting the access token.
         """
-        if self.appD_Config.get_current_context(output=None) is None:
+        if self.appD_Contexts.get_current_context(output=None) is None:
             if 'DEBUG' in locals(): print ("Cannot get context data. Did you login to any controller machine?")
             return None
 
-        token     = self.appD_Config.get_current_context_token()
-        serverURL = self.appD_Config.get_current_context_serverURL()
-        API_Client= self.appD_Config.get_current_context_user()
+        token     = self.appD_Contexts.get_current_context_token()
+        serverURL = self.appD_Contexts.get_current_context_serverURL()
+        API_Client= self.appD_Contexts.get_current_context_user()
         if token is None:
-            if 'DEBUG' in locals(): print ("Current context "+ self.appD_Config.get_current_context(output=None) + " has no valid token.")
+            if 'DEBUG' in locals(): print ("Current context "+ self.appD_Contexts.get_current_context(output=None) + " has no valid token.")
             if self.basicAuth and len(self.basicAuth) > 0 and API_Client in self.basicAuth:
                 Client_Secret = self.basicAuth[API_Client]
-            elif self.appD_Config.get_credentials(self.appD_Config.get_current_context(output=None)):
-                Client_Secret = self.appD_Config.get_credentials(self.appD_Config.get_current_context(output=None))
+            elif self.appD_Contexts.get_credentials(self.appD_Contexts.get_current_context(output=None)):
+                Client_Secret = self.appD_Contexts.get_credentials(self.appD_Contexts.get_current_context(output=None))
             else:
                 sys.stderr.write("Authentication required for " + serverURL + "\n")
                 Client_Secret = getpass(prompt='Password: ')
-            API_Client= self.appD_Config.get_current_context_username()
+            API_Client= self.appD_Contexts.get_current_context_username()
             token_data = self.__fetch_access_token(serverURL,API_Client,Client_Secret)
             if token_data is None:
                 sys.stderr.write("Authentication failed. Did you mistype the password?\n") 
                 return None
-            self.appD_Config.set_current_context_token(token_data['access_token'],token_data['expires_in'])
+            self.appD_Contexts.set_current_context_token(token_data['access_token'],token_data['expires_in'])
             token = token_data['access_token']
-            if 'DEBUG' in locals(): print ("New token obtained for current context "+ self.appD_Config.get_current_context(output=None) + ": "+token)
+            if 'DEBUG' in locals(): print ("New token obtained for current context "+ self.appD_Contexts.get_current_context(output=None) + ": "+token)
         else:
-            if 'DEBUG' in locals(): print ("Current context "+ self.appD_Config.get_current_context(output=None) + " has valid token: "+token)
+            if 'DEBUG' in locals(): print ("Current context "+ self.appD_Contexts.get_current_context(output=None) + " has valid token: "+token)
         return token
 
 
@@ -315,7 +315,7 @@ class RESTfulAPI:
             auth      = (kwargs['userName'], kwargs['password'])
             headers   = self.target[entityClassName][verb]['headers']
         else:
-            serverURL = self.appD_Config.get_current_context_serverURL()
+            serverURL = self.appD_Contexts.get_current_context_serverURL()
             token     = self.__get_access_token()
             if token is None: return None
             auth      = None
@@ -444,7 +444,7 @@ class RESTfulAPI:
         token = self.__get_access_token()
         if token is None: return None
         headers = {"Authorization": "Bearer "+token,"Content-Type": "application/json","Accept": "application/json"}
-        serverURL = self.appD_Config.get_current_context_serverURL()
+        serverURL = self.appD_Contexts.get_current_context_serverURL()
         restfulPath = serverURL + restfulPath
         data       = json.dumps( {  "requestFilter":nodeList,"offset":0,"limit":-1,"searchFilters":[],"columnSorts":[],
                                     "resultColumns":["APP_AGENT_STATUS","HEALTH"],
@@ -465,7 +465,7 @@ class RESTfulAPI:
         token = self.__get_access_token()
         if token is None: return None
         headers = {"Authorization": "Bearer "+token,"Content-Type": "application/json","Accept": "application/json"}
-        serverURL = self.appD_Config.get_current_context_serverURL()
+        serverURL = self.appD_Contexts.get_current_context_serverURL()
         restfulPath = serverURL + restfulPath
         return self.__do_request(reqFunction=requests.post,url=restfulPath,params={},data='',headers=headers,files=None,auth=None)
 
@@ -554,7 +554,7 @@ class RESTfulAPI:
         token = self.__get_access_token()
         if token is None: return None
         headers = {"Authorization": "Bearer "+token,"Content-Type": "application/json","Accept": "application/json"}
-        serverURL = self.appD_Config.get_current_context_serverURL()
+        serverURL = self.appD_Contexts.get_current_context_serverURL()
         restfulPath = serverURL + restfulPath
         params = {"output": "XML"}
         if selectors: params.update(selectors)
@@ -599,7 +599,7 @@ class RESTfulAPI:
         token = self.__get_access_token()
         if token is None: return None
         headers = {"Authorization": "Bearer "+token,"Content-Type": "application/json","Accept": "application/json"}
-        serverURL = self.appD_Config.get_current_context_serverURL()
+        serverURL = self.appD_Contexts.get_current_context_serverURL()
         restfulPath = serverURL + restfulPath
         files={'files': open(filePath,'rb')}
         return self.__do_request(reqFunction=requests.post,url=restfulPath,params={},data='',headers=headers,files=files,auth=None)
@@ -787,7 +787,7 @@ class RESTfulAPI:
         token = self.__get_access_token()
         if token is None: return None
         headers = {"Authorization": "Bearer "+token,"Content-Type": "application/json","Accept": "application/json"}
-        serverURL = self.appD_Config.get_current_context_serverURL()
+        serverURL = self.appD_Contexts.get_current_context_serverURL()
         restfulPath = serverURL + restfulPath
         params={'metric-path': metric_path,'output':'JSON'}
         return self.__do_request(reqFunction=requests.get,url=restfulPath,params=params,data='',headers=headers,files=None,auth=None)
@@ -976,7 +976,7 @@ class RESTfulAPI:
         token = self.__get_access_token()
         if token is None: return None
         headers = {"Authorization": "Bearer "+token,"Content-Type": "application/json","Accept": "application/json"}
-        serverURL = self.appD_Config.get_current_context_serverURL()
+        serverURL = self.appD_Contexts.get_current_context_serverURL()
         restfulPath = serverURL + restfulPath
         params      = {"name": "schema.version","output": "JSON"}
         response = self.__do_request(reqFunction=requests.get,url=restfulPath,params={},data='',headers=headers,files=None,auth=None)
