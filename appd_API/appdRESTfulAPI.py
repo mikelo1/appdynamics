@@ -81,8 +81,8 @@ class RESTfulAPI:
                                             'params': {"Content-Type": "application/json","resultColumns":
                                                 ["LAST_APP_SERVER_RESTART_TIME", "VM_RUNTIME_VERSION", "MACHINE_AGENT_STATUS", "APP_AGENT_VERSION", "APP_AGENT_STATUS", "HEALTH"] },
                                             'data': '', 'keyword': 'affectedEntityDefinitionRule' },
-                             #'fetchList':{  'RESTfulPath': '/controller/alerting/rest/v1/applications/{app_ID}/health-rules',
-                             #               'method': requests.get, 'headers': {}, 'params': {'output': 'JSON'}, 'data': '' },
+                             'fetchList':{  'RESTfulPath': '/controller/alerting/rest/v1/applications/{app_ID}/health-rules',
+                                            'method': requests.get, 'headers': {}, 'params': {'output': 'JSON'}, 'data': '' },
                              'fetchByID':{  'RESTfulPath': '/controller/alerting/rest/v1/applications/{app_ID}/health-rules/{entity_ID}',
                                             'method': requests.get, 'headers': {}, 'params': {'output': 'JSON'}, 'data': '', 'keyword': 'affects' },
                              'create':   {  'RESTfulPath': '/controller/alerting/rest/v1/applications/{app_ID}/health-rules',
@@ -95,8 +95,8 @@ class RESTfulAPI:
 
         'PolicyDict':       {'fetch':    {  'RESTfulPath': '/controller/policies/{app_ID}',
                                             'method': requests.get, 'headers': {}, 'params': {'output': 'JSON'}, 'data': '', 'keyword': 'reactorType' },
-                             #'fetchList':{  'RESTfulPath': '/controller/alerting/rest/v1/applications/{app_ID}/policies',
-                             #               'method': requests.get, 'headers': {}, 'params': {'output': 'JSON'}, 'data': '' },
+                             'fetchList':{  'RESTfulPath': '/controller/alerting/rest/v1/applications/{app_ID}/policies',
+                                            'method': requests.get, 'headers': {}, 'params': {'output': 'JSON'}, 'data': '' },
                              'fetchByID':{  'RESTfulPath': '/controller/alerting/rest/v1/applications/{app_ID}/policies/{entity_ID}',
                                             'method': requests.get, 'headers': {}, 'params': {'output': 'JSON'}, 'data': '', 'keyword': 'executeActionsInBatch' },
                              'create':   {  'RESTfulPath': '/controller/alerting/rest/v1/applications/{app_ID}/policies',
@@ -109,8 +109,8 @@ class RESTfulAPI:
 
         'ActionDict':       {'fetch':    {  'RESTfulPath': '/controller/actions/{app_ID}',
                                             'method': requests.get, 'headers': {}, 'params': {'output': 'JSON'}, 'data': '', 'keyword': 'actionType' },
-                             #'fetchList':{  'RESTfulPath': '/controller/alerting/rest/v1/applications/{app_ID}/actions',
-                             #               'method': requests.get, 'headers': {}, 'params': {'output': 'JSON'}, 'data': '', 'keyword': 'actionType' },
+                             'fetchList':{  'RESTfulPath': '/controller/alerting/rest/v1/applications/{app_ID}/actions',
+                                            'method': requests.get, 'headers': {}, 'params': {'output': 'JSON'}, 'data': '', 'keyword': 'actionType' },
                              'fetchByID':{  'RESTfulPath': '/controller/alerting/rest/v1/applications/{app_ID}/actions/{entity_ID}',
                                             'method': requests.get, 'headers': {}, 'params': {'output': 'JSON'}, 'data': '', 'keyword': 'actionType' },
                              'create':   {  'RESTfulPath': '/controller/alerting/rest/v1/applications/{app_ID}/actions',
@@ -123,8 +123,8 @@ class RESTfulAPI:
 
         'ScheduleDict':     {'fetch':    {  'RESTfulPath': '/controller/alerting/rest/v1/applications/{app_ID}/schedules',
                                             'method': requests.get, 'headers': {}, 'params': {'output': 'JSON'}, 'data': '', 'keyword': 'timezone' },
-                             #'fetchList':{  'RESTfulPath': '/controller/alerting/rest/v1/applications/{app_ID}/schedules',
-                             #               'method': requests.get, 'headers': {}, 'params': {'output': 'JSON'}, 'data': '' },
+                             'fetchList':{  'RESTfulPath': '/controller/alerting/rest/v1/applications/{app_ID}/schedules',
+                                            'method': requests.get, 'headers': {}, 'params': {'output': 'JSON'}, 'data': '' },
                              'fetchByID':{  'RESTfulPath': '/controller/alerting/rest/v1/applications/{app_ID}/schedules/{entity_ID}',
                                             'method': requests.get, 'headers': {}, 'params': {'output': 'JSON'}, 'data': '', 'keyword': 'scheduleConfiguration' },
                              'create':   {  'RESTfulPath': '/controller/alerting/rest/v1/applications/{app_ID}/schedules/',

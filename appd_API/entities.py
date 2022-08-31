@@ -34,21 +34,18 @@ class AppEntity(dict):
         :param selectors: fetch only entities filtered by specified selectors
         :returns: the entity data. None if no entity was found.
         """
-        if self['entities'] is None:
-            self.fetch(appID=appID,selectors=selectors)
-        for entity in self['entities'][appID]:
+        streamdata = self['controller'].RESTfulAPI.send_request(entityClassName=self.__class__.__name__,verb="fetchList",app_ID=appID,selectors=selectors)
+        entities = json.loads(streamdata)
+        for entity in entities:
             if entity['name'] == entityName:
-                entity_ID = entity['id'] if 'id' in entity else entity['name']
                 try:
-                    data = self['controller'].RESTfulAPI.send_request(entityClassName=self.__class__.__name__,verb="fetchByID",app_ID=appID,entity_ID=entity_ID,selectors=selectors)
+                    data = self['controller'].RESTfulAPI.send_request(entityClassName=self.__class__.__name__,verb="fetchByID",app_ID=appID,entity_ID=entity['id'],selectors=selectors)
                 except KeyError:
                     sys.stderr.write("fetch_with_details("+str(self.__class__.__name__)+"): fetchByID API endpoint does not exist.\n")
                     return None
-                try:
-                    return json.loads(data)
-                except (TypeError,ValueError) as error:
-                    sys.stderr.write("fetch_with_details("+str(appID)+"): "+str(error)+"\n")
-                    return None
+
+                retValue = self.load(streamdata=data,appID=appID)
+                return self['entities'][appID] if retValue else None
         return None
 
     def fetch_after_time(self,appID,duration,sinceEpoch,selectors=None):
@@ -71,24 +68,28 @@ class AppEntity(dict):
         :param appID: the ID number of the application to fetch entities
         :returns: the number of fetched entities. Zero if no entity was found.
         """
-        if appID is None: appID = 0
-        if self['entities'] is None:
-            self.fetch(appID=appID,selectors=selectors)
-        index = 0
-        for entity in self['entities'][appID]:
-            entity_ID = entity['id'] if 'id' in entity else entity['name']
-            streamdata = self['controller'].RESTfulAPI.send_request(entityClassName=self.__class__.__name__,verb="fetchByID",app_ID=appID,entity_ID=entity_ID,selectors=selectors)
-            if streamdata is None:
+        streamdata = self['controller'].RESTfulAPI.send_request(entityClassName=self.__class__.__name__,verb="fetchList",app_ID=appID,selectors=selectors)
+        entities = json.loads(streamdata)
+        entityList = []
+        for entity in entities:
+            entityData = self['controller'].RESTfulAPI.send_request(entityClassName=self.__class__.__name__,verb="fetchByID",app_ID=appID,entity_ID=entity['id'],selectors=selectors)
+            if entityData is None:
                 sys.stderr.write("fetch_all_entities_with_details("+str(appID)+"): Failed to retrieve entity "+entity['name']+".\n")
                 continue
             try:
-                entityJSON = json.loads(streamdata)
+                entityJSON = json.loads(entityData)
             except TypeError as error:
                 sys.stderr.write("fetch_all_entities_with_details("+str(appID)+"): "+str(error)+"\n")
                 continue
-            self['entities'][appID][index] = entityJSON
-            index = index + 1
-        return index
+            entityList.append(entityJSON)
+        if self['entities'] is None:
+            self['entities'] = {appID:entityList}
+        elif appID not in self['entities']:
+            self['entities'].update({appID:entityList})
+        else:
+            self['entities'][appID].extend(entityList)
+        #print(json.dumps(self['entities'][appID]))
+        return len(entityList)
 
     def load(self,streamdata,appID=None):
         """
@@ -156,12 +157,12 @@ class AppEntity(dict):
     # * https://www.geeksforgeeks.org/python-update-nested-dictionary/                                   **
     # * https://stackoverflow.com/questions/3232943/update-value-of-a-nested-dictionary-of-varying-depth **
     # *****************************************************************************************************
-    def patch(self,patchJSON,appID=None,streamdata=None,selectors=None):
+    def patch(self,patchJSON,appID=None,sourcedata=None,selectors=None):
         """
         Patch entities for a list of applications, using an entity data input.
         :param patchJSON: the stream data with the entity configuration, in JSON format
         :param appID: the ID number of the application to patch entities
-        :param streamdata: the input stream data to be patched
+        :param sourcedata: the input source data to be patched
         :param selectors: update only entities filtered by specified selectors
         :returns: the number of updated entities. Zero if no entity was updated.
         """
@@ -173,8 +174,8 @@ class AppEntity(dict):
             if 'DEBUG' in locals(): sys.stderr.write("patch_entity: "+str(error)+"\n")
             return 0
 
-        if streamdata is not None:
-            if self.load(streamdata=streamdata) > 0:
+        if sourcedata is not None:
+            if self.load(streamdata=sourcedata) > 0:
                 appID = 0
         elif appID is not None:
             # Reload entity data for provided application
@@ -185,7 +186,7 @@ class AppEntity(dict):
         if selectors is not None and 'entityname' in selectors:
             # Generate the list of entity IDs to be patched
             entityNames = selectors['entityname'].split(',')
-            entityIDs = [ entity['id'] for entity in self['entities'][appID] if entity['name'] in entityNames ]
+            entityIDs = [ entity['id'] for entity in self['entities'][appID] if 'name' in entity and entity['name'] in entityNames ]
         else:
             entityIDs = [ entity['id'] for entity in self['entities'][appID] ]
 
@@ -195,16 +196,17 @@ class AppEntity(dict):
             if entity['id'] in entityIDs:
                 # Do the replacement in loaded data
                 entity.update(changesJSON)
-                if not streamdata:
+                ### Fix for "policy anomalyEvents" bug found in the API
+                if 'events' in entity:
+                    entity['events'].pop('anomalyEvents')
+                if not sourcedata:
                     # Update controller data
-                    #if self.entityAPIFunctions['update'](app_ID=appID,entity_ID=entity['id'],dataJSON=entity) == True:
                     if self['controller'].RESTfulAPI.send_request(entityClassName=self.__class__.__name__,verb="update",app_ID=appID,entity_ID=entity['id'],streamdata=entity) == True:
                         count = count + 1
                 else:
                     # Print updated data
                     print(json.dumps(entity))
                     count = count + 1
-
         return count
 
 

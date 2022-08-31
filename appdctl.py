@@ -425,7 +425,7 @@ elif COMMAND.lower() == "patch":
     if entityObj is None:
       sys.stderr.write("[Warn] Unknown format for file "+options.filename+"\n")
       exit()
-    entityObj.patch(patchJSON=options.patchJSON,streamdata=data,selectors=selectors)
+    entityObj.patch(patchJSON=options.patchJSON,sourcedata=data,selectors=selectors)
 
   elif args[1] in ['applications','dashboards','config','users']:
     ENTITY = args[1]
